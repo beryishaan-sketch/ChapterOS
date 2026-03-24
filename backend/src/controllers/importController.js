@@ -96,7 +96,7 @@ const importMembers = async (req, res) => {
 
     const { rows } = parseCSV(csv);
     const orgId = req.user.orgId;
-    const defaultPassword = await bcrypt.hash('ChapterOS2024!', 12);
+    const defaultPassword = await bcrypt.hash('ChapterHQ2024!', 12);
 
     let created = 0, skipped = 0, errors = [];
 

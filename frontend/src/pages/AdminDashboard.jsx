@@ -118,7 +118,7 @@ export default function AdminDashboard() {
       <div className="gradient-navy px-6 py-5">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-white">ChapterOS Admin</h1>
+            <h1 className="text-xl font-bold text-white">ChapterHQ Admin</h1>
             <p className="text-white/50 text-xs mt-0.5">Internal dashboard — keep this private</p>
           </div>
           <div className="flex items-center gap-3">

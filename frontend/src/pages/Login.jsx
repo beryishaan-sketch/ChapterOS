@@ -50,7 +50,7 @@ export default function Login() {
             <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-navy-dark font-black text-lg">Χ</span>
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight">ChapterOS</span>
+            <span className="text-2xl font-bold text-white tracking-tight">ChapterHQ</span>
           </div>
           <p className="text-white/50 text-sm">The operating system for Greek life</p>
         </div>
@@ -142,7 +142,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-white/30 mt-6">
-          © {new Date().getFullYear()} ChapterOS. All rights reserved.
+          © {new Date().getFullYear()} ChapterHQ. All rights reserved.
         </p>
       </div>
     </div>

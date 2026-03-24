@@ -91,7 +91,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
             <Zap size={15} className="text-navy-dark" strokeWidth={2.5} />
           </div>
           <div className="min-w-0">
-            <p className="text-white font-bold text-sm leading-tight">ChapterOS</p>
+            <p className="text-white font-bold text-sm leading-tight">ChapterHQ</p>
             {org && <p className="text-white/40 text-xs truncate">{org.name}</p>}
           </div>
         </div>

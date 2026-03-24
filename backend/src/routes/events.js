@@ -40,7 +40,7 @@ router.get('/:id/ical', verifyToken, async (req, res) => {
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
     const fmt = d => d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
     const ical = [
-      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ChapterOS//EN',
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ChapterHQ//EN',
       'BEGIN:VEVENT',
       `UID:${event.id}@chapteros`,
       `DTSTART:${fmt(start)}`,

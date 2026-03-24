@@ -1,6 +1,6 @@
 {
-  "name": "ChapterOS",
-  "short_name": "ChapterOS",
+  "name": "ChapterHQ",
+  "short_name": "ChapterHQ",
   "description": "Run your chapter like a pro",
   "start_url": "/dashboard",
   "display": "standalone",

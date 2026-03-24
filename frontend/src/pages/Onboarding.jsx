@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Check, Users, Palette, Mail, Plus, X,
-  Upload, BookOpen, Calendar, Building2
+  Upload, BookOpen, Calendar, Building2, Copy
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -79,9 +79,8 @@ export default function Onboarding() {
   const [logoFile, setLogoFile] = useState(null);
 
   // Step 3
-  const [emails, setEmails] = useState(['']);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteSent, setInviteSent] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
@@ -183,7 +182,7 @@ export default function Onboarding() {
             <div className="w-9 h-9 bg-gold rounded-xl flex items-center justify-center">
               <span className="text-navy-dark font-black">Χ</span>
             </div>
-            <span className="text-xl font-bold text-white tracking-tight">ChapterOS</span>
+            <span className="text-xl font-bold text-white tracking-tight">ChapterHQ</span>
           </div>
         </div>
 
@@ -331,54 +330,55 @@ export default function Onboarding() {
           {step === 2 && (
             <div className="animate-slide-up space-y-4">
               <p className="text-sm text-gray-600">
-                Invite your officers and members by email. They'll receive a link to create their account.
+                Share your invite code or link with officers and brothers. They'll create their own account and join your chapter instantly.
               </p>
 
+              {/* Invite Code */}
               <div>
-                <label className="label">Add email addresses</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input
-                      type="email"
-                      className="input-field pl-10"
-                      placeholder="member@chapter.edu"
-                      value={inviteEmail}
-                      onChange={e => setInviteEmail(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addEmailField())}
-                    />
-                  </div>
+                <label className="label">Your invite code</label>
+                <div className="flex items-center gap-3 p-4 bg-navy/5 border-2 border-navy/20 rounded-xl">
+                  <span className="flex-1 text-center font-mono text-3xl font-black tracking-[0.3em] text-navy">
+                    {org?.inviteCode || '········'}
+                  </span>
                   <button
                     type="button"
-                    onClick={addEmailField}
-                    className="btn-secondary px-3"
+                    onClick={() => {
+                      navigator.clipboard.writeText(org?.inviteCode || '');
+                      setCopiedCode(true);
+                      setTimeout(() => setCopiedCode(false), 2000);
+                    }}
+                    className="p-2 hover:bg-navy/10 rounded-lg transition-colors"
                   >
-                    <Plus size={16} />
+                    {copiedCode ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-navy" />}
                   </button>
                 </div>
               </div>
 
-              {emails.filter(Boolean).length > 0 && (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {emails.filter(Boolean).map((email, i) => (
-                    <div key={i} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                      <Mail size={14} className="text-gray-400 flex-shrink-0" />
-                      <span className="text-sm text-gray-700 flex-1 truncate">{email}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeEmail(i)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
+              {/* Shareable Link */}
+              <div>
+                <label className="label">Shareable join link</label>
+                <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                  <span className="flex-1 text-xs text-gray-600 truncate font-mono">
+                    {window.location.origin}/register?code={org?.inviteCode}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/register?code=${org?.inviteCode}`);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }}
+                    className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    {copiedLink ? <Check size={14} className="text-green-600" /> : <Copy size={14} className="text-gray-500" />}
+                  </button>
                 </div>
-              )}
+                <p className="text-xs text-gray-400 mt-1.5">Brothers tap this link → code is pre-filled → they just add their name & password</p>
+              </div>
 
               <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg text-sm text-blue-700 border border-blue-100">
                 <Users size={14} className="flex-shrink-0" />
-                <span>You can always invite more members later from the Members page.</span>
+                <span>Send this link in your chapter group chat. You can find the invite code anytime in Settings.</span>
               </div>
             </div>
           )}

@@ -1,5 +1,5 @@
 /**
- * ChapterOS Demo Seed Script
+ * ChapterHQ Demo Seed Script
  * Creates a realistic demo chapter with members, events, dues, PNMs, etc.
  * 
  * Usage: node src/seed.js
@@ -49,7 +49,7 @@ const pnms = [
 ];
 
 async function main() {
-  console.log('🌱 Seeding ChapterOS demo data...');
+  console.log('🌱 Seeding ChapterHQ demo data...');
 
   // Check if demo org already exists
   const existing = await prisma.member.findFirst({ where: { email: DEMO_EMAIL } });

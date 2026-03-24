@@ -37,7 +37,7 @@ app.use('/api/auth/join', authLimiter);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'ChapterOS API is running', timestamp: new Date().toISOString() });
+  res.json({ success: true, message: 'ChapterHQ API is running', timestamp: new Date().toISOString() });
 });
 
 // Routes
@@ -86,7 +86,7 @@ app.use(logger.errorMiddleware);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`ChapterOS running on port ${PORT} — http://187.124.151.175:${PORT}`);
+  console.log(`ChapterHQ running on port ${PORT} — http://187.124.151.175:${PORT}`);
 });
 
 module.exports = app;

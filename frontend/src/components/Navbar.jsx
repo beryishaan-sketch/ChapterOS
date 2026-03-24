@@ -38,7 +38,7 @@ export default function Navbar({ onMenuClick }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const page = PAGE_CONFIG[location.pathname] || { title: 'ChapterOS', sub: null };
+  const page = PAGE_CONFIG[location.pathname] || { title: 'ChapterHQ', sub: null };
 
   useEffect(() => {
     const handler = (e) => {

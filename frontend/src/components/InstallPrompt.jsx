@@ -42,7 +42,7 @@ export default function InstallPrompt() {
             <Download size={18} className="text-white" />
           </div>
           <div>
-            <p className="font-semibold text-gray-900 text-sm">Install ChapterOS</p>
+            <p className="font-semibold text-gray-900 text-sm">Install ChapterHQ</p>
             <p className="text-xs text-gray-500 mt-0.5">Add to your home screen for quick access — works offline too.</p>
             <button onClick={install} className="btn-primary text-xs px-3 py-1.5 mt-2">
               Install App

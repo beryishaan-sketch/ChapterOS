@@ -10,7 +10,7 @@ import {
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'Why ChapterOS', href: '#why' },
+  { label: 'Why ChapterHQ', href: '#why' },
 ];
 
 const FEATURES = [
@@ -160,7 +160,7 @@ export default function Landing() {
             <div className="w-8 h-8 bg-navy rounded-lg flex items-center justify-center">
               <Zap size={16} className="text-gold" strokeWidth={2.5} />
             </div>
-            <span className="text-lg font-bold text-gray-900">ChapterOS</span>
+            <span className="text-lg font-bold text-gray-900">ChapterHQ</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map(l => (
@@ -205,7 +205,7 @@ export default function Landing() {
             Kill them all.
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
-            ChapterOS replaces GroupMe lists, Excel spreadsheets, Venmo chasing, Google Docs, and whatever your treasurer uses — with one platform built for Greek life.
+            ChapterHQ replaces GroupMe lists, Excel spreadsheets, Venmo chasing, Google Docs, and whatever your treasurer uses — with one platform built for Greek life.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/register" className="inline-flex items-center justify-center gap-2 bg-gold hover:bg-gold/90 text-navy-dark font-bold px-8 py-4 rounded-xl text-base transition-all hover:-translate-y-0.5 shadow-lg">
@@ -240,7 +240,7 @@ export default function Landing() {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
               Sound familiar?
             </h2>
-            <p className="text-gray-500 mt-3 text-lg">Every chapter deals with the same problems. ChapterOS fixes them.</p>
+            <p className="text-gray-500 mt-3 text-lg">Every chapter deals with the same problems. ChapterHQ fixes them.</p>
           </div>
           <div className="space-y-4">
             {PAIN_POINTS.map(({ before, after }, i) => (
@@ -383,7 +383,7 @@ export default function Landing() {
           </div>
           <div className="text-center sm:text-left">
             <h3 className="text-xl font-bold text-gray-900">Installable on any phone</h3>
-            <p className="text-gray-500 text-sm mt-1">ChapterOS works as a Progressive Web App — add it to your home screen on iOS or Android. No app store required.</p>
+            <p className="text-gray-500 text-sm mt-1">ChapterHQ works as a Progressive Web App — add it to your home screen on iOS or Android. No app store required.</p>
           </div>
           <Link to="/register" className="btn-primary whitespace-nowrap flex-shrink-0 flex items-center gap-2">
             <Download size={16} /> Get started
@@ -418,14 +418,14 @@ export default function Landing() {
             <div className="w-7 h-7 bg-navy border border-white/10 rounded-lg flex items-center justify-center">
               <Zap size={13} className="text-gold" strokeWidth={2.5} />
             </div>
-            <span className="text-white font-bold text-sm">ChapterOS</span>
+            <span className="text-white font-bold text-sm">ChapterHQ</span>
           </div>
           <div className="flex gap-6">
             {['Privacy', 'Terms', 'Contact'].map(l => (
               <a key={l} href="#" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">{l}</a>
             ))}
           </div>
-          <p className="text-gray-600 text-xs">© 2025 ChapterOS. Built for Greek life.</p>
+          <p className="text-gray-600 text-xs">© 2025 ChapterHQ. Built for Greek life.</p>
         </div>
       </footer>
     </div>

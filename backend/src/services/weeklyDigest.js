@@ -73,7 +73,7 @@ async function sendDigestForOrg(org) {
       <div style="background:#C9A84C;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
         <span style="color:#0F1C3F;font-weight:900;font-size:16px;">⚡</span>
       </div>
-      <span style="color:white;font-weight:800;font-size:18px;">ChapterOS</span>
+      <span style="color:white;font-weight:800;font-size:18px;">ChapterHQ</span>
     </div>
     <p style="color:#94A3B8;margin:8px 0 0;font-size:13px;">Weekly Digest — ${org.name}</p>
   </div>
@@ -112,17 +112,17 @@ async function sendDigestForOrg(org) {
     ${duesUnpaid > 0 ? `
     <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:16px;margin-bottom:24px;">
       <p style="margin:0;font-size:13px;color:#92400E;font-weight:600;">💰 ${duesUnpaid} member${duesUnpaid !== 1 ? 's' : ''} still owe dues</p>
-      <p style="margin:6px 0 0;font-size:12px;color:#B45309;">Automated reminders are going out. Log into ChapterOS to send manual reminders.</p>
+      <p style="margin:6px 0 0;font-size:12px;color:#B45309;">Automated reminders are going out. Log into ChapterHQ to send manual reminders.</p>
     </div>` : ''}
 
     <a href="${process.env.FRONTEND_URL || 'https://chapteros.app'}/dashboard"
       style="display:block;text-align:center;background:#0F1C3F;color:white;padding:14px;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;">
-      Open ChapterOS →
+      Open ChapterHQ →
     </a>
   </div>
 
   <div style="padding:16px 32px;text-align:center;color:#9CA3AF;font-size:11px;border-top:1px solid #F3F4F6;">
-    <p style="margin:0;">ChapterOS Weekly Digest · ${org.name} · <a href="#" style="color:#9CA3AF;">Unsubscribe</a></p>
+    <p style="margin:0;">ChapterHQ Weekly Digest · ${org.name} · <a href="#" style="color:#9CA3AF;">Unsubscribe</a></p>
   </div>
 </div>`;
 

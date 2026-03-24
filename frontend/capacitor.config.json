@@ -1,6 +1,6 @@
 {
   "appId": "com.chapteros.app",
-  "appName": "ChapterOS",
+  "appName": "ChapterHQ",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

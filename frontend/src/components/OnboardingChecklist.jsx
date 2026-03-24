@@ -8,7 +8,7 @@ const STEPS = [
   { id: 'event', label: 'Create your first event', desc: 'Set up an upcoming event for your chapter', action: '/events', check: async () => { const r = await client.get('/events'); return (r.data.data?.length || 0) > 0; } },
   { id: 'dues', label: 'Set up semester dues', desc: 'Configure dues amounts for your members', action: '/dues', check: async () => { const r = await client.get('/dues'); return (r.data.data?.length || 0) > 0; } },
   { id: 'settings', label: 'Customize chapter profile', desc: 'Add your chapter logo and details', action: '/settings', check: async () => { const r = await client.get('/orgs/current'); return !!(r.data.data?.logoUrl); } },
-  { id: 'invite', label: 'Share your invite code', desc: 'Get brothers signed up on ChapterOS', action: '/settings', check: async () => { const r = await client.get('/members'); return (r.data.data?.length || 0) >= 5; } },
+  { id: 'invite', label: 'Share your invite code', desc: 'Get brothers signed up on ChapterHQ', action: '/settings', check: async () => { const r = await client.get('/members'); return (r.data.data?.length || 0) >= 5; } },
 ];
 
 export default function OnboardingChecklist() {
@@ -54,7 +54,7 @@ export default function OnboardingChecklist() {
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900 text-sm">Get started with ChapterOS</h3>
+            <h3 className="font-semibold text-gray-900 text-sm">Get started with ChapterHQ</h3>
             <span className="text-xs bg-gold/15 text-gold-dark font-bold px-2 py-0.5 rounded-full">{doneCount}/{STEPS.length} done</span>
           </div>
           <div className="mt-1.5 h-1.5 bg-gray-200 rounded-full overflow-hidden w-48">

@@ -28,13 +28,13 @@ const sendSMS = async ({ to, body }) => {
 
 const sendDuesSMS = async ({ to, memberName, amount, dueDate, orgName }) => {
   const date = dueDate ? new Date(dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'soon';
-  const body = `Hi ${memberName.split(' ')[0]} — ${orgName} dues of $${amount} are due by ${date}. Pay your treasurer or contact an officer to avoid social probation. - ChapterOS`;
+  const body = `Hi ${memberName.split(' ')[0]} — ${orgName} dues of $${amount} are due by ${date}. Pay your treasurer or contact an officer to avoid social probation. - ChapterHQ`;
   return sendSMS({ to, body });
 };
 
 const sendEventReminderSMS = async ({ to, memberName, eventTitle, eventDate, location }) => {
   const date = new Date(eventDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const body = `Hey ${memberName.split(' ')[0]}, reminder: ${eventTitle} is ${date}${location ? ` at ${location}` : ''}. - ChapterOS`;
+  const body = `Hey ${memberName.split(' ')[0]}, reminder: ${eventTitle} is ${date}${location ? ` at ${location}` : ''}. - ChapterHQ`;
   return sendSMS({ to, body });
 };
 

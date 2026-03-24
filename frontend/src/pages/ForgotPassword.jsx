@@ -32,7 +32,7 @@ export default function ForgotPassword() {
             <div className="w-9 h-9 bg-gold rounded-xl flex items-center justify-center">
               <Zap size={18} className="text-navy-dark" strokeWidth={2.5} />
             </div>
-            <span className="text-xl font-bold text-white">ChapterOS</span>
+            <span className="text-xl font-bold text-white">ChapterHQ</span>
           </div>
         </div>
 

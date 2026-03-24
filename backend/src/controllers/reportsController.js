@@ -10,7 +10,7 @@ const LIGHT = '#F9FAFB';
 
 function header(doc, org, title) {
   doc.rect(0, 0, doc.page.width, 80).fill(NAVY);
-  doc.fontSize(20).fillColor('white').font('Helvetica-Bold').text('ChapterOS', 40, 22);
+  doc.fontSize(20).fillColor('white').font('Helvetica-Bold').text('ChapterHQ', 40, 22);
   doc.fontSize(10).fillColor('#CBD5E1').font('Helvetica').text(title, 40, 48);
   doc.fontSize(10).fillColor('#CBD5E1').text(`${org.name} · ${org.school}`, 40, 62);
   const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });

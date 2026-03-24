@@ -45,7 +45,7 @@ async function sendDuesReminders() {
           html: `
             <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background: #0F1C3F; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-                <h2 style="color: white; margin: 0; font-size: 20px;">ChapterOS</h2>
+                <h2 style="color: white; margin: 0; font-size: 20px;">ChapterHQ</h2>
                 <p style="color: #94A3B8; margin: 4px 0 0; font-size: 13px;">${duesRecord.org.name}</p>
               </div>
               <div style="background: white; border: 1px solid #E5E7EB; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
@@ -61,7 +61,7 @@ async function sendDuesReminders() {
                   <p style="margin: 4px 0 0; font-size: 28px; font-weight: 700; color: #0F1C3F;">$${(payment.amount / 100).toFixed(2)}</p>
                   <p style="margin: 4px 0 0; font-size: 12px; color: #9CA3AF;">Due: ${new Date(duesRecord.dueDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 </div>
-                <p style="color: #6B7280; font-size: 13px; margin: 0;">Log into ChapterOS to mark as paid or contact your treasurer with questions.</p>
+                <p style="color: #6B7280; font-size: 13px; margin: 0;">Log into ChapterHQ to mark as paid or contact your treasurer with questions.</p>
               </div>
             </div>
           `,

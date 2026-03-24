@@ -210,10 +210,10 @@ const forgotPassword = async (req, res) => {
 
     await sendEmail({
       to: member.email,
-      subject: 'Reset your ChapterOS password',
+      subject: 'Reset your ChapterHQ password',
       html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;">
         <div style="background:#0F1C3F;padding:24px 32px;border-radius:12px 12px 0 0;">
-          <h2 style="color:#C9A84C;margin:0;">ChapterOS</h2>
+          <h2 style="color:#C9A84C;margin:0;">ChapterHQ</h2>
         </div>
         <div style="background:white;border:1px solid #E5E7EB;padding:32px;border-radius:0 0 12px 12px;">
           <p>Hi ${member.firstName}, click below to reset your password. Expires in 1 hour.</p>

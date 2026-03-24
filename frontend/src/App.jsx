@@ -46,7 +46,7 @@ function App() {
       <div className="min-h-screen gradient-navy flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
-          <p className="text-white/60 text-sm font-medium">Loading ChapterOS…</p>
+          <p className="text-white/60 text-sm font-medium">Loading ChapterHQ…</p>
         </div>
       </div>
     );
