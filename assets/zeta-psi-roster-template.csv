@@ -1,0 +1,15 @@
+firstName,lastName,email,phone,major,year,pledgeClass,position,gpa
+[First],[Last],[email@school.edu],[555-000-0001],[Major],Senior,Fall 2021,President,3.8
+[First],[Last],[email@school.edu],[555-000-0002],[Major],Senior,Fall 2021,Vice President,3.5
+[First],[Last],[email@school.edu],[555-000-0003],[Major],Junior,Fall 2022,Treasurer,3.7
+[First],[Last],[email@school.edu],[555-000-0004],[Major],Junior,Fall 2022,Secretary,3.3
+[First],[Last],[email@school.edu],[555-000-0005],[Major],Junior,Spring 2022,Recruitment Chair,3.2
+[First],[Last],[email@school.edu],[555-000-0006],[Major],Junior,Fall 2022,Risk Manager,3.4
+[First],[Last],[email@school.edu],[555-000-0007],[Major],Junior,Spring 2022,Social Chair,3.1
+[First],[Last],[email@school.edu],[555-000-0008],[Major],Sophomore,Fall 2023,,3.5
+[First],[Last],[email@school.edu],[555-000-0009],[Major],Sophomore,Fall 2023,,3.2
+[First],[Last],[email@school.edu],[555-000-0010],[Major],Sophomore,Spring 2023,,2.9
+[First],[Last],[email@school.edu],[555-000-0011],[Major],Sophomore,Fall 2023,,3.6
+[First],[Last],[email@school.edu],[555-000-0012],[Major],Freshman,Fall 2024,,3.4
+[First],[Last],[email@school.edu],[555-000-0013],[Major],Freshman,Fall 2024,,3.1
+[First],[Last],[email@school.edu],[555-000-0014],[Major],Freshman,Spring 2024,,3.3
