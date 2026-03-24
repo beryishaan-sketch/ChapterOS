@@ -6,6 +6,9 @@ const { sendEmail } = require('../utils/email');
 
 const prisma = new PrismaClient();
 
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
 const signToken = (member) => {
   return jwt.sign(
     { id: member.id, orgId: member.orgId, role: member.role },
@@ -37,15 +40,22 @@ const register = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 12);
     const member = await prisma.member.create({
       data: {
-        orgId: org.id,
-        email,
-        passwordHash,
-        firstName,
-        lastName,
-        role: 'admin',
+        orgId: org.id, email, passwordHash,
+        firstName, lastName, role: 'admin',
         position: position || 'President',
       },
     });
+
+    // Create default channels for new chapter
+    const defaultChannels = [
+      { name: 'general', emoji: '💬', description: 'Chapter-wide announcements and chat', allowedRoles: 'all' },
+      { name: 'officers', emoji: '⭐', description: 'Officers only', allowedRoles: 'admin,officer' },
+      { name: 'events', emoji: '📅', description: 'Event planning and coordination', allowedRoles: 'all' },
+      { name: 'rush', emoji: '🤝', description: 'Recruitment discussion', allowedRoles: 'admin,officer' },
+    ];
+    for (const ch of defaultChannels) {
+      await prisma.channel.create({ data: { ...ch, orgId: org.id } });
+    }
 
     const token = signToken(member);
     const { passwordHash: _, ...memberData } = member;
@@ -69,7 +79,7 @@ const login = async (req, res) => {
     }
 
     const member = await prisma.member.findFirst({
-      where: { email },
+      where: { email: email.toLowerCase().trim() },
       include: { org: true },
     });
 
@@ -77,9 +87,45 @@ const login = async (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
+    // Check lockout
+    if (member.lockedUntil && member.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil((member.lockedUntil - new Date()) / 60000);
+      return res.status(423).json({
+        success: false,
+        error: `Account locked due to too many failed attempts. Try again in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}.`
+      });
+    }
+
     const valid = await bcrypt.compare(password, member.passwordHash);
+
     if (!valid) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      const attempts = (member.loginAttempts || 0) + 1;
+      const updateData = { loginAttempts: attempts };
+
+      if (attempts >= MAX_LOGIN_ATTEMPTS) {
+        updateData.lockedUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+        updateData.loginAttempts = 0;
+        await prisma.member.update({ where: { id: member.id }, data: updateData });
+        return res.status(423).json({
+          success: false,
+          error: `Too many failed attempts. Account locked for ${LOCKOUT_MINUTES} minutes.`
+        });
+      }
+
+      await prisma.member.update({ where: { id: member.id }, data: updateData });
+      const remaining = MAX_LOGIN_ATTEMPTS - attempts;
+      return res.status(401).json({
+        success: false,
+        error: `Invalid credentials. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining before lockout.`
+      });
+    }
+
+    // Reset login attempts on success
+    if (member.loginAttempts > 0 || member.lockedUntil) {
+      await prisma.member.update({
+        where: { id: member.id },
+        data: { loginAttempts: 0, lockedUntil: null }
+      });
     }
 
     const token = signToken(member);
@@ -109,7 +155,6 @@ const me = async (req, res) => {
     const { passwordHash: _, ...memberData } = member;
     return res.json({ success: true, data: memberData });
   } catch (error) {
-    console.error('Me error:', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch profile' });
   }
 };
@@ -124,12 +169,12 @@ const join = async (req, res) => {
     const org = await prisma.organization.findFirst({ where: { inviteCode: inviteCode.trim().toUpperCase() } });
     if (!org) return res.status(404).json({ success: false, error: 'Invalid invite code. Check with your chapter admin.' });
 
-    const existing = await prisma.member.findFirst({ where: { email, orgId: org.id } });
+    const existing = await prisma.member.findFirst({ where: { email: email.toLowerCase().trim(), orgId: org.id } });
     if (existing) return res.status(409).json({ success: false, error: 'Email already registered in this chapter' });
 
     const passwordHash = await bcrypt.hash(password, 12);
     const member = await prisma.member.create({
-      data: { orgId: org.id, email, passwordHash, firstName, lastName, role: 'member' },
+      data: { orgId: org.id, email: email.toLowerCase().trim(), passwordHash, firstName, lastName, role: 'member' },
     });
 
     const token = signToken(member);
@@ -147,17 +192,15 @@ const forgotPassword = async (req, res) => {
     if (!email) return res.status(400).json({ success: false, error: 'Email required' });
 
     const member = await prisma.member.findFirst({ where: { email: email.toLowerCase().trim() } });
-    // Always return success to prevent email enumeration
     if (!member) return res.json({ success: true, message: 'If that email exists, a reset link was sent.' });
 
-    // Invalidate old tokens
     await prisma.passwordResetToken.updateMany({
       where: { memberId: member.id, used: false },
       data: { used: true },
     });
 
     const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await prisma.passwordResetToken.create({
       data: { memberId: member.id, token, expiresAt },
@@ -168,24 +211,19 @@ const forgotPassword = async (req, res) => {
     await sendEmail({
       to: member.email,
       subject: 'Reset your ChapterOS password',
-      html: `
-        <div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;">
-          <div style="background:#0F1C3F;padding:24px 32px;border-radius:12px 12px 0 0;">
-            <h2 style="color:#C9A84C;margin:0;font-size:20px;">ChapterOS</h2>
-          </div>
-          <div style="background:white;border:1px solid #E5E7EB;border-top:none;padding:32px;border-radius:0 0 12px 12px;">
-            <h3 style="margin:0 0 12px;color:#111827;">Reset your password</h3>
-            <p style="color:#4B5563;margin:0 0 24px;">Hi ${member.firstName}, click the button below to reset your password. This link expires in 1 hour.</p>
-            <a href="${resetUrl}" style="display:inline-block;background:#0F1C3F;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">Reset Password</a>
-            <p style="color:#9CA3AF;font-size:12px;margin-top:24px;">If you didn't request this, ignore this email.</p>
-          </div>
+      html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;">
+        <div style="background:#0F1C3F;padding:24px 32px;border-radius:12px 12px 0 0;">
+          <h2 style="color:#C9A84C;margin:0;">ChapterOS</h2>
         </div>
-      `,
+        <div style="background:white;border:1px solid #E5E7EB;padding:32px;border-radius:0 0 12px 12px;">
+          <p>Hi ${member.firstName}, click below to reset your password. Expires in 1 hour.</p>
+          <a href="${resetUrl}" style="display:inline-block;background:#0F1C3F;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">Reset Password</a>
+        </div>
+      </div>`,
     });
 
     return res.json({ success: true, message: 'If that email exists, a reset link was sent.' });
   } catch (error) {
-    console.error('Forgot password error:', error);
     return res.status(500).json({ success: false, error: 'Failed to process request' });
   }
 };
@@ -203,12 +241,11 @@ const resetPassword = async (req, res) => {
     if (!resetToken) return res.status(400).json({ success: false, error: 'Invalid or expired reset link' });
 
     const passwordHash = await bcrypt.hash(password, 12);
-    await prisma.member.update({ where: { id: resetToken.memberId }, data: { passwordHash } });
+    await prisma.member.update({ where: { id: resetToken.memberId }, data: { passwordHash, loginAttempts: 0, lockedUntil: null } });
     await prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { used: true } });
 
     return res.json({ success: true, message: 'Password reset successfully' });
   } catch (error) {
-    console.error('Reset password error:', error);
     return res.status(500).json({ success: false, error: 'Failed to reset password' });
   }
 };

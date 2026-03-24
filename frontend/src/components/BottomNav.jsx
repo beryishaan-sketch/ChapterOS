@@ -1,12 +1,12 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, CreditCard, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, CreditCard, MessageSquare, MoreHorizontal } from 'lucide-react';
 
 const TABS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
   { to: '/members',   icon: Users,           label: 'Members' },
+  { to: '/channels',  icon: MessageSquare,   label: 'Chat' },
   { to: '/events',    icon: Calendar,        label: 'Events' },
-  { to: '/dues',      icon: CreditCard,      label: 'Dues' },
   { to: '/more',      icon: MoreHorizontal,  label: 'More' },
 ];
 

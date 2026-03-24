@@ -30,6 +30,7 @@ model Organization {
   riskItems            RiskItem[]
   polls                Poll[]
   sponsors             Sponsor[]
+  channels             Channel[]
 }
 
 model Member {
@@ -51,6 +52,11 @@ model Member {
   points       Int       @default(0)
   onProbation  Boolean   @default(false)
   avatarUrl    String?
+  // Granular feature permissions (null = use role defaults)
+  permissions  Json?
+  // Login security
+  loginAttempts    Int       @default(0)
+  lockedUntil      DateTime?
   createdAt    DateTime  @default(now())
   duesPayments DuesPayment[]
   attendances  Attendance[]
@@ -60,6 +66,8 @@ model Member {
   transactions    Transaction[]
   riskCompletions RiskCompletion[]
   notifications   Notification[]
+  messages        Message[]
+  channelMembers  ChannelMember[]
 }
 
 model PNM {
@@ -303,3 +311,41 @@ model Sponsor {
   updatedAt   DateTime  @updatedAt
 }
 
+
+model Channel {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  name        String
+  description String?
+  type        String   @default("public") // public | private | announcement
+  emoji       String?
+  // Role access: comma-separated roles e.g. "admin,officer" or "all"
+  allowedRoles String  @default("all")
+  createdAt   DateTime @default(now())
+  messages    Message[]
+  members     ChannelMember[]
+}
+
+model ChannelMember {
+  id        String   @id @default(cuid())
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([channelId, memberId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    Member   @relation(fields: [authorId], references: [id])
+  content   String
+  edited    Boolean  @default(false)
+  replyToId String?
+  createdAt DateTime @default(now())
+}

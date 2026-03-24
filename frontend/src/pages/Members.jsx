@@ -199,7 +199,7 @@ const MemberProfileModal = ({ member, isOpen, onClose, onUpdate, isAdmin }) => {
 
       {/* Tabs */}
       <div className="flex bg-gray-100 rounded-xl p-1 mb-6 w-fit">
-        {['info', 'dues', 'attendance'].map(t => (
+        {['info', 'dues', 'attendance', ...(isAdmin ? ['access'] : [])].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-3 py-2 rounded-lg text-sm font-medium capitalize transition-all ${tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             {t}
@@ -269,6 +269,10 @@ const MemberProfileModal = ({ member, isOpen, onClose, onUpdate, isAdmin }) => {
       {tab === 'attendance' && (
         <MemberAttendance memberId={member.id} />
       )}
+
+      {tab === 'access' && isAdmin && (
+        <MemberPermissions memberId={member.id} memberName={`${member.firstName} ${member.lastName}`} memberRole={member.role} />
+      )}
     </Modal>
   );
 };
@@ -336,6 +340,100 @@ const MemberAttendance = ({ memberId }) => {
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+const FEATURE_LABELS = {
+  dashboard: 'Dashboard', members: 'Member Directory', dues: 'Dues & Payments',
+  events: 'Events', recruitment: 'Recruitment Pipeline', budget: 'Budget & Treasury',
+  announcements: 'Announcements', polls: 'Polls', risk: 'Risk Management',
+  reports: 'HQ Reports', sponsors: 'Sponsorships', analytics: 'Analytics',
+  channels: 'Channels', settings: 'Settings',
+};
+
+const MemberPermissions = ({ memberId, memberName, memberRole }) => {
+  const [perms, setPerms] = useState(null);
+  const [overrides, setOverrides] = useState({});
+  const [defaults, setDefaults] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    client.get(`/members/${memberId}/permissions`)
+      .then(r => {
+        setPerms(r.data.data.permissions);
+        setOverrides(r.data.data.overrides || {});
+        setDefaults(r.data.data.roleDefaults || {});
+      }).catch(() => {});
+  }, [memberId]);
+
+  const toggle = (feature) => {
+    setPerms(p => ({ ...p, [feature]: !p[feature] }));
+    setOverrides(o => ({ ...o, [feature]: !perms[feature] }));
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await client.patch(`/members/${memberId}/permissions`, { permissions: overrides });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {} finally { setSaving(false); }
+  };
+
+  const reset = async () => {
+    try {
+      await client.delete(`/members/${memberId}/permissions`);
+      setOverrides({});
+      setPerms({ ...defaults });
+    } catch {}
+  };
+
+  if (!perms) return <div className="py-8 text-center text-gray-400 text-sm">Loading permissions…</div>;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Feature Access for {memberName}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Overrides apply on top of the <span className="font-medium text-gray-600">{memberRole}</span> role defaults</p>
+        </div>
+        <button onClick={reset} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Reset to defaults</button>
+      </div>
+
+      <div className="space-y-2">
+        {Object.entries(FEATURE_LABELS).map(([feature, label]) => {
+          const enabled = perms[feature];
+          const isOverridden = overrides.hasOwnProperty(feature);
+          return (
+            <div key={feature} className={`flex items-center justify-between p-3 rounded-xl border transition-all
+              ${enabled ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-800">{label}</span>
+                {isOverridden && (
+                  <span className="text-xs bg-amber-50 text-amber-600 border border-amber-200 rounded-full px-2 py-0.5">custom</span>
+                )}
+              </div>
+              <button onClick={() => toggle(feature)}
+                className={`relative w-10 h-5.5 rounded-full transition-colors duration-200
+                  ${enabled ? 'bg-navy' : 'bg-gray-200'}`}
+                style={{ height: '22px', minWidth: '40px' }}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200
+                  ${enabled ? 'translate-x-[18px]' : 'translate-x-0'}`}
+                  style={{ width: '18px', height: '18px' }}
+                />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <button onClick={save} disabled={saving || Object.keys(overrides).length === 0}
+        className="btn-primary w-full mt-4 flex items-center justify-center gap-2">
+        {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save Permissions'}
+      </button>
     </div>
   );
 };

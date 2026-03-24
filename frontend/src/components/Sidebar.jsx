@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   CreditCard, UserCheck, Settings, Shield,
   LogOut, X, Zap, Upload, Megaphone, Trophy, BarChart2, GraduationCap, ClipboardList as ReportIcon,
-  Vote, Building2, Wallet, ShieldCheck, FileText, User, ChevronDown, Gavel
+  Vote, Building2, Wallet, ShieldCheck, FileText, User, ChevronDown, Gavel, MessageSquare
 } from 'lucide-react';
 
 const NAV_GROUPS = [
@@ -38,6 +38,7 @@ const NAV_GROUPS = [
     label: 'Engagement',
     items: [
       { to: '/announcements', icon: Megaphone, label: 'Announcements' },
+      { to: '/channels', icon: MessageSquare, label: 'Channels', badge: 'NEW' },
       { to: '/polls', icon: Vote, label: 'Polls' },
     ],
   },

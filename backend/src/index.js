@@ -17,6 +17,8 @@ const billingRoutes = require('./routes/billing');
 const dashboardRoutes = require('./routes/dashboard');
 const orgRoutes = require('./routes/orgs');
 
+const { authLimiter, apiLimiter } = require('./middleware/security');
+
 const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -24,8 +26,14 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(logger.requestMiddleware);
+
+// Rate limiting
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/join', authLimiter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -54,6 +62,7 @@ app.use('/api/documents', require('./routes/documents'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/sponsors', require('./routes/sponsors'));
+app.use('/api/channels', require('./routes/channels'));
 app.use('/uploads', require('express').static(require('path').join(__dirname, '../../uploads')));
 
 // Start cron jobs

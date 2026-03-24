@@ -16,4 +16,7 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken };
+// Alias for consistency
+const requireAuth = verifyToken;
+
+module.exports = { verifyToken, requireAuth };

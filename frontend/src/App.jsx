@@ -36,6 +36,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import BidVoting from './pages/BidVoting';
+import Channels from './pages/Channels';
 
 function App() {
   const { loading } = useAuth();
@@ -133,6 +134,9 @@ function App() {
       </Route>
       <Route path="/more" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<More />} />
+      </Route>
+      <Route path="/channels" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<Channels />} />
       </Route>
       <Route path="/admin" element={<AdminDashboard />} />
     </Routes>
