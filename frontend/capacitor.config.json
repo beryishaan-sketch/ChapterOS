@@ -1,0 +1,26 @@
+{
+  "appId": "com.chapteros.app",
+  "appName": "ChapterOS",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0F1C3F",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0F1C3F"
+    }
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#0F1C3F"
+  }
+}

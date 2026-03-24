@@ -1,0 +1,305 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                   String    @id @default(cuid())
+  name                 String
+  type                 String
+  school               String
+  logoUrl              String?
+  primaryColor         String    @default("#0F1C3F")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  plan                 String    @default("trial")
+  trialEndsAt          DateTime?
+  inviteCode           String?   @unique
+  createdAt            DateTime  @default(now())
+  members              Member[]
+  events               Event[]
+  pnms                 PNM[]
+  documents            Document[]
+  duesRecords          DuesRecord[]
+  announcements        Announcement[]
+  transactions         Transaction[]
+  riskItems            RiskItem[]
+  polls                Poll[]
+  sponsors             Sponsor[]
+}
+
+model Member {
+  id           String    @id @default(cuid())
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+  email        String
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         String    @default("member")
+  position     String?
+  pledgeClass  String?
+  year         String?
+  major        String?
+  phone        String?
+  gpa          Float?
+  studyHours   Int       @default(0)
+  points       Int       @default(0)
+  onProbation  Boolean   @default(false)
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  duesPayments DuesPayment[]
+  attendances  Attendance[]
+  guestLists   GuestList[]
+  pnmVotes        PNMVote[]
+  announcements   Announcement[]
+  transactions    Transaction[]
+  riskCompletions RiskCompletion[]
+  notifications   Notification[]
+}
+
+model PNM {
+  id                String    @id @default(cuid())
+  orgId             String
+  org               Organization @relation(fields: [orgId], references: [id])
+  firstName         String
+  lastName          String
+  email             String?
+  phone             String?
+  year              String?
+  major             String?
+  mutualConnections String?
+  notes             String?
+  stage             String    @default("invited")
+  avgScore          Float     @default(0)
+  createdAt         DateTime  @default(now())
+  votes             PNMVote[]
+  eventAttendances  PNMEventAttendance[]
+}
+
+model PNMVote {
+  id        String   @id @default(cuid())
+  pnmId     String
+  pnm       PNM      @relation(fields: [pnmId], references: [id])
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id])
+  score     Int
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@unique([pnmId, memberId])
+}
+
+model Event {
+  id                String    @id @default(cuid())
+  orgId             String
+  org               Organization @relation(fields: [orgId], references: [id])
+  title             String
+  type              String
+  date              DateTime
+  location          String?
+  description       String?
+  guestCapPerMember Int       @default(2)
+  totalCapacity     Int?
+  requiresWaiver    Boolean   @default(false)
+  qrCode            String?
+  minutes           String?
+  createdAt         DateTime  @default(now())
+  guestLists        GuestList[]
+  attendances       Attendance[]
+  pnmAttendances    PNMEventAttendance[]
+}
+
+model GuestList {
+  id           String   @id @default(cuid())
+  eventId      String
+  event        Event    @relation(fields: [eventId], references: [id])
+  memberId     String
+  member       Member   @relation(fields: [memberId], references: [id])
+  guestName    String
+  guestContact String?
+  status       String   @default("pending")
+  waiverSigned Boolean  @default(false)
+  checkedIn    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model PNMEventAttendance {
+  id      String @id @default(cuid())
+  pnmId   String
+  pnm     PNM    @relation(fields: [pnmId], references: [id])
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
+
+  @@unique([pnmId, eventId])
+}
+
+model DuesRecord {
+  id        String    @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id])
+  semester  String
+  amount    Float
+  dueDate   DateTime
+  createdAt DateTime  @default(now())
+  payments  DuesPayment[]
+}
+
+model DuesPayment {
+  id              String    @id @default(cuid())
+  memberId        String
+  member          Member    @relation(fields: [memberId], references: [id])
+  duesRecordId    String
+  duesRecord      DuesRecord @relation(fields: [duesRecordId], references: [id])
+  amount          Float
+  status          String    @default("unpaid")
+  paidAt          DateTime?
+  stripePaymentId String?
+  createdAt       DateTime  @default(now())
+}
+
+model Attendance {
+  id          String    @id @default(cuid())
+  memberId    String
+  member      Member    @relation(fields: [memberId], references: [id])
+  eventId     String
+  event       Event     @relation(fields: [eventId], references: [id])
+  checkedIn   Boolean   @default(false)
+  checkedInAt DateTime?
+
+  @@unique([memberId, eventId])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id])
+  title     String
+  category  String
+  url       String
+  createdAt DateTime @default(now())
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id])
+  authorId  String
+  author    Member   @relation(fields: [authorId], references: [id])
+  title     String
+  body      String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  type        String   // income | expense
+  amount      Float
+  description String
+  category    String   // dues, fundraising, supplies, venue, food, other
+  date        DateTime @default(now())
+  createdById String
+  createdBy   Member   @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model RiskItem {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  title       String
+  description String?
+  required    Boolean  @default(true)
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  completions RiskCompletion[]
+}
+
+model RiskCompletion {
+  id         String   @id @default(cuid())
+  riskItemId String
+  riskItem   RiskItem @relation(fields: [riskItemId], references: [id])
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id])
+  completedAt DateTime @default(now())
+
+  @@unique([riskItemId, memberId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  orgId     String
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id])
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model Poll {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  authorId    String
+  question    String
+  options     Json     // [{ label: string, votes: number }]
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  votes       PollVote[]
+}
+
+model PollVote {
+  id          String   @id @default(cuid())
+  pollId      String
+  poll        Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  memberId    String
+  optionIndex Int
+  createdAt   DateTime @default(now())
+
+  @@unique([pollId, memberId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  memberId  String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Sponsor {
+  id          String    @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+  logoUrl     String?
+  category    String    @default("other")
+
+  dealAmount  Float?
+  dealStatus  String    @default("prospect")
+  dealNotes   String?
+  eventId     String?
+
+  tier        String?
+  perks       String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
