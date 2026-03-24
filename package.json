@@ -1,0 +1,13 @@
+{
+  "name": "chapteros",
+  "version": "1.0.0",
+  "description": "Chapter management platform for Greek life",
+  "scripts": {
+    "start": "cd backend && node src/index.js",
+    "build": "cd frontend && npm install && npm run build && cp -r dist ../backend/public",
+    "postinstall": "cd backend && npm install && npx prisma generate"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
