@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   DollarSign, Plus, Search, Download, Send, Check, X,
-  AlertCircle, ChevronDown, Filter, TrendingUp, Clock, AlertTriangle
+  AlertCircle, ChevronDown, Filter, TrendingUp, Clock, AlertTriangle,
+  FileSpreadsheet, ArrowRight
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import ImportComponent from './Import';
 
 const STATUS_CONFIG = {
   paid: { label: 'Paid', classes: 'badge-green' },
@@ -173,6 +175,7 @@ export default function Dues() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [payModal, setPayModal] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [sendingReminder, setSendingReminder] = useState(null);
@@ -258,12 +261,17 @@ export default function Dues() {
           <h1 className="page-title">Dues</h1>
           <p className="page-subtitle">Track member payments and outstanding balances</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button className="btn-secondary" onClick={exportCSV}><Download size={15} /> Export</button>
           {isAdmin && (
-            <button className="btn-primary" onClick={() => setShowCreate(true)}>
-              <Plus size={16} /> Create Record
-            </button>
+            <>
+              <button className="btn-secondary" onClick={() => setShowImport(true)}>
+                <FileSpreadsheet size={15} /> Import Spreadsheet
+              </button>
+              <button className="btn-primary" onClick={() => setShowCreate(true)}>
+                <Plus size={16} /> Create Record
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -446,6 +454,21 @@ export default function Dues() {
       )}
 
       {/* Modals */}
+      <Modal isOpen={showImport} onClose={() => { setShowImport(false); fetchData(); }} title="Import Dues Spreadsheet" size="lg">
+        <div className="p-1">
+          <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl mb-4">
+            <FileSpreadsheet size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-blue-800">
+              <p className="font-semibold mb-1">How to format your dues sheet:</p>
+              <p className="text-xs text-blue-600">Include columns for <strong>Name</strong> (or First/Last), <strong>Paid</strong> (Yes/No), and optionally <strong>Amount</strong>. We'll auto-detect the rest.</p>
+            </div>
+          </div>
+          <ImportComponent
+            onboardingMode={true}
+            onDone={() => { setShowImport(false); fetchData(); }}
+          />
+        </div>
+      </Modal>
       <CreateDuesModal isOpen={showCreate} onClose={() => setShowCreate(false)} onSave={(d) => setDues(prev => [d, ...prev])} />
       {payModal && (
         <MarkPaymentModal dueRecord={payModal} isOpen={!!payModal} onClose={() => setPayModal(null)} onSave={handlePaymentSave} />
