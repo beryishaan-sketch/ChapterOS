@@ -63,6 +63,8 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/sponsors', require('./routes/sponsors'));
 app.use('/api/channels', require('./routes/channels'));
+app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/superadmin', require('./routes/superadmin'));
 app.use('/uploads', require('express').static(require('path').join(__dirname, '../../uploads')));
 
@@ -76,10 +78,11 @@ startWeeklyDigestCron();
 const frontendDist = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendDist));
 app.get('*', (req, res) => {
-  // Only serve index.html for non-API routes
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(frontendDist, 'index.html'));
+  if (req.path.startsWith('/api')) {
+    // API route not found — return JSON 404 instead of hanging
+    return res.status(404).json({ success: false, error: 'API route not found' });
   }
+  res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
 // Global error handler

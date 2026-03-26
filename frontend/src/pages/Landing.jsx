@@ -425,8 +425,7 @@ export default function Landing() {
             <Link to="/terms" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">Terms</Link>
             <a href="mailto:admin@chapterhq.org" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">Contact</a>
           </div>
-          </div>
-          <p className="text-gray-600 text-xs">© 2025 ChapterHQ. Built for Greek life.</p>
+          <p className="text-gray-600 text-xs">© 2026 ChapterHQ. Built for Greek life.</p>
         </div>
       </footer>
     </div>
