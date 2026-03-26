@@ -183,6 +183,26 @@ const importMembers = async (req, res) => {
 
     let created = 0, skipped = 0, errors = [];
 
+    // If dues fields are mapped, find or create a dues record for current semester
+    let duesRecord = null;
+    const hasDuesData = mapping.duesPaid || mapping.duesAmount;
+    if (hasDuesData) {
+      const now = new Date();
+      const semester = now.getMonth() < 6 ? `Spring ${now.getFullYear()}` : `Fall ${now.getFullYear()}`;
+      duesRecord = await prisma.duesRecord.findFirst({
+        where: { orgId, semester },
+      });
+      if (!duesRecord) {
+        duesRecord = await prisma.duesRecord.create({
+          data: {
+            orgId, semester,
+            amount: 0, // will be updated from data or left as 0
+            dueDate: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+          },
+        });
+      }
+    }
+
     for (const row of rows) {
       try {
         const { firstName, lastName } = resolveNameFields(row, mapping);
@@ -190,37 +210,76 @@ const importMembers = async (req, res) => {
 
         const email = mapping.email ? row[mapping.email]?.trim()?.toLowerCase() : null;
 
-        // Skip if email already exists
-        const exists = email && await prisma.member.findFirst({ where: { email, orgId } });
-        if (exists) { skipped++; continue; }
-
         const rawGpa = mapping.gpa ? row[mapping.gpa]?.trim() : null;
         const gpa = rawGpa ? parseFloat(rawGpa.replace(',', '.')) || null : null;
 
-        await prisma.member.create({
-          data: {
-            orgId,
-            firstName,
-            lastName,
-            email: email || `${firstName.toLowerCase()}.${(lastName || 'member').toLowerCase()}.import@chapter.local`,
-            passwordHash: defaultPassword,
-            role: 'member',
-            position:    mapping.position    ? row[mapping.position]?.trim()    || null : null,
-            pledgeClass: mapping.pledgeClass ? row[mapping.pledgeClass]?.trim() || null : null,
-            year:        mapping.year        ? row[mapping.year]?.trim()        || null : null,
-            major:       mapping.major       ? row[mapping.major]?.trim()       || null : null,
-            phone:       mapping.phone       ? row[mapping.phone]?.trim()       || null : null,
-            gpa,
-          },
-        });
-        created++;
+        // Find existing member or create new one
+        let member = email ? await prisma.member.findFirst({ where: { email, orgId } }) : null;
+        if (!member) {
+          // Also try matching by name if no email
+          if (!email) {
+            member = await prisma.member.findFirst({
+              where: { orgId, firstName: { equals: firstName, mode: 'insensitive' }, lastName: { equals: lastName || '', mode: 'insensitive' } }
+            });
+          }
+        }
+
+        if (!member) {
+          member = await prisma.member.create({
+            data: {
+              orgId, firstName, lastName,
+              email: email || `${firstName.toLowerCase()}.${(lastName || 'member').toLowerCase()}.import@chapter.local`,
+              passwordHash: defaultPassword,
+              role: 'member',
+              position:    mapping.position    ? row[mapping.position]?.trim()    || null : null,
+              pledgeClass: mapping.pledgeClass ? row[mapping.pledgeClass]?.trim() || null : null,
+              year:        mapping.year        ? row[mapping.year]?.trim()        || null : null,
+              major:       mapping.major       ? row[mapping.major]?.trim()       || null : null,
+              phone:       mapping.phone       ? row[mapping.phone]?.trim()       || null : null,
+              gpa,
+            },
+          });
+          created++;
+        } else {
+          // Update existing member with any new data
+          const updates = {};
+          if (gpa && !member.gpa) updates.gpa = gpa;
+          if (mapping.pledgeClass && row[mapping.pledgeClass] && !member.pledgeClass) updates.pledgeClass = row[mapping.pledgeClass]?.trim();
+          if (mapping.major && row[mapping.major] && !member.major) updates.major = row[mapping.major]?.trim();
+          if (mapping.phone && row[mapping.phone] && !member.phone) updates.phone = row[mapping.phone]?.trim();
+          if (Object.keys(updates).length > 0) {
+            await prisma.member.update({ where: { id: member.id }, data: updates });
+          }
+          created++; // count updates too
+        }
+
+        // Handle dues status
+        if (duesRecord && member) {
+          const rawPaid = mapping.duesPaid ? row[mapping.duesPaid]?.trim()?.toLowerCase() : null;
+          const isPaid = rawPaid && /^(yes|paid|true|1|✓|x|complete|done)$/i.test(rawPaid);
+          const rawAmount = mapping.duesAmount ? parseFloat(row[mapping.duesAmount]?.replace(/[$,]/g, '')) * 100 : null;
+          const amount = rawAmount && !isNaN(rawAmount) ? rawAmount : (duesRecord.amount || 0);
+
+          // Update dues record amount if we found one
+          if (rawAmount && !isNaN(rawAmount) && duesRecord.amount === 0) {
+            await prisma.duesRecord.update({ where: { id: duesRecord.id }, data: { amount: rawAmount } });
+          }
+
+          await prisma.duesPayment.upsert({
+            where: { memberId_duesRecordId: { memberId: member.id, duesRecordId: duesRecord.id } },
+            update: { status: isPaid ? 'paid' : 'unpaid', paidAt: isPaid ? new Date() : null, amount: amount || 0 },
+            create: { memberId: member.id, duesRecordId: duesRecord.id, amount: amount || 0, status: isPaid ? 'paid' : 'unpaid', paidAt: isPaid ? new Date() : null },
+          });
+        }
+
       } catch (err) {
-        errors.push(err.message);
+        errors.push(`${err.message}`);
         skipped++;
       }
     }
 
-    return res.json({ success: true, data: { created, skipped, errors: errors.slice(0, 5) } });
+    const duesSummary = duesRecord ? ` Dues status updated for ${created} members.` : '';
+    return res.json({ success: true, data: { created, skipped, errors: errors.slice(0, 5), duesSummary } });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ success: false, error: 'Import failed' });

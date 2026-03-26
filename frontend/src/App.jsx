@@ -15,6 +15,7 @@ import Events from './pages/Events';
 import GuestList from './pages/GuestList';
 import Dues from './pages/Dues';
 import Members from './pages/Members';
+import RoleManager from './pages/RoleManager';
 import Attendance from './pages/Attendance';
 import Settings from './pages/Settings';
 import Billing from './pages/Billing';
@@ -85,6 +86,9 @@ function App() {
       </Route>
       <Route path="/members" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Members />} />
+      </Route>
+      <Route path="/roles" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<RoleManager />} />
       </Route>
       <Route path="/attendance" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Attendance />} />

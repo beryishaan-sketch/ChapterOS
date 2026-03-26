@@ -168,6 +168,8 @@ model DuesPayment {
   paidAt          DateTime?
   stripePaymentId String?
   createdAt       DateTime  @default(now())
+
+  @@unique([memberId, duesRecordId])
 }
 
 model Attendance {

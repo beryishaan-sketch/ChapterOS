@@ -21,6 +21,7 @@ const NAV_GROUPS = [
     label: 'Chapter',
     items: [
       { to: '/members', icon: Users, label: 'Members' },
+      { to: '/roles', icon: Shield, label: 'Roles & Officers' },
       { to: '/recruitment', icon: UserCheck, label: 'Recruitment' },
       { to: '/bid-voting', icon: Gavel, label: 'Bid Voting', badge: 'NEW' },
       { to: '/events', icon: Calendar, label: 'Events' },
