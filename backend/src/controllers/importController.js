@@ -4,17 +4,28 @@ const prisma = new PrismaClient();
 
 // Fuzzy field detection from CSV headers
 const FIELD_MAP = {
-  firstName: ['first', 'firstname', 'first_name', 'fname', 'given'],
-  lastName: ['last', 'lastname', 'last_name', 'lname', 'surname', 'family'],
-  email: ['email', 'mail', 'e-mail'],
-  phone: ['phone', 'cell', 'mobile', 'number', 'contact'],
-  major: ['major', 'program', 'study', 'degree', 'field'],
-  year: ['year', 'grade', 'class', 'graduation', 'grad'],
-  pledgeClass: ['pledge', 'pledgeclass', 'pledge_class', 'chapter', 'semester', 'cohort'],
-  gpa: ['gpa', 'grade point', 'grades', 'academic'],
-  position: ['position', 'role', 'title', 'office', 'officer'],
-  mutualConnections: ['mutual', 'connections', 'referred', 'referral', 'knows'],
-  notes: ['notes', 'comments', 'remarks', 'note', 'memo'],
+  fullName:  ['fullname','full_name','name','brothername','brother','member','active','activename','membername','studentname','legalname'],
+  firstName: ['first', 'firstname', 'first_name', 'fname', 'given', 'preferredname', 'preferred'],
+  lastName:  ['last', 'lastname', 'last_name', 'lname', 'surname', 'family', 'familyname'],
+  email:     ['email', 'mail', 'e-mail', 'emailaddress', 'email_address', 'scholemail', 'universitye'],
+  phone:     ['phone', 'cell', 'mobile', 'number', 'contact', 'phonenumber', 'cellphone', 'cellnumber'],
+  major:     ['major', 'program', 'study', 'degree', 'field', 'concentration', 'curriculum'],
+  year:      ['year', 'grade', 'class', 'graduation', 'grad', 'classstanding', 'academicyear', 'classyear', 'graduationyear'],
+  pledgeClass: ['pledge', 'pledgeclass', 'pledge_class', 'chapter', 'semester', 'cohort', 'initiationclass', 'initiationsemester', 'classof', 'pledgesemester'],
+  gpa:       ['gpa', 'grade point', 'grades', 'academic', 'gradepoint', 'cumulativegpa', 'cumgpa'],
+  position:  ['position', 'role', 'title', 'office', 'officer', 'execposition', 'chapterrole', 'officertitle'],
+  hometown:  ['hometown', 'home', 'city', 'from', 'homecity', 'homestate', 'origin'],
+  linkedin:  ['linkedin', 'linkedinurl', 'linkedin_url', 'profile'],
+  mutualConnections: ['mutual', 'connections', 'referred', 'referral', 'knows', 'referredby', 'mutualfriend'],
+  notes:     ['notes', 'comments', 'remarks', 'note', 'memo', 'additional', 'info', 'other'],
+  // Dues fields
+  duesPaid:  ['paid', 'dues', 'payment', 'duespaid', 'paidstatus', 'dusstatus'],
+  duesAmount:['amount', 'balance', 'owes', 'dueesamount', 'totaldue'],
+  // Events fields
+  eventTitle:    ['event', 'eventtitle', 'eventname', 'title'],
+  eventDate:     ['date', 'eventdate', 'when', 'datetime'],
+  eventLocation: ['location', 'venue', 'where', 'place', 'address'],
+  eventType:     ['type', 'eventtype', 'category', 'kind'],
 };
 
 function detectMapping(headers) {
@@ -89,6 +100,34 @@ const preview = async (req, res) => {
   }
 };
 
+// Split "Full Name" into first/last intelligently
+function splitFullName(name = '') {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+  if (parts.length === 2) return { firstName: parts[0], lastName: parts[1] };
+  // 3+ parts: first = first word, last = last word, middle ignored
+  return { firstName: parts[0], lastName: parts[parts.length - 1] };
+}
+
+function resolveNameFields(row, mapping) {
+  // If we have dedicated first/last columns, use those
+  if (mapping.firstName && mapping.lastName) {
+    return {
+      firstName: row[mapping.firstName]?.trim() || '',
+      lastName: row[mapping.lastName]?.trim() || '',
+    };
+  }
+  // If only first name mapped
+  if (mapping.firstName && !mapping.lastName) {
+    return { firstName: row[mapping.firstName]?.trim() || '', lastName: '' };
+  }
+  // If fullName column mapped
+  if (mapping.fullName) {
+    return splitFullName(row[mapping.fullName] || '');
+  }
+  return { firstName: '', lastName: '' };
+}
+
 const importMembers = async (req, res) => {
   try {
     const { csv, mapping } = req.body;
@@ -102,29 +141,32 @@ const importMembers = async (req, res) => {
 
     for (const row of rows) {
       try {
-        const firstName = row[mapping.firstName]?.trim();
-        const lastName = row[mapping.lastName]?.trim();
-        const email = row[mapping.email]?.trim()?.toLowerCase();
+        const { firstName, lastName } = resolveNameFields(row, mapping);
+        if (!firstName) { skipped++; continue; }
 
-        if (!firstName || !lastName) { skipped++; continue; }
+        const email = mapping.email ? row[mapping.email]?.trim()?.toLowerCase() : null;
 
+        // Skip if email already exists
         const exists = email && await prisma.member.findFirst({ where: { email, orgId } });
         if (exists) { skipped++; continue; }
+
+        const rawGpa = mapping.gpa ? row[mapping.gpa]?.trim() : null;
+        const gpa = rawGpa ? parseFloat(rawGpa.replace(',', '.')) || null : null;
 
         await prisma.member.create({
           data: {
             orgId,
             firstName,
             lastName,
-            email: email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@chapter.local`,
+            email: email || `${firstName.toLowerCase()}.${(lastName || 'member').toLowerCase()}.import@chapter.local`,
             passwordHash: defaultPassword,
             role: 'member',
-            position: mapping.position ? row[mapping.position]?.trim() : null,
-            pledgeClass: mapping.pledgeClass ? row[mapping.pledgeClass]?.trim() : null,
-            year: mapping.year ? row[mapping.year]?.trim() : null,
-            major: mapping.major ? row[mapping.major]?.trim() : null,
-            phone: mapping.phone ? row[mapping.phone]?.trim() : null,
-            gpa: mapping.gpa && row[mapping.gpa] ? parseFloat(row[mapping.gpa]) || null : null,
+            position:    mapping.position    ? row[mapping.position]?.trim()    || null : null,
+            pledgeClass: mapping.pledgeClass ? row[mapping.pledgeClass]?.trim() || null : null,
+            year:        mapping.year        ? row[mapping.year]?.trim()        || null : null,
+            major:       mapping.major       ? row[mapping.major]?.trim()       || null : null,
+            phone:       mapping.phone       ? row[mapping.phone]?.trim()       || null : null,
+            gpa,
           },
         });
         created++;
@@ -153,21 +195,20 @@ const importPNMs = async (req, res) => {
 
     for (const row of rows) {
       try {
-        const firstName = row[mapping.firstName]?.trim();
-        const lastName = row[mapping.lastName]?.trim();
-        if (!firstName || !lastName) { skipped++; continue; }
+        const { firstName, lastName } = resolveNameFields(row, mapping);
+        if (!firstName) { skipped++; continue; }
 
         await prisma.pNM.create({
           data: {
             orgId,
             firstName,
             lastName,
-            email: mapping.email ? row[mapping.email]?.trim() : null,
-            phone: mapping.phone ? row[mapping.phone]?.trim() : null,
-            major: mapping.major ? row[mapping.major]?.trim() : null,
-            year: mapping.year ? row[mapping.year]?.trim() : null,
-            mutualConnections: mapping.mutualConnections ? row[mapping.mutualConnections]?.trim() : null,
-            notes: mapping.notes ? row[mapping.notes]?.trim() : null,
+            email: mapping.email ? row[mapping.email]?.trim() || null : null,
+            phone: mapping.phone ? row[mapping.phone]?.trim() || null : null,
+            major: mapping.major ? row[mapping.major]?.trim() || null : null,
+            year:  mapping.year  ? row[mapping.year]?.trim()  || null : null,
+            mutualConnections: mapping.mutualConnections ? row[mapping.mutualConnections]?.trim() || null : null,
+            notes: mapping.notes ? row[mapping.notes]?.trim() || null : null,
             stage: 'invited',
           },
         });
@@ -182,4 +223,44 @@ const importPNMs = async (req, res) => {
   }
 };
 
-module.exports = { preview, importMembers, importPNMs };
+// POST /import/events — bulk import events from CSV
+const importEvents = async (req, res) => {
+  try {
+    const { csv, mapping } = req.body;
+    if (!csv || !mapping) return res.status(400).json({ success: false, error: 'CSV and mapping required' });
+
+    const { rows } = parseCSV(csv);
+    const orgId = req.user.orgId;
+
+    let created = 0, skipped = 0;
+
+    for (const row of rows) {
+      try {
+        const title = mapping.eventTitle ? row[mapping.eventTitle]?.trim() : null;
+        const dateStr = mapping.eventDate ? row[mapping.eventDate]?.trim() : null;
+        if (!title || !dateStr) { skipped++; continue; }
+
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) { skipped++; continue; }
+
+        await prisma.event.create({
+          data: {
+            orgId,
+            title,
+            date,
+            location: mapping.eventLocation ? row[mapping.eventLocation]?.trim() || null : null,
+            type:     mapping.eventType     ? row[mapping.eventType]?.trim()     || 'other' : 'other',
+          },
+        });
+        created++;
+      } catch { skipped++; }
+    }
+
+    return res.json({ success: true, data: { created, skipped } });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ success: false, error: 'Import failed' });
+  }
+};
+
+module.exports = { preview, importMembers, importPNMs, importEvents };

@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Check, Users, Palette, Mail, Plus, X,
-  Upload, BookOpen, Calendar, Building2, Copy
+  Upload, BookOpen, Calendar, Building2, Copy, FileSpreadsheet
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import ImportComponent from './Import';
 
 const STEPS = [
   { label: 'Chapter Details', icon: BookOpen, description: 'Tell us about your chapter' },
   { label: 'Customize', icon: Palette, description: 'Make it yours' },
+  { label: 'Import Roster', icon: FileSpreadsheet, description: 'Optional — bring your existing data' },
   { label: 'Invite Members', icon: Users, description: 'Get your team started' },
 ];
 
@@ -326,8 +328,26 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 3: Invite Members */}
+          {/* Step 3: Import Roster (optional) */}
           {step === 2 && (
+            <div className="animate-slide-up space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <FileSpreadsheet size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-900">Have a Google Sheet or spreadsheet?</p>
+                  <p className="text-xs text-blue-600 mt-0.5">Import your existing roster in seconds — we'll auto-detect names, emails, GPA, and more.</p>
+                </div>
+              </div>
+              <ImportComponent onboardingMode={true} onDone={() => setStep(3)} />
+              <button type="button" onClick={() => setStep(3)}
+                className="w-full text-center text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors">
+                Skip for now — I'll add members manually
+              </button>
+            </div>
+          )}
+
+          {/* Step 4: Invite Members */}
+          {step === 3 && (
             <div className="animate-slide-up space-y-4">
               <p className="text-sm text-gray-600">
                 Share your invite code or link with officers and brothers. They'll create their own account and join your chapter instantly.
@@ -396,7 +416,7 @@ export default function Onboarding() {
             ) : <div />}
 
             <div className="flex items-center gap-3">
-              {step === 2 && (
+              {step === 3 && (
                 <button
                   type="button"
                   onClick={handleSkip}
@@ -406,7 +426,7 @@ export default function Onboarding() {
                 </button>
               )}
 
-              {step < 2 ? (
+              {step < 2 || step === 2 ? (
                 <button
                   type="button"
                   onClick={handleNext}
