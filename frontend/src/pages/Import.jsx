@@ -8,13 +8,13 @@ import client from '../api/client';
 
 const IMPORT_TYPES = [
   { value: 'members', label: 'Brothers / Members', icon: Users, color: 'blue',
-    desc: 'Your chapter roster — names, emails, GPA, major, pledge class', endpoint: '/import/members',
+    desc: 'Roster — names, emails, GPA, major, pledge class', endpoint: '/import/members',
     nav: '/members', navLabel: 'View Members' },
   { value: 'pnms', label: 'PNMs / Rushees', icon: Star, color: 'amber',
-    desc: 'Recruitment pipeline — prospects you\'re rushing', endpoint: '/import/pnms',
+    desc: 'Recruitment — prospects you\'re rushing this semester', endpoint: '/import/pnms',
     nav: '/recruitment', navLabel: 'View Recruitment' },
-  { value: 'events', label: 'Events', icon: Calendar, color: 'purple',
-    desc: 'Past or upcoming events — name, date, location, type', endpoint: '/import/events',
+  { value: 'events', label: 'Events / Calendar', icon: Calendar, color: 'purple',
+    desc: 'Party calendar, events list — title, date, location', endpoint: '/import/events',
     nav: '/events', navLabel: 'View Events' },
 ];
 
@@ -82,6 +82,7 @@ export default function Import({ onboardingMode = false, onDone }) {
   const [preview, setPreview] = useState([]);
   const [totalRows, setTotalRows] = useState(0);
   const [mapping, setMapping] = useState({});
+  const [detectedInfo, setDetectedInfo] = useState(null);
 
   const [result, setResult] = useState(null);
 
@@ -141,11 +142,16 @@ export default function Import({ onboardingMode = false, onDone }) {
     try {
       const res = await client.post('/import/preview', { csv: csvText });
       if (!res.data.success) throw new Error(res.data.error);
-      const { headers: h, preview: p, totalRows: t, suggestedMapping: sm } = res.data.data;
+      const { headers: h, preview: p, totalRows: t, suggestedMapping: sm, detectedType, confidence } = res.data.data;
       if (h.length === 0) throw new Error('No columns detected — make sure your CSV has a header row');
       setHeaders(h);
       setPreview(p);
       setTotalRows(t);
+      // Auto-set import type from detection
+      if (detectedType && confidence !== 'low') {
+        setImportType(detectedType);
+        setDetectedInfo({ type: detectedType, confidence });
+      }
       // Build mapping: { columnHeader -> fieldName }
       const m = {};
       h.forEach(col => {
@@ -358,6 +364,21 @@ export default function Import({ onboardingMode = false, onDone }) {
                 <p className="text-sm text-gray-400 mt-0.5">
                   {totalRows} rows detected — we auto-mapped what we could recognize
                 </p>
+                {detectedInfo && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
+                      ${detectedInfo.confidence === 'high' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      ✦ Auto-detected: {detectedInfo.type === 'members' ? 'Brothers / Members' : detectedInfo.type === 'pnms' ? 'PNMs / Rushees' : 'Events'}
+                    </span>
+                    <select
+                      className="text-xs text-gray-500 border-0 bg-transparent hover:text-gray-700 cursor-pointer"
+                      value={importType}
+                      onChange={e => setImportType(e.target.value)}
+                    >
+                      {IMPORT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
               <button onClick={() => { setStep(0); setError(''); }} className="text-sm text-gray-400 hover:text-gray-700 flex items-center gap-1">
                 ← Back

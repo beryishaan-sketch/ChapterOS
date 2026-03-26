@@ -77,13 +77,54 @@ function parseCSV(text) {
   return { headers, rows };
 }
 
+// Auto-detect what kind of data this CSV likely contains
+function detectDataType(headers, rows) {
+  const flat = headers.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, '')).join(' ');
+  const scores = { members: 0, pnms: 0, events: 0, dues: 0 };
+
+  // Event signals
+  if (/date|when|datetime|eventdate/.test(flat)) scores.events += 3;
+  if (/event|party|social|formal|philanthropy|mixer|venue|location/.test(flat)) scores.events += 2;
+  if (/title|eventname|eventtitle/.test(flat)) scores.events += 1;
+
+  // Member signals
+  if (/gpa|gradepoint|cumulative/.test(flat)) scores.members += 3;
+  if (/pledgeclass|initiationsemester|classof/.test(flat)) scores.members += 3;
+  if (/major|program|degree/.test(flat)) scores.members += 2;
+  if (/brother|active|member|roster/.test(flat)) scores.members += 2;
+  if (/position|officer|role|title/.test(flat)) scores.members += 1;
+
+  // Dues signals
+  if (/dues|paid|balance|owes|payment|amount/.test(flat)) scores.dues += 3;
+  if (/semester|term/.test(flat)) scores.dues += 1;
+
+  // PNM signals
+  if (/pnm|rush|rushee|recruit|prospect|mutual|referr/.test(flat)) scores.pnms += 3;
+  if (/score|rating|interest|bid/.test(flat)) scores.pnms += 2;
+
+  // Name/email signals boost both members and pnms
+  if (/name|firstname|lastname/.test(flat)) { scores.members += 1; scores.pnms += 1; }
+  if (/email|phone/.test(flat)) { scores.members += 1; scores.pnms += 1; }
+
+  // Pick highest score, default to members
+  const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+  // If dues detected, still import as members (dues column gets mapped)
+  const type = best[0] === 'dues' ? 'members' : best[0];
+  const confidence = best[1] >= 3 ? 'high' : best[1] >= 1 ? 'medium' : 'low';
+
+  return { detectedType: type, confidence, scores };
+}
+
 const preview = async (req, res) => {
   try {
     const { csv } = req.body;
     if (!csv) return res.status(400).json({ success: false, error: 'CSV text required' });
 
     const { headers, rows } = parseCSV(csv);
+    if (headers.length === 0) return res.status(400).json({ success: false, error: 'No columns detected — make sure your CSV has a header row' });
+
     const suggestedMapping = detectMapping(headers);
+    const { detectedType, confidence, scores } = detectDataType(headers, rows);
 
     return res.json({
       success: true,
@@ -92,6 +133,9 @@ const preview = async (req, res) => {
         preview: rows.slice(0, 5),
         totalRows: rows.length,
         suggestedMapping,
+        detectedType,
+        confidence,
+        scores,
       },
     });
   } catch (e) {
