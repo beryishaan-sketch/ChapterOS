@@ -265,11 +265,19 @@ const importMembers = async (req, res) => {
             await prisma.duesRecord.update({ where: { id: duesRecord.id }, data: { amount: rawAmount } });
           }
 
-          await prisma.duesPayment.upsert({
-            where: { memberId_duesRecordId: { memberId: member.id, duesRecordId: duesRecord.id } },
-            update: { status: isPaid ? 'paid' : 'unpaid', paidAt: isPaid ? new Date() : null, amount: amount || 0 },
-            create: { memberId: member.id, duesRecordId: duesRecord.id, amount: amount || 0, status: isPaid ? 'paid' : 'unpaid', paidAt: isPaid ? new Date() : null },
+          const existingPayment = await prisma.duesPayment.findFirst({
+            where: { memberId: member.id, duesRecordId: duesRecord.id }
           });
+          if (existingPayment) {
+            await prisma.duesPayment.update({
+              where: { id: existingPayment.id },
+              data: { status: isPaid ? 'paid' : 'unpaid', paidAt: isPaid ? new Date() : null, amount: amount || 0 },
+            });
+          } else {
+            await prisma.duesPayment.create({
+              data: { memberId: member.id, duesRecordId: duesRecord.id, amount: amount || 0, status: isPaid ? 'paid' : 'unpaid', paidAt: isPaid ? new Date() : null },
+            });
+          }
         }
 
       } catch (err) {
