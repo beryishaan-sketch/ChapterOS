@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import BottomNav from './BottomNav';
+import TrialBanner from './TrialBanner';
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -12,6 +13,7 @@ export default function Layout() {
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <div className="flex-1 flex flex-col min-w-0">
+        <TrialBanner />
         <Navbar onMenuClick={() => setMobileOpen(true)} />
 
         <main className="flex-1 overflow-auto">

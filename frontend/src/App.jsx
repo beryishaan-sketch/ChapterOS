@@ -37,6 +37,9 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import BidVoting from './pages/BidVoting';
 import Channels from './pages/Channels';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import SuperAdmin from './pages/SuperAdmin';
 
 function App() {
   const { loading } = useAuth();
@@ -139,6 +142,9 @@ function App() {
         <Route index element={<Channels />} />
       </Route>
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/superadmin" element={<SuperAdmin />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
     </Routes>
     <InstallPrompt />
     </>

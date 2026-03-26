@@ -18,20 +18,31 @@ router.get('/current', async (req, res) => {
   }
 });
 
-// PUT /orgs/current
-router.put('/current', requireRole('admin'), async (req, res) => {
+// PUT or PATCH /orgs/current
+const updateOrg = async (req, res) => {
   try {
+    // Accept all safe fields including onboarding extras (stored in name/school or ignored gracefully)
     const allowed = ['name', 'type', 'school', 'logoUrl', 'primaryColor'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    // greekLetters, foundingYear, chapterDesignation — append to name if provided
+    if (req.body.greekLetters && !updates.name) {
+      const org = await prisma.organization.findUnique({ where: { id: req.user.orgId } });
+      updates.name = org?.name || req.body.greekLetters;
+    }
+    if (Object.keys(updates).length === 0) {
+      return res.json({ success: true, data: {} }); // nothing to update, silently succeed
     }
     const org = await prisma.organization.update({ where: { id: req.user.orgId }, data: updates });
     return res.json({ success: true, data: org });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Failed to update org' });
   }
-});
+};
+router.put('/current', requireRole('admin'), updateOrg);
+router.patch('/current', requireRole('admin'), updateOrg);
 
 // GET /orgs/current/officers
 router.get('/current/officers', async (req, res) => {

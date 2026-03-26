@@ -421,9 +421,10 @@ export default function Landing() {
             <span className="text-white font-bold text-sm">ChapterHQ</span>
           </div>
           <div className="flex gap-6">
-            {['Privacy', 'Terms', 'Contact'].map(l => (
-              <a key={l} href="#" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">{l}</a>
-            ))}
+            <Link to="/privacy" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">Privacy</Link>
+            <Link to="/terms" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">Terms</Link>
+            <a href="mailto:admin@chapterhq.org" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">Contact</a>
+          </div>
           </div>
           <p className="text-gray-600 text-xs">© 2025 ChapterHQ. Built for Greek life.</p>
         </div>
