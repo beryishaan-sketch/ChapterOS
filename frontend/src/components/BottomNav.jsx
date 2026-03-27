@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, CreditCard, MessageSquare, MoreHorizontal } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, Users, MessageSquare, Calendar, MoreHorizontal } from 'lucide-react';
 
 const TABS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
@@ -12,27 +12,34 @@ const TABS = [
 
 export default function BottomNav() {
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-100"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -1px 0 rgba(0,0,0,0.06), 0 -8px 24px rgba(0,0,0,0.06)' }}>
-      <div className="flex items-stretch justify-around h-[56px]">
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40"
+      style={{
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(0,0,0,0.07)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      <div className="flex items-end justify-around h-[62px] px-2">
         {TABS.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to}
-            className={({ isActive }) =>
-              `relative flex flex-col items-center justify-center gap-[3px] flex-1 px-1 transition-all duration-150
-              ${isActive ? 'text-navy' : 'text-gray-400'}`
-            }
-          >
+          <NavLink key={to} to={to} className="flex-1">
             {({ isActive }) => (
-              <>
-                {/* Active pill background */}
-                {isActive && (
-                  <span className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-7 bg-navy/8 rounded-xl" />
-                )}
-                <Icon size={20} className="relative z-10" strokeWidth={isActive ? 2.3 : 1.7} />
-                <span className={`text-[10px] leading-none font-semibold relative z-10 ${isActive ? 'text-navy' : 'text-gray-400'}`}>
+              <div className="flex flex-col items-center justify-center gap-1 pt-2 pb-1">
+                <div className={`flex items-center justify-center rounded-2xl transition-all duration-200
+                  ${isActive ? 'bg-navy w-12 h-8' : 'w-10 h-7'}`}>
+                  <Icon
+                    size={isActive ? 19 : 22}
+                    className={isActive ? 'text-white' : 'text-gray-400'}
+                    strokeWidth={isActive ? 2.2 : 1.6}
+                  />
+                </div>
+                <span className={`text-[10px] leading-none font-semibold tracking-wide transition-colors
+                  ${isActive ? 'text-navy' : 'text-gray-400'}`}>
                   {label}
                 </span>
-              </>
+              </div>
             )}
           </NavLink>
         ))}
