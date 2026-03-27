@@ -320,10 +320,15 @@ model Channel {
   org         Organization @relation(fields: [orgId], references: [id])
   name        String
   description String?
-  type        String   @default("public") // public | private | announcement
+  type        String   @default("public") // public | private | announcement | locked
   emoji       String?
   // Role access: comma-separated roles e.g. "admin,officer" or "all"
   allowedRoles String  @default("all")
+  // PIN-locked channels: hashed PIN required to view messages
+  pinHash     String?
+  pinHint     String?
+  // Specific member IDs allowed (overrides role-based access when set)
+  allowedMembers String? // comma-separated member IDs
   createdAt   DateTime @default(now())
   messages    Message[]
   members     ChannelMember[]

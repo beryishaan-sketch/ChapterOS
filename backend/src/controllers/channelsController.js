@@ -1,7 +1,23 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
-// GET /api/channels — list all channels the member can access
+// Helper: check if member can access channel
+function canAccess(channel, memberId, role) {
+  // Role check
+  if (channel.allowedRoles !== 'all') {
+    const allowed = channel.allowedRoles.split(',').map(r => r.trim());
+    if (!allowed.includes(role)) return false;
+  }
+  // Specific member allow-list check
+  if (channel.allowedMembers) {
+    const allowed = channel.allowedMembers.split(',').map(id => id.trim());
+    if (!allowed.includes(memberId)) return false;
+  }
+  return true;
+}
+
+// GET /api/channels
 const getChannels = async (req, res) => {
   try {
     const { orgId, id: memberId, role } = req.user;
@@ -18,63 +34,89 @@ const getChannels = async (req, res) => {
       }
     });
 
-    // Filter by allowed roles
-    const accessible = all.filter(ch => {
-      if (ch.allowedRoles === 'all') return true;
-      const allowed = ch.allowedRoles.split(',').map(r => r.trim());
-      return allowed.includes(role);
-    });
+    const accessible = all.filter(ch => canAccess(ch, memberId, role));
 
-    return res.json({ success: true, data: accessible });
+    // Strip PIN hash from response, add isLocked flag
+    const safe = accessible.map(ch => ({
+      ...ch,
+      pinHash: undefined,
+      isLocked: !!ch.pinHash,
+    }));
+
+    return res.json({ success: true, data: safe });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Failed to fetch channels' });
   }
 };
 
-// POST /api/channels — create a channel (admin/officer only)
+// POST /api/channels
 const createChannel = async (req, res) => {
   try {
-    const { orgId } = req.user;
-    const { name, description, emoji, allowedRoles = 'all' } = req.body;
+    const { orgId, id: memberId, role } = req.user;
+    const { name, description, emoji, allowedRoles = 'all', allowedMembers, pin, pinHint, type = 'public' } = req.body;
     if (!name) return res.status(400).json({ success: false, error: 'Channel name required' });
 
     const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
 
+    let pinHash = null;
+    let channelType = type;
+    if (pin) {
+      if (pin.length < 4) return res.status(400).json({ success: false, error: 'PIN must be at least 4 characters' });
+      pinHash = await bcrypt.hash(pin, 10);
+      channelType = 'locked';
+    }
+
     const channel = await prisma.channel.create({
-      data: { orgId, name: slug, description, emoji, allowedRoles }
+      data: {
+        orgId, name: slug, description, emoji,
+        allowedRoles,
+        allowedMembers: allowedMembers || null,
+        pinHash,
+        pinHint: pinHint || null,
+        type: channelType,
+      }
     });
-    return res.status(201).json({ success: true, data: channel });
+
+    return res.status(201).json({ success: true, data: { ...channel, pinHash: undefined, isLocked: !!pinHash } });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Failed to create channel' });
   }
 };
 
-// PUT /api/channels/:id — update channel (admin only)
+// PUT /api/channels/:id
 const updateChannel = async (req, res) => {
   try {
     const { id } = req.params;
     const { orgId } = req.user;
-    const { name, description, emoji, allowedRoles } = req.body;
+    const { name, description, emoji, allowedRoles, allowedMembers, pin, pinHint, removePin } = req.body;
 
     const channel = await prisma.channel.findFirst({ where: { id, orgId } });
     if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
 
-    const updated = await prisma.channel.update({
-      where: { id },
-      data: {
-        ...(name && { name: name.toLowerCase().replace(/[^a-z0-9-]/g, '-') }),
-        ...(description !== undefined && { description }),
-        ...(emoji !== undefined && { emoji }),
-        ...(allowedRoles !== undefined && { allowedRoles }),
-      }
-    });
-    return res.json({ success: true, data: updated });
+    const updates = {};
+    if (name) updates.name = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    if (description !== undefined) updates.description = description;
+    if (emoji !== undefined) updates.emoji = emoji;
+    if (allowedRoles !== undefined) updates.allowedRoles = allowedRoles;
+    if (allowedMembers !== undefined) updates.allowedMembers = allowedMembers || null;
+    if (pinHint !== undefined) updates.pinHint = pinHint;
+
+    if (removePin) {
+      updates.pinHash = null;
+      updates.type = 'public';
+    } else if (pin) {
+      updates.pinHash = await bcrypt.hash(pin, 10);
+      updates.type = 'locked';
+    }
+
+    const updated = await prisma.channel.update({ where: { id }, data: updates });
+    return res.json({ success: true, data: { ...updated, pinHash: undefined, isLocked: !!updated.pinHash } });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Failed to update channel' });
   }
 };
 
-// DELETE /api/channels/:id (admin only)
+// DELETE /api/channels/:id
 const deleteChannel = async (req, res) => {
   try {
     const { id } = req.params;
@@ -88,36 +130,46 @@ const deleteChannel = async (req, res) => {
   }
 };
 
+// POST /api/channels/:id/verify-pin — returns a session token for locked channel access
+const verifyPin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { orgId, id: memberId, role } = req.user;
+    const { pin } = req.body;
+
+    const channel = await prisma.channel.findFirst({ where: { id, orgId } });
+    if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
+    if (!channel.pinHash) return res.json({ success: true }); // not locked
+
+    if (!pin) return res.status(400).json({ success: false, error: 'PIN required' });
+
+    const valid = await bcrypt.compare(pin, channel.pinHash);
+    if (!valid) return res.status(401).json({ success: false, error: 'Wrong PIN' });
+
+    return res.json({ success: true, verified: true });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: 'Verification failed' });
+  }
+};
+
 // GET /api/channels/:id/messages
 const getMessages = async (req, res) => {
   try {
     const { id } = req.params;
-    const { orgId, role } = req.user;
+    const { orgId, id: memberId, role } = req.user;
     const limit = parseInt(req.query.limit) || 50;
-    const before = req.query.before; // cursor-based pagination
+    const before = req.query.before;
 
     const channel = await prisma.channel.findFirst({ where: { id, orgId } });
     if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
-
-    // Check access
-    if (channel.allowedRoles !== 'all') {
-      const allowed = channel.allowedRoles.split(',').map(r => r.trim());
-      if (!allowed.includes(role)) {
-        return res.status(403).json({ success: false, error: 'Access denied' });
-      }
-    }
+    if (!canAccess(channel, memberId, role)) return res.status(403).json({ success: false, error: 'Access denied' });
 
     const messages = await prisma.message.findMany({
-      where: {
-        channelId: id,
-        ...(before && { createdAt: { lt: new Date(before) } })
-      },
+      where: { channelId: id, ...(before && { createdAt: { lt: new Date(before) } }) },
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: {
-        author: {
-          select: { id: true, firstName: true, lastName: true, role: true, position: true, avatarUrl: true }
-        }
+        author: { select: { id: true, firstName: true, lastName: true, role: true, position: true, avatarUrl: true } }
       }
     });
 
@@ -135,15 +187,11 @@ const sendMessage = async (req, res) => {
     const { content, replyToId } = req.body;
 
     if (!content?.trim()) return res.status(400).json({ success: false, error: 'Message cannot be empty' });
-    if (content.length > 4000) return res.status(400).json({ success: false, error: 'Message too long (max 4000 chars)' });
+    if (content.length > 4000) return res.status(400).json({ success: false, error: 'Message too long' });
 
     const channel = await prisma.channel.findFirst({ where: { id, orgId } });
     if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
-
-    if (channel.allowedRoles !== 'all') {
-      const allowed = channel.allowedRoles.split(',').map(r => r.trim());
-      if (!allowed.includes(role)) return res.status(403).json({ success: false, error: 'Access denied' });
-    }
+    if (!canAccess(channel, memberId, role)) return res.status(403).json({ success: false, error: 'Access denied' });
 
     const message = await prisma.message.create({
       data: { channelId: id, authorId: memberId, content: content.trim(), replyToId: replyToId || null },
@@ -169,14 +217,8 @@ const deleteMessage = async (req, res) => {
       include: { channel: true }
     });
 
-    if (!message || message.channel.orgId !== orgId) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
-    }
-
-    // Only author or admin can delete
-    if (message.authorId !== memberId && role !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Cannot delete others\' messages' });
-    }
+    if (!message || message.channel.orgId !== orgId) return res.status(404).json({ success: false, error: 'Not found' });
+    if (message.authorId !== memberId && role !== 'admin') return res.status(403).json({ success: false, error: 'Cannot delete others\' messages' });
 
     await prisma.message.delete({ where: { id: messageId } });
     return res.json({ success: true });
@@ -185,4 +227,4 @@ const deleteMessage = async (req, res) => {
   }
 };
 
-module.exports = { getChannels, createChannel, updateChannel, deleteChannel, getMessages, sendMessage, deleteMessage };
+module.exports = { getChannels, createChannel, updateChannel, deleteChannel, getMessages, sendMessage, deleteMessage, verifyPin };

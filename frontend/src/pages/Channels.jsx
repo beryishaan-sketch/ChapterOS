@@ -1,22 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Hash, Plus, Send, Trash2, Settings, Lock, Globe,
-  ChevronLeft, MoreVertical, X, Check, Users
+  ChevronLeft, MoreVertical, X, Check, Users, ShieldAlert, Eye, EyeOff, KeyRound
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 
 const ROLE_OPTIONS = [
-  { value: 'all', label: '🌐 Everyone' },
+  { value: 'all',           label: '🌐 Everyone' },
   { value: 'admin,officer', label: '⭐ Officers & Above' },
-  { value: 'admin', label: '👑 President Only' },
+  { value: 'admin',         label: '👑 President Only' },
+  { value: 'member',        label: '👥 Members Only (no pledges/alumni)' },
+  { value: 'pledge',        label: '🔰 Pledges Only' },
 ];
 
-const EMOJI_OPTIONS = ['💬', '⭐', '📅', '🤝', '💰', '🏆', '📢', '🎉', '🛡️', '📋'];
+const EMOJI_OPTIONS = ['💬', '⭐', '📅', '🤝', '💰', '🏆', '📢', '🎉', '🛡️', '📋', '🔒', '⚡', '🎯', '🗳️'];
 
 function ChannelItem({ channel, active, onClick }) {
   const lastMsg = channel.messages?.[0];
+  const isRestricted = channel.allowedRoles !== 'all';
+  const isPinLocked = channel.isLocked;
   return (
     <button
       onClick={onClick}
@@ -24,12 +28,13 @@ function ChannelItem({ channel, active, onClick }) {
         ${active ? 'bg-navy text-white' : 'hover:bg-gray-100 text-gray-700'}`}
     >
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0
-        ${active ? 'bg-white/10' : 'bg-gray-100'}`}>
+        ${active ? 'bg-white/10' : isPinLocked ? 'bg-red-50' : 'bg-gray-100'}`}>
         {channel.emoji || '#'}
       </div>
       <div className="flex-1 min-w-0">
-        <div className={`font-semibold text-sm truncate ${active ? 'text-white' : 'text-gray-900'}`}>
-          # {channel.name}
+        <div className={`font-semibold text-sm truncate flex items-center gap-1.5 ${active ? 'text-white' : 'text-gray-900'}`}>
+          {channel.name}
+          {isPinLocked && <Lock size={10} className={active ? 'text-white/60' : 'text-red-400'} />}
         </div>
         {lastMsg && (
           <div className={`text-xs truncate ${active ? 'text-white/50' : 'text-gray-400'}`}>
@@ -37,8 +42,13 @@ function ChannelItem({ channel, active, onClick }) {
           </div>
         )}
       </div>
-      {channel.allowedRoles !== 'all' && (
-        <Lock size={12} className={active ? 'text-white/40' : 'text-gray-300'} />
+      {(isRestricted || isPinLocked) && (
+        <div className="flex-shrink-0">
+          {isPinLocked
+            ? <ShieldAlert size={12} className={active ? 'text-white/40' : 'text-red-300'} />
+            : <Lock size={12} className={active ? 'text-white/40' : 'text-gray-300'} />
+          }
+        </div>
       )}
     </button>
   );
@@ -101,7 +111,12 @@ export default function Channels() {
   const pollRef = useRef(null);
   const lastMsgId = useRef(null);
 
-  const [newChannel, setNewChannel] = useState({ name: '', description: '', emoji: '💬', allowedRoles: 'all' });
+  const [newChannel, setNewChannel] = useState({ name: '', description: '', emoji: '💬', allowedRoles: 'all', pin: '', pinHint: '' });
+  const [unlockedChannels, setUnlockedChannels] = useState(new Set()); // channel IDs that have been PIN-verified this session
+  const [pinEntry, setPinEntry] = useState(null); // { channelId, pinHint }
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [showPin, setShowPin] = useState(false);
 
   const isAdmin = user?.role === 'admin';
   const isOfficer = user?.role === 'admin' || user?.role === 'officer';
@@ -153,8 +168,33 @@ export default function Channels() {
   }, [messages]);
 
   const selectChannel = (ch) => {
+    // If channel is PIN-locked and not yet verified this session, show PIN entry
+    if (ch.isLocked && !unlockedChannels.has(ch.id)) {
+      setPinEntry({ channelId: ch.id, channelName: ch.name, pinHint: ch.pinHint });
+      setPinInput('');
+      setPinError('');
+      setActiveChannel(ch); // set it so we know which channel we're trying to open
+      setMobileView('chat');
+      return;
+    }
     setActiveChannel(ch);
     setMobileView('chat');
+  };
+
+  const submitPin = async () => {
+    if (!pinInput) return;
+    try {
+      const res = await client.post(`/channels/${pinEntry.channelId}/verify-pin`, { pin: pinInput });
+      if (res.data.success) {
+        setUnlockedChannels(prev => new Set([...prev, pinEntry.channelId]));
+        setPinEntry(null);
+        setPinInput('');
+        setPinError('');
+      }
+    } catch (e) {
+      setPinError(e.response?.data?.error || 'Wrong PIN');
+      setPinInput('');
+    }
   };
 
   const send = async (e) => {
@@ -181,11 +221,16 @@ export default function Channels() {
   const createChannel = async () => {
     if (!newChannel.name.trim()) return;
     try {
-      const res = await client.post('/channels', newChannel);
-      setChannels(prev => [...prev, res.data.data]);
-      setActiveChannel(res.data.data);
+      const payload = { ...newChannel };
+      if (!payload.pin) { delete payload.pin; delete payload.pinHint; }
+      const res = await client.post('/channels', payload);
+      const created = res.data.data;
+      setChannels(prev => [...prev, created]);
+      // Auto-unlock newly created locked channel for this session
+      if (created.isLocked) setUnlockedChannels(prev => new Set([...prev, created.id]));
+      setActiveChannel(created);
       setShowCreate(false);
-      setNewChannel({ name: '', description: '', emoji: '💬', allowedRoles: 'all' });
+      setNewChannel({ name: '', description: '', emoji: '💬', allowedRoles: 'all', pin: '', pinHint: '' });
     } catch {}
   };
 
@@ -289,8 +334,46 @@ export default function Channels() {
         )}
       </div>
 
+      {/* PIN Lock Screen */}
+      {activeChannel && activeChannel.isLocked && !unlockedChannels.has(activeChannel.id) && (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50">
+          <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-5">
+            <ShieldAlert size={32} className="text-red-500" />
+          </div>
+          <h3 className="font-bold text-gray-900 text-xl mb-1">Locked Channel</h3>
+          <p className="text-sm text-gray-500 mb-1 text-center">This channel requires a PIN to access</p>
+          {activeChannel.pinHint && (
+            <p className="text-xs text-gray-400 mb-5">Hint: {activeChannel.pinHint}</p>
+          )}
+          {pinError && (
+            <div className="flex items-center gap-2 text-red-600 text-sm mb-3 bg-red-50 px-4 py-2 rounded-xl">
+              <X size={14} /> {pinError}
+            </div>
+          )}
+          <div className="relative w-64">
+            <input
+              type={showPin ? 'text' : 'password'}
+              className="input-field w-full text-center text-xl font-mono tracking-widest pr-10"
+              placeholder="Enter PIN"
+              value={pinInput}
+              onChange={e => setPinInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && submitPin()}
+              autoFocus
+            />
+            <button type="button" onClick={() => setShowPin(s => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+          <button onClick={submitPin} disabled={!pinInput}
+            className="btn-primary mt-3 w-64 justify-center gap-2">
+            <KeyRound size={15} /> Unlock Channel
+          </button>
+        </div>
+      )}
+
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-4">
+      <div className={`flex-1 overflow-y-auto py-4 ${activeChannel?.isLocked && !unlockedChannels.has(activeChannel?.id) ? 'hidden' : ''}`}>
         {!activeChannel ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <Hash size={40} className="mb-3 opacity-20" />
@@ -319,7 +402,7 @@ export default function Channels() {
       </div>
 
       {/* Input */}
-      {activeChannel && (
+      {activeChannel && (!activeChannel.isLocked || unlockedChannels.has(activeChannel.id)) && (
         <div className="px-4 pb-4">
           <form onSubmit={send} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5">
             <input
@@ -405,10 +488,37 @@ export default function Channels() {
             </select>
           </div>
 
+          {/* PIN Lock */}
+          <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={15} className="text-red-500" />
+              <p className="text-sm font-semibold text-gray-800">PIN Lock <span className="text-xs font-normal text-gray-400">(optional)</span></p>
+            </div>
+            <p className="text-xs text-gray-400">Members must enter a PIN to read this channel — even after login. Perfect for sensitive exec discussions.</p>
+            <div className="relative">
+              <input
+                type={showPin ? 'text' : 'password'}
+                className="input-field w-full text-sm pr-10"
+                placeholder="Set a PIN (leave blank for no lock)"
+                value={newChannel.pin}
+                onChange={e => setNewChannel(p => ({ ...p, pin: e.target.value }))}
+              />
+              <button type="button" onClick={() => setShowPin(s => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                {showPin ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            {newChannel.pin && (
+              <input className="input-field w-full text-sm" placeholder="PIN hint (optional, visible to members)"
+                value={newChannel.pinHint}
+                onChange={e => setNewChannel(p => ({ ...p, pinHint: e.target.value }))} />
+            )}
+          </div>
+
           <div className="flex gap-2 pt-2">
             <button onClick={() => setShowCreate(false)} className="btn-secondary flex-1">Cancel</button>
             <button onClick={createChannel} disabled={!newChannel.name.trim()} className="btn-primary flex-1">
-              Create Channel
+              {newChannel.pin ? '🔒 Create Locked Channel' : 'Create Channel'}
             </button>
           </div>
         </div>

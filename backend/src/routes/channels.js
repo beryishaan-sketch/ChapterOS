@@ -14,6 +14,9 @@ router.post('/', requireRole('admin', 'officer'), createChannel);
 router.put('/:id', requireRole('admin'), updateChannel);
 router.delete('/:id', requireRole('admin'), deleteChannel);
 
+// PIN verification for locked channels
+router.post('/:id/verify-pin', require('../controllers/channelsController').verifyPin);
+
 router.get('/:id/messages', getMessages);
 router.post('/:id/messages', sendMessage);
 router.delete('/:channelId/messages/:messageId', deleteMessage);
