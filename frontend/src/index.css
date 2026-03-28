@@ -23,7 +23,19 @@
     background: #F2F2F7; /* iOS system background */
     margin: 0;
     padding: 0;
+    /* Edge-to-edge on iOS — content goes behind status bar */
+    padding-top: env(safe-area-inset-top);
+    overflow-x: hidden;
+    /* Smooth native scrolling */
+    -webkit-overflow-scrolling: touch;
   }
+
+  /* Disable text selection on non-input elements (feels native) */
+  *:not(input):not(textarea):not([contenteditable]) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input, textarea { -webkit-user-select: text; user-select: text; }
 
   /* iOS-style: inputs never zoom */
   input, textarea, select, button { font-family: inherit; font-size: 16px; }

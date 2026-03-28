@@ -15,18 +15,14 @@ export default function Layout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <TrialBanner />
-        {/* Navbar — desktop only, hide on mobile (bottom nav handles navigation) */}
+        {/* Desktop navbar only */}
         <div className="hidden lg:block">
           <Navbar onMenuClick={() => setMobileOpen(true)} />
         </div>
-        {/* Mobile top bar — just shows page title, no hamburger clutter */}
-        <div className="lg:hidden sticky top-0 z-30 bg-[#F2F2F7]/90 backdrop-blur-xl px-4 pt-safe-top">
-          <div className="h-11" /> {/* status bar space */}
-        </div>
 
-        <main className="flex-1 overflow-auto">
-          {/* Mobile: tight native-app padding */}
-          <div className="px-4 pt-2 pb-28 lg:px-8 lg:pt-8 lg:pb-10 max-w-screen-xl mx-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* Mobile: zero top padding — hero cards handle their own spacing */}
+          <div className="px-4 pt-0 pb-28 lg:px-8 lg:pt-8 lg:pb-10 max-w-screen-xl mx-auto">
             <Outlet />
           </div>
         </main>

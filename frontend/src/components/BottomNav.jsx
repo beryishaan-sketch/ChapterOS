@@ -15,11 +15,11 @@ export default function BottomNav() {
     <nav
       className="lg:hidden fixed bottom-0 inset-x-0 z-40"
       style={{
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(0,0,0,0.07)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        background: 'rgba(255,255,255,0.94)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderTop: '0.5px solid rgba(0,0,0,0.1)',
+        paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
       }}
     >
       <div className="flex items-end justify-around h-[62px] px-2">

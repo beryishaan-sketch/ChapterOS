@@ -1,26 +1,36 @@
 {
-  "appId": "com.chapteros.app",
+  "appId": "com.chapterhq.app",
   "appName": "ChapterHQ",
   "webDir": "dist",
   "server": {
+    "url": "https://web-production-29410.up.railway.app",
+    "cleartext": false,
     "androidScheme": "https"
   },
   "plugins": {
-    "PushNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
-    },
     "SplashScreen": {
-      "launchShowDuration": 2000,
+      "launchShowDuration": 1800,
       "backgroundColor": "#0F1C3F",
-      "showSpinner": false
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#0F1C3F"
+      "backgroundColor": "#0F1C3F",
+      "overlaysWebView": true
+    },
+    "Keyboard": {
+      "resize": "body",
+      "style": "dark",
+      "resizeOnFullScreen": true
     }
   },
   "ios": {
-    "contentInset": "automatic",
-    "backgroundColor": "#0F1C3F"
+    "contentInset": "always",
+    "backgroundColor": "#0F1C3F",
+    "preferredContentMode": "mobile"
   }
 }

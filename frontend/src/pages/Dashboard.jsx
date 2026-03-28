@@ -69,14 +69,14 @@ export default function Dashboard() {
   return (
     <div className="space-y-4 pb-4">
 
-      {/* ── HERO HEADER ──────────────────────────────── */}
-      <div className="relative rounded-3xl overflow-hidden"
+      {/* ── HERO HEADER — bleeds to top of screen on mobile ── */}
+      <div className="relative overflow-hidden lg:rounded-3xl -mx-4 lg:mx-0"
         style={{ background: 'linear-gradient(135deg, #0F1C3F 0%, #1a2f6e 60%, #0F1C3F 100%)' }}>
         {/* Decorative circles */}
         <div className="absolute -top-8 -right-8 w-40 h-40 bg-gold/10 rounded-full" />
         <div className="absolute -bottom-10 -left-6 w-32 h-32 bg-white/5 rounded-full" />
 
-        <div className="relative p-6 pb-5">
+        <div className="relative px-6 pt-5 pb-5">
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-white/50 text-xs font-medium tracking-wide uppercase">{greeting()}</p>
