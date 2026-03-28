@@ -129,11 +129,15 @@ const login = async (req, res) => {
     }
 
     const token = signToken(member);
-    const { passwordHash: _, ...memberData } = member;
+    const { passwordHash: _, resetToken: __, resetTokenExpiry: ___, ...memberData } = member;
 
     return res.json({
       success: true,
-      data: { token, member: memberData },
+      data: {
+        token,
+        member: memberData,
+        mustChangePassword: member.mustChangePassword || false,
+      },
     });
   } catch (error) {
     console.error('Login error:', error);

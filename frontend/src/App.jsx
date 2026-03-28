@@ -29,6 +29,8 @@ import Sponsors from './pages/Sponsors';
 import Budget from './pages/Budget';
 import RiskManagement from './pages/RiskManagement';
 import Profile from './pages/Profile';
+import SetPassword from './pages/SetPassword';
+import ChangePassword from './pages/ChangePassword';
 import Documents from './pages/Documents';
 import More from './pages/More';
 import Academics from './pages/Academics';
@@ -149,6 +151,8 @@ function App() {
       <Route path="/superadmin" element={<SuperAdmin />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/set-password" element={<SetPassword />} />
+      <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
     </Routes>
     <InstallPrompt />
     </>

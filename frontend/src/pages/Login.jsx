@@ -25,7 +25,11 @@ export default function Login() {
     try {
       const result = await login(form.email, form.password);
       if (result.success) {
-        navigate('/dashboard');
+        if (result.mustChangePassword) {
+          navigate('/change-password');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(result.error || 'Invalid email or password.');
       }

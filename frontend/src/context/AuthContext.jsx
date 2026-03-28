@@ -36,8 +36,9 @@ export const AuthProvider = ({ children }) => {
     if (res.data.success) {
       localStorage.setItem('token', res.data.data.token);
       setUser(res.data.data.member);
-      setOrg(res.data.data.member.org);
-      return { success: true };
+      setOrg(res.data.data.member?.org);
+      // Flag imported members to set their own password
+      return { success: true, mustChangePassword: res.data.data.mustChangePassword || false };
     }
     return { success: false, error: res.data.error };
   };

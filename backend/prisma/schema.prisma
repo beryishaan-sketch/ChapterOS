@@ -38,7 +38,10 @@ model Member {
   orgId        String
   org          Organization @relation(fields: [orgId], references: [id])
   email        String
-  passwordHash String
+  passwordHash       String
+  mustChangePassword Boolean @default(false)
+  resetToken         String?
+  resetTokenExpiry   DateTime?
   firstName    String
   lastName     String
   role         String    @default("member")

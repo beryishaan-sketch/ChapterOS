@@ -180,6 +180,7 @@ const importMembers = async (req, res) => {
     const { rows } = parseCSV(csv);
     const orgId = req.user.orgId;
     const defaultPassword = await bcrypt.hash('ChapterHQ2024!', 12);
+    // All imported members must set their own password on first login
 
     let created = 0, skipped = 0, errors = [];
 
@@ -230,6 +231,7 @@ const importMembers = async (req, res) => {
               orgId, firstName, lastName,
               email: email || `${firstName.toLowerCase()}.${(lastName || 'member').toLowerCase()}.import@chapter.local`,
               passwordHash: defaultPassword,
+              mustChangePassword: true,
               role: 'member',
               position:    mapping.position    ? row[mapping.position]?.trim()    || null : null,
               pledgeClass: mapping.pledgeClass ? row[mapping.pledgeClass]?.trim() || null : null,
