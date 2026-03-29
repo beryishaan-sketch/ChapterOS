@@ -438,25 +438,51 @@ const MemberPermissions = ({ memberId, memberName, memberRole }) => {
   );
 };
 
+// Inline role changer — tap role badge to cycle through roles
+const RoleChanger = ({ member, onUpdate, isAdmin }) => {
+  const [loading, setLoading] = useState(false);
+
+  const cycleRole = async (e) => {
+    e.stopPropagation();
+    if (!isAdmin || loading) return;
+    const idx = ROLES.indexOf(member.role);
+    const nextRole = ROLES[(idx + 1) % ROLES.length];
+    setLoading(true);
+    try {
+      const res = await client.patch(`/members/${member.id}`, { role: nextRole });
+      if (res.data.success) onUpdate(res.data.data);
+    } catch {} finally { setLoading(false); }
+  };
+
+  if (!isAdmin) return <RoleBadge role={member.role} />;
+  const cfg = ROLE_CONFIG[member.role] || ROLE_CONFIG.member;
+  return (
+    <button onClick={cycleRole} disabled={loading}
+      className={`${cfg.classes} capitalize flex items-center gap-1 transition-opacity ${loading ? 'opacity-50' : 'hover:opacity-80'}`}
+      title="Tap to change role">
+      {loading ? '…' : cfg.label}
+    </button>
+  );
+};
+
 // Member Card (grid view)
-const MemberCard = ({ member, onClick }) => {
+const MemberCard = ({ member, onClick, onUpdate, isAdmin }) => {
   const color = avatarColor(member.firstName + member.lastName);
   const init = initials(member.firstName, member.lastName);
   return (
-    <div onClick={onClick} className="card-hover p-5 cursor-pointer group">
+    <div onClick={onClick} className="card-hover p-4 cursor-pointer group">
       <div className="flex items-start gap-3 mb-3">
-        <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center text-white font-bold flex-shrink-0 transition-transform group-hover:scale-105`}>
+        <div className={`w-11 h-11 ${color} rounded-2xl flex items-center justify-center text-white font-bold flex-shrink-0 transition-transform group-hover:scale-105 text-sm`}>
           {init}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 truncate">{member.firstName} {member.lastName}</p>
+          <p className="font-semibold text-gray-900 truncate text-sm">{member.firstName} {member.lastName}</p>
           {member.position && <p className="text-xs text-gray-500 truncate mt-0.5">{member.position}</p>}
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <RoleBadge role={member.role} />
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <RoleChanger member={member} onUpdate={onUpdate} isAdmin={isAdmin} />
         {member.pledgeClass && <span className="text-xs text-gray-400">{member.pledgeClass}</span>}
-        {member.gpa && <span className="text-xs text-gray-400">GPA {member.gpa}</span>}
       </div>
     </div>
   );
@@ -532,9 +558,18 @@ export default function Members() {
           <p className="page-subtitle">{members.length} member{members.length !== 1 ? 's' : ''} in your chapter</p>
         </div>
         {isAdmin && (
-          <button className="btn-primary self-start sm:self-auto" onClick={() => setShowAdd(true)}>
-            <Plus size={16} /> Add Member
-          </button>
+          <div className="flex gap-2 self-start sm:self-auto flex-wrap">
+            <button className="btn-secondary" onClick={async () => {
+              if (!window.confirm('Remove duplicate members (same email or name)? This cannot be undone.')) return;
+              const res = await client.post('/members/dedup').catch(() => null);
+              if (res?.data?.success) { alert(`Removed ${res.data.data.removed} duplicate(s)`); fetchMembers(); }
+            }}>
+              Dedup
+            </button>
+            <button className="btn-primary" onClick={() => setShowAdd(true)}>
+              <Plus size={16} /> Add Member
+            </button>
+          </div>
         )}
       </div>
 
@@ -616,7 +651,7 @@ export default function Members() {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map(m => (
-            <MemberCard key={m.id} member={m} onClick={() => setSelectedMember(m)} />
+            <MemberCard key={m.id} member={m} onClick={() => setSelectedMember(m)} onUpdate={handleUpdate} isAdmin={isAdmin} />
           ))}
         </div>
       ) : (
@@ -635,7 +670,7 @@ export default function Members() {
                 <p className="text-[13px] text-gray-400 truncate mt-0.5">{m.position || m.email}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <RoleBadge role={m.role} />
+                <RoleChanger member={m} onUpdate={handleUpdate} isAdmin={isAdmin} />
                 <ChevronRight size={15} className="text-gray-300" />
               </div>
             </div>

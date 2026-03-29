@@ -60,4 +60,38 @@ router.delete('/:id/permissions', requireRole('admin'), async (req, res) => {
   }
 });
 
+// POST /api/members/dedup — admin: remove duplicate members (same email or same full name)
+router.post('/dedup', requireRole('admin'), async (req, res) => {
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+  try {
+    const members = await prisma.member.findMany({ where: { orgId: req.user.orgId }, orderBy: { createdAt: 'asc' } });
+
+    const seen = new Map(); // key -> first member id
+    const toDelete = [];
+
+    for (const m of members) {
+      const emailKey = m.email?.toLowerCase().trim();
+      const nameKey = `${m.firstName?.toLowerCase().trim()} ${m.lastName?.toLowerCase().trim()}`;
+
+      if (emailKey && seen.has(emailKey)) {
+        toDelete.push(m.id);
+      } else if (nameKey && nameKey !== ' ' && seen.has(nameKey)) {
+        toDelete.push(m.id);
+      } else {
+        if (emailKey) seen.set(emailKey, m.id);
+        if (nameKey !== ' ') seen.set(nameKey, m.id);
+      }
+    }
+
+    if (toDelete.length > 0) {
+      await prisma.member.deleteMany({ where: { id: { in: toDelete }, orgId: req.user.orgId } });
+    }
+
+    return res.json({ success: true, data: { removed: toDelete.length } });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: 'Dedup failed' });
+  }
+});
+
 module.exports = router;
