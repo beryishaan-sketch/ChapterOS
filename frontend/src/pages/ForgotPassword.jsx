@@ -1,27 +1,33 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Zap, Mail, ArrowLeft, CheckCircle2, Copy, Check } from 'lucide-react';
 import client from '../api/client';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resetUrl, setResetUrl] = useState('');
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) { setError('Enter your email'); return; }
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      await client.post('/auth/forgot-password', { email });
+      const res = await client.post('/auth/forgot-password', { email });
+      if (res.data.data?.resetUrl) setResetUrl(res.data.data.resetUrl);
       setSent(true);
     } catch {
       setError('Something went wrong. Try again.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
+  };
+
+  const copy = () => {
+    navigator.clipboard.writeText(resetUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (

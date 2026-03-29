@@ -42,6 +42,7 @@ model Member {
   mustChangePassword Boolean @default(false)
   resetToken         String?
   resetTokenExpiry   DateTime?
+  pushSubscription   String?  // Web Push subscription JSON
   firstName    String
   lastName     String
   role         String    @default("member")

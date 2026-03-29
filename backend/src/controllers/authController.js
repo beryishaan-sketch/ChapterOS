@@ -212,21 +212,32 @@ const forgotPassword = async (req, res) => {
 
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
 
-    await sendEmail({
-      to: member.email,
-      subject: 'Reset your ChapterHQ password',
-      html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;">
-        <div style="background:#0F1C3F;padding:24px 32px;border-radius:12px 12px 0 0;">
-          <h2 style="color:#C9A84C;margin:0;">ChapterHQ</h2>
-        </div>
-        <div style="background:white;border:1px solid #E5E7EB;padding:32px;border-radius:0 0 12px 12px;">
-          <p>Hi ${member.firstName}, click below to reset your password. Expires in 1 hour.</p>
-          <a href="${resetUrl}" style="display:inline-block;background:#0F1C3F;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">Reset Password</a>
-        </div>
-      </div>`,
-    });
+    // Try to send email, but don't fail if SMTP not configured
+    try {
+      await sendEmail({
+        to: member.email,
+        subject: 'Reset your ChapterHQ password',
+        html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;">
+          <div style="background:#0F1C3F;padding:24px 32px;border-radius:12px 12px 0 0;">
+            <h2 style="color:#C9A84C;margin:0;">ChapterHQ</h2>
+          </div>
+          <div style="background:white;border:1px solid #E5E7EB;padding:32px;border-radius:0 0 12px 12px;">
+            <p>Hi ${member.firstName}, click below to reset your password. Expires in 1 hour.</p>
+            <a href="${resetUrl}" style="display:inline-block;background:#0F1C3F;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">Reset Password</a>
+          </div>
+        </div>`,
+      });
+    } catch (emailErr) {
+      console.log('Email not configured, returning reset URL directly');
+    }
 
-    return res.json({ success: true, message: 'If that email exists, a reset link was sent.' });
+    // Always return the reset URL — if email works they get it in inbox,
+    // if not they can copy it from here (admin can share it)
+    return res.json({
+      success: true,
+      message: 'Reset link generated.',
+      data: { resetUrl } // frontend shows this if email not configured
+    });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Failed to process request' });
   }
