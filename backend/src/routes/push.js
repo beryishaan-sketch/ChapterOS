@@ -6,11 +6,20 @@ const { verifyToken } = require('../middleware/auth');
 
 const prisma = new PrismaClient();
 
-webpush.setVapidDetails(
-  `mailto:${process.env.VAPID_EMAIL || 'admin@chapterhq.org'}`,
-  process.env.VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-);
+// Only configure VAPID if keys are present — prevents crash on startup if env vars not set
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      `mailto:${process.env.VAPID_EMAIL || 'admin@chapterhq.org'}`,
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+  } catch (e) {
+    console.warn('[Push] VAPID setup failed:', e.message);
+  }
+} else {
+  console.log('[Push] VAPID keys not set — push notifications disabled until env vars are added');
+}
 
 router.use(verifyToken);
 

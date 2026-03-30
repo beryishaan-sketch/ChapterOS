@@ -8,20 +8,18 @@ const { pushToOrg } = require('./push');
 router.use(verifyToken);
 router.get('/', getAnnouncements);
 router.post('/', requireRole('admin', 'officer'), async (req, res, next) => {
-  // Call the original handler first
+  // Wrap createAnnouncement, then fire push notification after success
   const originalJson = res.json.bind(res);
-  res.json = async (data) => {
-    // After successful creation, send push notification
+  res.json = function(data) {
+    // Fire push async without blocking response
     if (data?.success && data?.data?.id) {
-      try {
-        await pushToOrg(req.user.orgId, {
-          title: `📢 ${data.data.title}`,
-          body: data.data.body?.slice(0, 100) || 'New announcement from your chapter',
-          tag: 'announcement',
-          url: '/announcements',
-          icon: '/icon-192.png',
-        });
-      } catch {}
+      pushToOrg(req.user.orgId, {
+        title: `📢 ${data.data.title || 'New Announcement'}`,
+        body: data.data.body?.slice(0, 100) || 'New announcement from your chapter',
+        tag: 'announcement',
+        url: '/announcements',
+        icon: '/icon-192.png',
+      }).catch(() => {});
     }
     return originalJson(data);
   };
