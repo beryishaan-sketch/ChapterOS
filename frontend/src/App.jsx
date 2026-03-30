@@ -14,6 +14,7 @@ import Recruitment from './pages/Recruitment';
 import Events from './pages/Events';
 import GuestList from './pages/GuestList';
 import Dues from './pages/Dues';
+import TreasurerImport from './pages/TreasurerImport';
 import Members from './pages/Members';
 import RoleManager from './pages/RoleManager';
 import Attendance from './pages/Attendance';
@@ -85,6 +86,7 @@ function App() {
       </Route>
       <Route path="/dues" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dues />} />
+        <Route path="import" element={<TreasurerImport />} />
       </Route>
       <Route path="/members" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Members />} />

@@ -265,7 +265,7 @@ export default function Dues() {
           <button className="btn-secondary" onClick={exportCSV}><Download size={15} /> Export</button>
           {isAdmin && (
             <>
-              <button className="btn-secondary" onClick={() => setShowImport(true)}>
+              <button className="btn-secondary" onClick={() => window.location.href='/dues/import'}>
                 <FileSpreadsheet size={15} /> Import Spreadsheet
               </button>
               <button className="btn-primary" onClick={() => setShowCreate(true)}>
