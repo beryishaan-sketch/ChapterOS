@@ -214,15 +214,24 @@ const importMembers = async (req, res) => {
         const rawGpa = mapping.gpa ? row[mapping.gpa]?.trim() : null;
         const gpa = rawGpa ? parseFloat(rawGpa.replace(',', '.')) || null : null;
 
-        // Find existing member or create new one
+        // Find existing member: try email first, then name match
         let member = email ? await prisma.member.findFirst({ where: { email, orgId } }) : null;
-        if (!member) {
-          // Also try matching by name if no email
-          if (!email) {
-            member = await prisma.member.findFirst({
-              where: { orgId, firstName: { equals: firstName, mode: 'insensitive' }, lastName: { equals: lastName || '', mode: 'insensitive' } }
-            });
-          }
+        if (!member && firstName) {
+          // Try full name match (case-insensitive)
+          member = await prisma.member.findFirst({
+            where: {
+              orgId,
+              firstName: { equals: firstName, mode: 'insensitive' },
+              lastName:  { equals: lastName || '', mode: 'insensitive' }
+            }
+          });
+        }
+        if (!member && firstName && lastName) {
+          // Fuzzy: try first name only if last name might be formatted differently
+          const candidates = await prisma.member.findMany({
+            where: { orgId, firstName: { equals: firstName, mode: 'insensitive' } }
+          });
+          if (candidates.length === 1) member = candidates[0]; // only match if unambiguous
         }
 
         if (!member) {
@@ -258,7 +267,8 @@ const importMembers = async (req, res) => {
         // Handle dues status
         if (duesRecord && member) {
           const rawPaid = mapping.duesPaid ? row[mapping.duesPaid]?.trim()?.toLowerCase() : null;
-          const isPaid = rawPaid && /^(yes|paid|true|1|✓|x|complete|done)$/i.test(rawPaid);
+          // Accept: yes, y, paid, true, 1, ✓, x, done, complete, "paid in full", etc.
+          const isPaid = rawPaid && /yes|paid|true|^1$|✓|^x$|complete|done|full/i.test(rawPaid);
           const rawAmount = mapping.duesAmount ? parseFloat(row[mapping.duesAmount]?.replace(/[$,]/g, '')) * 100 : null;
           const amount = rawAmount && !isNaN(rawAmount) ? rawAmount : (duesRecord.amount || 0);
 
