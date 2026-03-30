@@ -10,12 +10,36 @@ const getDuesRecords = async (req, res) => {
       include: {
         payments: {
           include: { member: { select: { id: true, firstName: true, lastName: true, email: true } } },
+          orderBy: { createdAt: 'asc' },
         },
         _count: { select: { payments: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
-    return res.json({ success: true, data: records });
+
+    // Flatten into per-member payment rows for the frontend
+    const flat = [];
+    for (const record of records) {
+      for (const payment of record.payments) {
+        flat.push({
+          id: payment.id,
+          duesRecordId: record.id,
+          memberId: payment.memberId,
+          memberName: `${payment.member.firstName} ${payment.member.lastName}`,
+          memberEmail: payment.member.email,
+          semester: record.semester,
+          amount: payment.amount || record.amount,
+          paidAmount: payment.status === 'paid' ? (payment.amount || record.amount) :
+                      payment.status === 'partial' ? Math.round((payment.amount || record.amount) * 0.5) : 0,
+          status: payment.status,
+          dueDate: record.dueDate,
+          paidDate: payment.paidAt,
+          createdAt: payment.createdAt,
+        });
+      }
+    }
+
+    return res.json({ success: true, data: flat });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, error: 'Failed to fetch dues records' });

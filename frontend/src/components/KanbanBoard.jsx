@@ -3,6 +3,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCorners,
@@ -13,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Star, GripVertical, ChevronRight, Plus } from 'lucide-react';
+import { Star, GripVertical, ChevronRight, Plus, ChevronLeft } from 'lucide-react';
 
 const STAGE_CONFIG = {
   invited: {
@@ -143,13 +144,26 @@ const PNMCard = ({ pnm, onClick, isDragging }) => {
   );
 };
 
-const SortablePNMCard = ({ pnm, onClick }) => {
+const STAGES_LIST = Object.keys(STAGE_CONFIG);
+
+const SortablePNMCard = ({ pnm, onClick, onStageChange }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: pnm.id });
+  const [showMove, setShowMove] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
+  };
+
+  const currentIdx = STAGES_LIST.indexOf(pnm.stage);
+  const canMoveLeft = currentIdx > 0;
+  const canMoveRight = currentIdx < STAGES_LIST.length - 1;
+
+  const moveStage = (e, direction) => {
+    e.stopPropagation();
+    const newStage = STAGES_LIST[currentIdx + direction];
+    if (newStage) onStageChange?.(pnm.id, newStage);
   };
 
   return (
@@ -158,19 +172,33 @@ const SortablePNMCard = ({ pnm, onClick }) => {
         <button
           {...attributes}
           {...listeners}
-          className="absolute left-2 top-1/2 -translate-y-1/2 p-1 opacity-0 group-hover/card:opacity-60 hover:!opacity-100 text-gray-400 cursor-grab active:cursor-grabbing z-10 transition-opacity rounded"
+          className="absolute left-2 top-1/2 -translate-y-1/2 p-1 hidden md:flex opacity-0 group-hover/card:opacity-60 hover:!opacity-100 text-gray-400 cursor-grab active:cursor-grabbing z-10 transition-opacity rounded"
           onClick={e => e.stopPropagation()}
-          aria-label="Drag to reorder"
         >
           <GripVertical size={12} />
         </button>
         <PNMCard pnm={pnm} onClick={() => onClick(pnm)} isDragging={isDragging} />
+        {/* Mobile move buttons — show on tap */}
+        <div className="md:hidden absolute bottom-2 right-2 flex gap-1">
+          {canMoveLeft && (
+            <button onClick={e => moveStage(e, -1)}
+              className="w-6 h-6 bg-gray-100 hover:bg-navy hover:text-white rounded-lg flex items-center justify-center text-gray-500 transition-all active:scale-95">
+              <ChevronLeft size={12} />
+            </button>
+          )}
+          {canMoveRight && (
+            <button onClick={e => moveStage(e, 1)}
+              className="w-6 h-6 bg-navy text-white rounded-lg flex items-center justify-center transition-all active:scale-95">
+              <ChevronRight size={12} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-const KanbanColumn = ({ stage, pnms, onPNMClick, onAddPNM }) => {
+const KanbanColumn = ({ stage, pnms, onPNMClick, onAddPNM, onStageChange }) => {
   const config = STAGE_CONFIG[stage];
   const { setNodeRef } = useSortable({ id: stage });
 
@@ -206,7 +234,7 @@ const KanbanColumn = ({ stage, pnms, onPNMClick, onAddPNM }) => {
           ) : (
             <>
               {pnms.map(pnm => (
-                <SortablePNMCard key={pnm.id} pnm={pnm} onClick={onPNMClick} />
+                <SortablePNMCard key={pnm.id} pnm={pnm} onClick={onPNMClick} onStageChange={onStageChange} />
               ))}
               {onAddPNM && (
                 <button
@@ -228,7 +256,8 @@ const KanbanBoard = ({ pnms, onPNMClick, onStageChange, onAddPNM }) => {
   const [activeId, setActiveId] = useState(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
   const stages = Object.keys(STAGE_CONFIG);
@@ -272,6 +301,7 @@ const KanbanBoard = ({ pnms, onPNMClick, onStageChange, onAddPNM }) => {
             pnms={pnmsByStage[stage]}
             onPNMClick={onPNMClick}
             onAddPNM={onAddPNM}
+            onStageChange={onStageChange}
           />
         ))}
       </div>
