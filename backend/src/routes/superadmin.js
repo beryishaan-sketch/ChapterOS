@@ -68,10 +68,21 @@ router.get('/orgs', requireSuperAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/superadmin/orgs/:id
+// DELETE /api/superadmin/orgs/:id — cascade deletes all related data
 router.delete('/orgs/:id', requireSuperAdmin, async (req, res) => {
   try {
-    await prisma.organization.delete({ where: { id: req.params.id } });
+    const orgId = req.params.id;
+    // Delete in dependency order
+    await prisma.duesPayment.deleteMany({ where: { member: { orgId } } }).catch(() => {});
+    await prisma.duesRecord.deleteMany({ where: { orgId } }).catch(() => {});
+    await prisma.attendance.deleteMany({ where: { event: { orgId } } }).catch(() => {});
+    await prisma.event.deleteMany({ where: { orgId } }).catch(() => {});
+    await prisma.announcement.deleteMany({ where: { orgId } }).catch(() => {});
+    await prisma.channel.deleteMany({ where: { orgId } }).catch(() => {});
+    await prisma.pNM.deleteMany({ where: { orgId } }).catch(() => {});
+    await prisma.poll.deleteMany({ where: { orgId } }).catch(() => {});
+    await prisma.member.deleteMany({ where: { orgId } }).catch(() => {});
+    await prisma.organization.delete({ where: { id: orgId } });
     return res.json({ success: true });
   } catch (e) {
     return res.status(500).json({ success: false, error: e.message });
