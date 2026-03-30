@@ -184,13 +184,14 @@ export default function Dues() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [duesRes, finesRes] = await Promise.all([
-        client.get('/dues'),
-        client.get('/dues/fines'),
-      ]);
+      const duesRes = await client.get('/dues');
       if (duesRes.data.success) setDues(duesRes.data.data || []);
-      if (finesRes.data.success) setFines(finesRes.data.data || []);
     } catch { /* empty */ }
+    // Fines is optional — don't let it break dues loading
+    try {
+      const finesRes = await client.get('/dues/fines');
+      if (finesRes.data.success) setFines(finesRes.data.data || []);
+    } catch { setFines([]); }
     finally { setLoading(false); }
   }, []);
 
