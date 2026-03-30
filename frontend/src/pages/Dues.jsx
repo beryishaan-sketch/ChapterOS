@@ -454,17 +454,18 @@ export default function Dues() {
       )}
 
       {/* Modals */}
-      <Modal isOpen={showImport} onClose={() => { setShowImport(false); fetchData(); }} title="Import Dues Spreadsheet" size="lg">
+      <Modal isOpen={showImport} onClose={() => { setShowImport(false); fetchData(); }} title="Import Dues" size="xl">
         <div className="p-1">
-          <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl mb-4">
-            <FileSpreadsheet size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-1">How to format your dues sheet:</p>
-              <p className="text-xs text-blue-600">Include columns for <strong>Name</strong> (or First/Last), <strong>Paid</strong> (Yes/No), and optionally <strong>Amount</strong>. We'll auto-detect the rest.</p>
+          <div className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl mb-4">
+            <FileSpreadsheet size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-emerald-800">
+              <p className="font-semibold mb-0.5">Format: Name (or First/Last), Paid (Yes/No), Amount (optional)</p>
+              <p className="text-xs text-emerald-600">Upload your spreadsheet → map columns → hit Import. Takes 30 seconds.</p>
             </div>
           </div>
           <ImportComponent
             onboardingMode={true}
+            defaultType="dues"
             onDone={() => { setShowImport(false); fetchData(); }}
           />
         </div>

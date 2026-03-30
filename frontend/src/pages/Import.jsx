@@ -77,13 +77,13 @@ const COLOR_MAP = {
   emerald: { bg: 'bg-emerald-50', border: 'border-emerald-500', icon: 'text-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
 };
 
-export default function Import({ onboardingMode = false, onDone }) {
+export default function Import({ onboardingMode = false, onDone, defaultType }) {
   const navigate = useNavigate();
   const fileRef = useRef();
   const dropRef = useRef();
 
   const [step, setStep] = useState(0);
-  const [importType, setImportType] = useState('members');
+  const [importType, setImportType] = useState(defaultType || 'members');
   const [csvText, setCsvText] = useState('');
   const [sheetsUrl, setSheetsUrl] = useState('');
   const [inputMode, setInputMode] = useState('file');
