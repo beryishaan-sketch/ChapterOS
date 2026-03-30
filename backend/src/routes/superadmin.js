@@ -100,4 +100,34 @@ router.delete('/orgs/:id', requireSuperAdmin, async (req, res) => {
   }
 });
 
+// POST /api/superadmin/nuke-org — hard delete with full cascade
+router.post('/nuke-org', requireSuperAdmin, async (req, res) => {
+  try {
+    const { orgId } = req.body;
+    if (!orgId) return res.status(400).json({ success: false, error: 'orgId required' });
+
+    const memberIds = (await prisma.member.findMany({ where: { orgId }, select: { id: true } })).map(m => m.id);
+
+    if (memberIds.length) {
+      await prisma.$executeRawUnsafe(`DELETE FROM "DuesPayment" WHERE "memberId" = ANY(ARRAY[${memberIds.map(id => `'${id}'`).join(',')}])`);
+      await prisma.$executeRawUnsafe(`DELETE FROM "Attendance" WHERE "memberId" = ANY(ARRAY[${memberIds.map(id => `'${id}'`).join(',')}])`);
+      // PasswordResetToken if exists
+      try { await prisma.$executeRawUnsafe(`DELETE FROM "PasswordResetToken" WHERE "memberId" = ANY(ARRAY[${memberIds.map(id => `'${id}'`).join(',')}])`); } catch {}
+    }
+
+    await prisma.$executeRawUnsafe(`DELETE FROM "DuesRecord" WHERE "orgId" = '${orgId}'`);
+    await prisma.$executeRawUnsafe(`DELETE FROM "Event" WHERE "orgId" = '${orgId}'`);
+    await prisma.$executeRawUnsafe(`DELETE FROM "Announcement" WHERE "orgId" = '${orgId}'`);
+    await prisma.$executeRawUnsafe(`DELETE FROM "Channel" WHERE "orgId" = '${orgId}'`);
+    try { await prisma.$executeRawUnsafe(`DELETE FROM "PNM" WHERE "orgId" = '${orgId}'`); } catch {}
+    try { await prisma.$executeRawUnsafe(`DELETE FROM "Poll" WHERE "orgId" = '${orgId}'`); } catch {}
+    await prisma.$executeRawUnsafe(`DELETE FROM "Member" WHERE "orgId" = '${orgId}'`);
+    await prisma.$executeRawUnsafe(`DELETE FROM "Organization" WHERE id = '${orgId}'`);
+
+    return res.json({ success: true, message: `Org ${orgId} and all related data deleted` });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 module.exports = router;
