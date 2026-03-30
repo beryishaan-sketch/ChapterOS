@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Upload, Link, FileText, ChevronRight, Check, AlertCircle,
-  Users, Star, Calendar, ArrowRight, RefreshCw, X, Info
+  Users, Star, Calendar, ArrowRight, RefreshCw, X, Info, DollarSign
 } from 'lucide-react';
 import client from '../api/client';
 
@@ -16,6 +16,9 @@ const IMPORT_TYPES = [
   { value: 'events', label: 'Events / Calendar', icon: Calendar, color: 'purple',
     desc: 'Party calendar, events list — title, date, location', endpoint: '/import/events',
     nav: '/events', navLabel: 'View Events' },
+  { value: 'dues', label: 'Dues / Payments', icon: DollarSign, color: 'emerald',
+    desc: 'Who paid, who owes — name, paid status, amount', endpoint: '/import/members',
+    nav: '/dues', navLabel: 'View Dues' },
 ];
 
 const FIELDS_BY_TYPE = {
@@ -53,14 +56,25 @@ const FIELDS_BY_TYPE = {
     { value: 'eventLocation',label: 'Location / Venue' },
     { value: 'eventType',    label: 'Type (social, philanthropy, etc.)' },
   ],
+  dues: [
+    { value: '',            label: '— Skip this column —' },
+    { value: 'fullName',    label: 'Full Name (First + Last)' },
+    { value: 'firstName',   label: 'First Name' },
+    { value: 'lastName',    label: 'Last Name' },
+    { value: 'email',       label: 'Email Address' },
+    { value: 'duesPaid',    label: 'Paid? (Yes / No / True / False)' },
+    { value: 'duesAmount',  label: 'Amount Owed ($)' },
+    { value: 'semester',    label: 'Semester (e.g. Fall 2025)' },
+  ],
 };
 
 const STEPS = ['Choose & Upload', 'Map Columns', 'Done'];
 
 const COLOR_MAP = {
-  blue:   { bg: 'bg-blue-50',   border: 'border-blue-500',   icon: 'text-blue-500',   badge: 'bg-blue-100 text-blue-700' },
-  amber:  { bg: 'bg-amber-50',  border: 'border-amber-500',  icon: 'text-amber-500',  badge: 'bg-amber-100 text-amber-700' },
-  purple: { bg: 'bg-purple-50', border: 'border-purple-500', icon: 'text-purple-500', badge: 'bg-purple-100 text-purple-700' },
+  blue:    { bg: 'bg-blue-50',    border: 'border-blue-500',    icon: 'text-blue-500',    badge: 'bg-blue-100 text-blue-700' },
+  amber:   { bg: 'bg-amber-50',   border: 'border-amber-500',   icon: 'text-amber-500',   badge: 'bg-amber-100 text-amber-700' },
+  purple:  { bg: 'bg-purple-50',  border: 'border-purple-500',  icon: 'text-purple-500',  badge: 'bg-purple-100 text-purple-700' },
+  emerald: { bg: 'bg-emerald-50', border: 'border-emerald-500', icon: 'text-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
 };
 
 export default function Import({ onboardingMode = false, onDone }) {
@@ -368,7 +382,7 @@ export default function Import({ onboardingMode = false, onDone }) {
                   <div className="flex items-center gap-2 mt-2">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
                       ${detectedInfo.confidence === 'high' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      ✦ Auto-detected: {detectedInfo.type === 'members' ? 'Brothers / Members' : detectedInfo.type === 'pnms' ? 'PNMs / Rushees' : 'Events'}
+                      ✦ Auto-detected: {detectedInfo.type === 'members' ? 'Brothers / Members' : detectedInfo.type === 'pnms' ? 'PNMs / Rushees' : detectedInfo.type === 'dues' ? 'Dues / Payments' : 'Events'}
                     </span>
                     <select
                       className="text-xs text-gray-500 border-0 bg-transparent hover:text-gray-700 cursor-pointer"
