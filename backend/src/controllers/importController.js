@@ -19,8 +19,12 @@ const FIELD_MAP = {
   mutualConnections: ['mutual', 'connections', 'referred', 'referral', 'knows', 'referredby', 'mutualfriend'],
   notes:     ['notes', 'comments', 'remarks', 'note', 'memo', 'additional', 'info', 'other'],
   // Dues fields
-  duesPaid:  ['paid', 'dues', 'payment', 'duespaid', 'paidstatus', 'dusstatus'],
-  duesAmount:['amount', 'balance', 'owes', 'dueesamount', 'totaldue'],
+  duesPaid:    ['paid', 'dues', 'payment', 'duespaid', 'paidstatus', 'dusstatus'],
+  duesAmount:  ['amount', 'balance', 'owes', 'duesamount', 'totaldue', 'duesspring', 'duesfall', 'duessemester', 'semesterdues'],
+  duesOwing:   ['ar', 'a/r', 'owing', 'remaining', 'outstanding', 'balance', 'owed', 'receivable', 'accountsreceivable'],
+  duesPaidWinter: ['paymentsmadewinter', 'winterpayment', 'paidwinter'],
+  duesPaidSpring: ['paytmentsmadespring', 'paymentsmadespring', 'springpayment', 'paidspring'],
+  duesDiscount:   ['discount', 'reduction', 'waiver', 'dj', 'prez', 'senior'],
   // Events fields
   eventTitle:    ['event', 'eventtitle', 'eventname', 'title'],
   eventDate:     ['date', 'eventdate', 'when', 'datetime'],
@@ -266,28 +270,66 @@ const importMembers = async (req, res) => {
 
         // Handle dues status
         if (duesRecord && member) {
-          const rawPaid = mapping.duesPaid ? row[mapping.duesPaid]?.trim()?.toLowerCase() : null;
-          // Accept: yes, y, paid, true, 1, ✓, x, done, complete, "paid in full", etc.
-          const isPaid = rawPaid && /yes|paid|true|^1$|✓|^x$|complete|done|full/i.test(rawPaid);
-          const rawAmount = mapping.duesAmount ? parseFloat(row[mapping.duesAmount]?.replace(/[$,]/g, '')) * 100 : null;
-          const amount = rawAmount && !isNaN(rawAmount) ? rawAmount : (duesRecord.amount || 0);
+          const parseDollar = (val) => {
+            if (!val) return null;
+            const cleaned = val.toString().replace(/[\$,\s]/g, '').trim();
+            if (!cleaned || cleaned === '-' || cleaned === '0') return 0;
+            const n = parseFloat(cleaned);
+            return isNaN(n) ? null : Math.round(n * 100); // convert to cents
+          };
 
-          // Update dues record amount if we found one
-          if (rawAmount && !isNaN(rawAmount) && duesRecord.amount === 0) {
-            await prisma.duesRecord.update({ where: { id: duesRecord.id }, data: { amount: rawAmount } });
+          // Determine amount owed and paid status
+          const rawDuesAmount   = parseDollar(mapping.duesAmount   ? row[mapping.duesAmount]   : null);
+          const rawDiscount     = parseDollar(mapping.duesDiscount  ? row[mapping.duesDiscount]  : null);
+          const rawOwing        = parseDollar(mapping.duesOwing     ? row[mapping.duesOwing]     : null); // A/R column
+          const rawPaidWinter   = parseDollar(mapping.duesPaidWinter ? row[mapping.duesPaidWinter] : null);
+          const rawPaidSpring   = parseDollar(mapping.duesPaidSpring ? row[mapping.duesPaidSpring] : null);
+          const rawSimplePaid   = mapping.duesPaid ? row[mapping.duesPaid]?.trim()?.toLowerCase() : null;
+
+          // Calculate total dues amount (after discount)
+          let amount = rawDuesAmount != null ? rawDuesAmount : (duesRecord.amount || 0);
+          if (rawDiscount) amount = Math.max(0, amount - rawDiscount);
+
+          // Calculate paid status
+          let isPaid = false;
+          let isPartial = false;
+          let paidAmount = 0;
+
+          if (rawOwing != null) {
+            // A/R column present: owing = 0 means paid, > 0 means still owes
+            isPaid = rawOwing === 0;
+            isPartial = !isPaid && (rawPaidWinter || rawPaidSpring) ? ((rawPaidWinter || 0) + (rawPaidSpring || 0)) > 0 : false;
+            paidAmount = isPaid ? amount : ((rawPaidWinter || 0) + (rawPaidSpring || 0));
+          } else if (rawSimplePaid) {
+            // Simple yes/no paid column
+            isPaid = /yes|paid|true|^1$|✓|^x$|complete|done|full/i.test(rawSimplePaid);
+            paidAmount = isPaid ? amount : 0;
+          } else if (rawPaidWinter != null || rawPaidSpring != null) {
+            paidAmount = (rawPaidWinter || 0) + (rawPaidSpring || 0);
+            isPaid = amount > 0 && paidAmount >= amount;
+            isPartial = !isPaid && paidAmount > 0;
+          }
+
+          const status = isPaid ? 'paid' : isPartial ? 'partial' : 'unpaid';
+
+          // Update dues record amount if needed
+          if (amount > 0 && duesRecord.amount === 0) {
+            await prisma.duesRecord.update({ where: { id: duesRecord.id }, data: { amount } });
           }
 
           const existingPayment = await prisma.duesPayment.findFirst({
             where: { memberId: member.id, duesRecordId: duesRecord.id }
           });
+          const paymentData = {
+            status,
+            amount: amount || 0,
+            paidAt: isPaid ? new Date() : null,
+          };
           if (existingPayment) {
-            await prisma.duesPayment.update({
-              where: { id: existingPayment.id },
-              data: { status: isPaid ? 'paid' : 'unpaid', paidAt: isPaid ? new Date() : null, amount: amount || 0 },
-            });
+            await prisma.duesPayment.update({ where: { id: existingPayment.id }, data: paymentData });
           } else {
             await prisma.duesPayment.create({
-              data: { memberId: member.id, duesRecordId: duesRecord.id, amount: amount || 0, status: isPaid ? 'paid' : 'unpaid', paidAt: isPaid ? new Date() : null },
+              data: { memberId: member.id, duesRecordId: duesRecord.id, ...paymentData }
             });
           }
         }

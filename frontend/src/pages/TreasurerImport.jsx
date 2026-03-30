@@ -31,14 +31,18 @@ export default function TreasurerImport() {
   const [dragOver, setDragOver] = useState(false);
 
   const FIELD_OPTIONS = [
-    { value: '',           label: '— Skip —' },
-    { value: 'fullName',   label: 'Full Name' },
-    { value: 'firstName',  label: 'First Name' },
-    { value: 'lastName',   label: 'Last Name' },
-    { value: 'email',      label: 'Email' },
-    { value: 'duesPaid',   label: 'Paid? (Yes/No)' },
-    { value: 'duesAmount', label: 'Amount Owed ($)' },
-    { value: 'semester',   label: 'Semester' },
+    { value: '',               label: '— Skip —' },
+    { value: 'firstName',      label: 'First Name' },
+    { value: 'lastName',       label: 'Last Name' },
+    { value: 'fullName',       label: 'Full Name (First + Last)' },
+    { value: 'email',          label: 'Email' },
+    { value: 'duesAmount',     label: 'Total Dues Owed ($)' },
+    { value: 'duesDiscount',   label: 'Discount / Reduction ($)' },
+    { value: 'duesPaidWinter', label: 'Payments Made (Winter/Fall)' },
+    { value: 'duesPaidSpring', label: 'Payments Made (Spring)' },
+    { value: 'duesOwing',      label: 'A/R — Amount Still Owed ($)' },
+    { value: 'duesPaid',       label: 'Paid? (Yes/No column)' },
+    { value: 'notes',          label: 'Notes' },
   ];
 
   const handleFile = (file) => {
