@@ -68,21 +68,32 @@ router.get('/orgs', requireSuperAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/superadmin/orgs/:id — cascade deletes all related data
+// DELETE /api/superadmin/orgs/:id — cascade via raw SQL to avoid FK constraint ordering
 router.delete('/orgs/:id', requireSuperAdmin, async (req, res) => {
   try {
     const orgId = req.params.id;
-    // Delete in dependency order
-    await prisma.duesPayment.deleteMany({ where: { member: { orgId } } }).catch(() => {});
-    await prisma.duesRecord.deleteMany({ where: { orgId } }).catch(() => {});
-    await prisma.attendance.deleteMany({ where: { event: { orgId } } }).catch(() => {});
-    await prisma.event.deleteMany({ where: { orgId } }).catch(() => {});
-    await prisma.announcement.deleteMany({ where: { orgId } }).catch(() => {});
-    await prisma.channel.deleteMany({ where: { orgId } }).catch(() => {});
-    await prisma.pNM.deleteMany({ where: { orgId } }).catch(() => {});
-    await prisma.poll.deleteMany({ where: { orgId } }).catch(() => {});
-    await prisma.member.deleteMany({ where: { orgId } }).catch(() => {});
-    await prisma.organization.delete({ where: { id: orgId } });
+    // Use raw SQL to bypass FK constraint ordering issues
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      DECLARE mid TEXT;
+      BEGIN
+        -- delete member-dependent records first
+        FOR mid IN SELECT id FROM "Member" WHERE "orgId" = '${orgId}' LOOP
+          DELETE FROM "DuesPayment" WHERE "memberId" = mid;
+          DELETE FROM "Attendance" WHERE "memberId" = mid;
+          DELETE FROM "PasswordResetToken" WHERE "memberId" = mid;
+        END LOOP;
+        -- delete org-level records
+        DELETE FROM "DuesRecord" WHERE "orgId" = '${orgId}';
+        DELETE FROM "Event" WHERE "orgId" = '${orgId}';
+        DELETE FROM "Announcement" WHERE "orgId" = '${orgId}';
+        DELETE FROM "Channel" WHERE "orgId" = '${orgId}';
+        DELETE FROM "PNM" WHERE "orgId" = '${orgId}';
+        DELETE FROM "Poll" WHERE "orgId" = '${orgId}';
+        DELETE FROM "Member" WHERE "orgId" = '${orgId}';
+        DELETE FROM "Organization" WHERE id = '${orgId}';
+      END $$;
+    `);
     return res.json({ success: true });
   } catch (e) {
     return res.status(500).json({ success: false, error: e.message });
