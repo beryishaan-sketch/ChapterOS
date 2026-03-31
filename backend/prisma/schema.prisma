@@ -172,6 +172,12 @@ model DuesPayment {
   paidAt          DateTime?
   stripePaymentId String?
   createdAt       DateTime  @default(now())
+  // Extended treasurer fields
+  discount        Float?
+  winterPayment   Float?
+  springPayment   Float?
+  owing           Float?
+  notes           String?
 
   @@unique([memberId, duesRecordId])
 }

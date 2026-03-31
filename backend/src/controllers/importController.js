@@ -363,10 +363,18 @@ const importMembers = async (req, res) => {
           const existingPayment = await prisma.duesPayment.findFirst({
             where: { memberId: member.id, duesRecordId: duesRecord.id }
           });
+          // Also store raw notes if mapped
+          const rawNotes = mapping.notes ? row[mapping.notes]?.trim() || null : null;
+
           const paymentData = {
             status,
             amount: amount || 0,
             paidAt: isPaid ? new Date() : null,
+            discount:      rawDiscount     != null ? rawDiscount     : undefined,
+            winterPayment: rawPaidWinter   != null ? rawPaidWinter   : undefined,
+            springPayment: rawPaidSpring   != null ? rawPaidSpring   : undefined,
+            owing:         rawOwing        != null ? rawOwing        : undefined,
+            notes:         rawNotes,
           };
           if (existingPayment) {
             await prisma.duesPayment.update({ where: { id: existingPayment.id }, data: paymentData });

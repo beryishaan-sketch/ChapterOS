@@ -29,12 +29,19 @@ const getDuesRecords = async (req, res) => {
           memberEmail: payment.member.email,
           semester: record.semester,
           amount: payment.amount || record.amount,
-          paidAmount: payment.status === 'paid' ? (payment.amount || record.amount) :
-                      payment.status === 'partial' ? Math.round((payment.amount || record.amount) * 0.5) : 0,
+          paidAmount: payment.status === 'paid'
+            ? (payment.amount || record.amount)
+            : ((payment.winterPayment || 0) + (payment.springPayment || 0)) || 0,
           status: payment.status,
           dueDate: record.dueDate,
           paidDate: payment.paidAt,
           createdAt: payment.createdAt,
+          // Extended treasurer fields
+          discount:      payment.discount      || 0,
+          winterPayment: payment.winterPayment || 0,
+          springPayment: payment.springPayment || 0,
+          owing:         payment.owing         != null ? payment.owing : null,
+          notes:         payment.notes         || null,
         });
       }
     }

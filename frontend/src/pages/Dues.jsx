@@ -327,18 +327,17 @@ export default function Dues() {
       </div>
 
       {/* Dues List — card-based for mobile */}
+            {/* Dues Table — mirrors the treasurer spreadsheet */}
       <div className="card overflow-hidden mb-8">
         {loading ? (
           <div className="divide-y divide-gray-50">
             {Array(5).fill(0).map((_, i) => (
               <div key={i} className="flex items-center gap-3 px-4 py-4">
-                <div className="skeleton w-10 h-10 rounded-full flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="skeleton h-4 w-32 rounded" />
-                  <div className="skeleton h-3 w-20 rounded" />
-                </div>
+                <div className="skeleton w-32 h-4 rounded" />
+                <div className="skeleton h-4 w-16 rounded ml-auto" />
+                <div className="skeleton h-4 w-16 rounded" />
+                <div className="skeleton h-4 w-16 rounded" />
                 <div className="skeleton h-6 w-14 rounded-full" />
-                <div className="skeleton h-5 w-16 rounded" />
               </div>
             ))}
           </div>
@@ -347,80 +346,106 @@ export default function Dues() {
             <DollarSign size={32} className="text-gray-200 mx-auto mb-3" />
             <p className="text-sm font-medium text-gray-400">No dues records found</p>
           </div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {filtered.map(due => {
-              const isPaid = due.status === 'paid';
-              const isWaived = due.status === 'waived';
-              return (
-                <div key={due.id} className={`flex items-center gap-3 px-4 py-3.5 transition-colors ${selected.has(due.id) ? 'bg-navy/4' : 'hover:bg-gray-50/60'}`}>
-                  {/* Checkbox */}
-                  {isAdmin && (
-                    <input type="checkbox" className="rounded flex-shrink-0"
-                      checked={selected.has(due.id)} onChange={() => toggleSelect(due.id)} />
-                  )}
-
-                  {/* Status indicator dot */}
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isPaid ? 'bg-emerald-500' : isWaived ? 'bg-gray-300' : due.status === 'partial' ? 'bg-amber-400' : 'bg-red-400'}`} />
-
-                  {/* Avatar */}
-                  <div className="w-9 h-9 bg-navy/10 rounded-full flex items-center justify-center text-navy text-xs font-bold flex-shrink-0">
-                    {due.memberName?.split(' ').map(n => n[0]).join('') || '?'}
-                  </div>
-
-                  {/* Name + meta */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{due.memberName || '—'}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {due.semester && <span className="text-xs text-gray-400">{due.semester}</span>}
-                      {due.dueDate && !isPaid && (
-                        <span className="text-xs text-gray-400">· due {formatDate(due.dueDate)}</span>
-                      )}
-                      {isPaid && due.paidDate && (
-                        <span className="text-xs text-emerald-500">· paid {formatDate(due.paidDate)}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Amount */}
-                  <div className="text-right flex-shrink-0 min-w-[60px]">
-                    <p className={`text-sm font-bold ${isPaid ? 'text-emerald-600' : due.status === 'partial' ? 'text-amber-600' : 'text-gray-900'}`}>
-                      {formatCurrency(due.amount)}
-                    </p>
-                    {due.paidAmount > 0 && due.paidAmount < due.amount && (
-                      <p className="text-xs text-gray-400">{formatCurrency(due.paidAmount)} paid</p>
-                    )}
-                  </div>
-
-                  {/* Status badge */}
-                  <StatusBadge status={due.status} />
-
-                  {/* Actions */}
-                  {isAdmin && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {!isPaid && !isWaived && (
-                        <button onClick={() => setPayModal(due)}
-                          className="w-8 h-8 flex items-center justify-center bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors"
-                          title="Mark paid">
-                          <Check size={14} />
-                        </button>
-                      )}
-                      {(due.status === 'unpaid' || due.status === 'partial') && (
-                        <button onClick={() => sendReminder(due.id)} disabled={sendingReminder === due.id}
-                          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-navy hover:bg-navy/8 rounded-lg transition-colors"
-                          title="Send reminder">
-                          {sendingReminder === due.id
-                            ? <span className="w-3 h-3 border border-gray-400 border-t-gray-700 rounded-full animate-spin" />
-                            : <Send size={13} />}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        ) : (() => {
+          // Detect if extended treasurer fields exist
+          const hasExtended = filtered.some(d => d.winterPayment > 0 || d.springPayment > 0 || d.discount > 0 || d.owing != null);
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/80">
+                    {isAdmin && <th className="w-8 px-3 py-3"><input type="checkbox" className="rounded"
+                      onChange={e => setSelected(e.target.checked ? new Set(filtered.map(d => d.id)) : new Set())}
+                      checked={selected.size === filtered.length && filtered.length > 0} /></th>}
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Member</th>
+                    <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Dues Owed</th>
+                    {hasExtended && <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Discount</th>}
+                    {hasExtended && <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Paid (Winter)</th>}
+                    {hasExtended && <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Paid (Spring)</th>}
+                    <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">A/R</th>
+                    <th className="px-3 py-3 font-semibold text-gray-600">Status</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-600 hidden lg:table-cell">Notes</th>
+                    {isAdmin && <th className="px-3 py-3" />}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filtered.map(due => {
+                    const isPaid = due.status === 'paid';
+                    const isWaived = due.status === 'waived';
+                    const owing = due.owing != null ? due.owing : (due.amount - (due.winterPayment || 0) - (due.springPayment || 0) - (due.discount || 0));
+                    return (
+                      <tr key={due.id} className={`transition-colors ${selected.has(due.id) ? 'bg-navy/[0.03]' : 'hover:bg-gray-50/60'}`}>
+                        {isAdmin && (
+                          <td className="px-3 py-3">
+                            <input type="checkbox" className="rounded"
+                              checked={selected.has(due.id)} onChange={() => toggleSelect(due.id)} />
+                          </td>
+                        )}
+                        {/* Name */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isPaid ? 'bg-emerald-500' : isWaived ? 'bg-gray-300' : due.status === 'partial' ? 'bg-amber-400' : 'bg-red-400'}`} />
+                            <div className="w-7 h-7 bg-navy/10 rounded-full flex items-center justify-center text-navy text-[10px] font-bold flex-shrink-0">
+                              {due.memberName?.split(' ').map(n => n[0]).join('') || '?'}
+                            </div>
+                            <span className="font-semibold text-gray-900 whitespace-nowrap">{due.memberName || '—'}</span>
+                          </div>
+                        </td>
+                        {/* Dues Owed */}
+                        <td className="px-3 py-3 text-right font-mono text-gray-800">{formatCurrency(due.amount)}</td>
+                        {/* Discount */}
+                        {hasExtended && <td className="px-3 py-3 text-right font-mono text-gray-500">
+                          {due.discount > 0 ? <span className="text-emerald-600">−{formatCurrency(due.discount)}</span> : <span className="text-gray-300">—</span>}
+                        </td>}
+                        {/* Paid Winter */}
+                        {hasExtended && <td className="px-3 py-3 text-right font-mono">
+                          {due.winterPayment > 0 ? <span className="text-emerald-700">{formatCurrency(due.winterPayment)}</span> : <span className="text-gray-300">—</span>}
+                        </td>}
+                        {/* Paid Spring */}
+                        {hasExtended && <td className="px-3 py-3 text-right font-mono">
+                          {due.springPayment > 0 ? <span className="text-emerald-700">{formatCurrency(due.springPayment)}</span> : <span className="text-gray-300">—</span>}
+                        </td>}
+                        {/* A/R */}
+                        <td className="px-3 py-3 text-right font-mono font-semibold">
+                          {owing <= 0
+                            ? <span className="text-emerald-600">—</span>
+                            : <span className="text-red-600">{formatCurrency(owing)}</span>}
+                        </td>
+                        {/* Status */}
+                        <td className="px-3 py-3"><StatusBadge status={due.status} /></td>
+                        {/* Notes */}
+                        <td className="px-3 py-3 text-gray-400 text-xs max-w-[180px] truncate hidden lg:table-cell" title={due.notes || ''}>
+                          {due.notes || ''}
+                        </td>
+                        {/* Actions */}
+                        {isAdmin && (
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-1 justify-end">
+                              {!isPaid && !isWaived && (
+                                <button onClick={() => setPayModal(due)}
+                                  className="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors"
+                                  title="Mark paid"><Check size={13} /></button>
+                              )}
+                              {(due.status === 'unpaid' || due.status === 'partial') && (
+                                <button onClick={() => sendReminder(due.id)} disabled={sendingReminder === due.id}
+                                  className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-navy hover:bg-navy/8 rounded-lg transition-colors"
+                                  title="Send reminder">
+                                  {sendingReminder === due.id
+                                    ? <span className="w-3 h-3 border border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                                    : <Send size={12} />}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Fines Section */}
