@@ -115,26 +115,22 @@ function ChannelRow({ channel, active, onClick }) {
   const lastMsg = channel.messages?.[0];
   return (
     <button onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all
-        ${active ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-white/70 hover:text-white'}`}>
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 transition-all
-        ${active ? 'bg-white/15' : 'bg-white/8'}`}>
-        {channel.emoji || '#'}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group
+        ${active ? 'bg-white/12 shadow-sm' : 'hover:bg-white/6'}`}>
+      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 transition-all
+        ${active ? 'bg-white/20 shadow-sm' : 'bg-white/8 group-hover:bg-white/12'}`}>
+        {channel.emoji || '💬'}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className={`font-semibold text-sm truncate ${active ? 'text-white' : 'text-white/80'}`}>
+          <span className={`font-semibold text-sm truncate ${active ? 'text-white' : 'text-white/75 group-hover:text-white/90'}`}>
             {channel.name}
           </span>
-          {channel.isLocked && <Lock size={9} className="text-white/40 flex-shrink-0" />}
+          {channel.isLocked && <Lock size={9} className="text-white/35 flex-shrink-0" />}
         </div>
-        {lastMsg ? (
-          <p className="text-xs text-white/40 truncate">
-            {lastMsg.author?.firstName}: {lastMsg.content}
-          </p>
-        ) : (
-          <p className="text-xs text-white/25">No messages yet</p>
-        )}
+        <p className={`text-xs truncate mt-0.5 ${active ? 'text-white/50' : 'text-white/30'}`}>
+          {lastMsg ? `${lastMsg.author?.firstName}: ${lastMsg.content}` : channel.description || 'No messages yet'}
+        </p>
       </div>
     </button>
   );
@@ -311,27 +307,30 @@ export default function Channels() {
   const messageGroups = groupMessages(messages);
 
   const sidebar = (
-    <div className="flex flex-col h-full" style={{ background: '#0F1C3F' }}>
+    <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg, #111d42 0%, #0d1735 100%)' }}>
       {/* Sidebar header */}
-      <div className="px-4 pt-5 pb-3 flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
+      <div className="px-4 pt-5 pb-4 flex-shrink-0 border-b border-white/6">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-extrabold text-white text-base">Channels</h2>
-            <p className="text-white/40 text-xs mt-0.5">{channels.length} channels</p>
+            <h2 className="font-extrabold text-white text-[15px] tracking-tight">Channels</h2>
+            <p className="text-white/35 text-xs mt-0.5">{channels.length} active</p>
           </div>
           {isOfficer && (
             <button onClick={() => setShowCreate(true)}
-              className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors">
+              className="w-8 h-8 bg-white/10 hover:bg-white/18 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95">
               <Plus size={15} className="text-white" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Channels */}
-      <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5 no-scrollbar">
+      {/* Channels list */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 no-scrollbar">
         {channels.length === 0 ? (
-          <p className="text-white/30 text-xs text-center py-8">No channels yet</p>
+          <div className="text-center py-12">
+            <p className="text-3xl mb-2">💬</p>
+            <p className="text-white/30 text-xs">No channels yet</p>
+          </div>
         ) : channels.map(ch => (
           <ChannelRow key={ch.id} channel={ch} active={activeChannel?.id === ch.id} onClick={() => selectChannel(ch)} />
         ))}
@@ -342,42 +341,41 @@ export default function Channels() {
   const isLocked = activeChannel?.isLocked && !unlockedChannels.has(activeChannel?.id);
 
   const chatArea = (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-white">
       {/* Chat header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3.5 bg-white border-b border-gray-100 flex-shrink-0 shadow-sm">
         <button className="md:hidden p-1.5 -ml-1 hover:bg-gray-100 rounded-lg transition-colors" onClick={() => setMobileView('list')}>
           <ChevronLeft size={18} className="text-gray-600" />
         </button>
         {activeChannel ? (
           <>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-              style={{ background: '#0F1C3F15' }}>
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-navy/6">
               {activeChannel.emoji || '💬'}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-gray-900 text-sm leading-tight">{activeChannel.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-gray-900 text-[15px] leading-tight">{activeChannel.name}</h3>
+                {activeChannel.isLocked && (
+                  <span className="flex items-center gap-1 bg-red-50 text-red-500 border border-red-100 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                    <Lock size={8} /> PIN
+                  </span>
+                )}
+                {activeChannel.allowedRoles !== 'all' && (
+                  <span className="hidden sm:flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                    Restricted
+                  </span>
+                )}
+              </div>
               {activeChannel.description && (
-                <p className="text-xs text-gray-400 truncate">{activeChannel.description}</p>
+                <p className="text-xs text-gray-400 truncate mt-0.5">{activeChannel.description}</p>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {activeChannel.isLocked && (
-                <div className="flex items-center gap-1 bg-red-50 text-red-500 border border-red-100 rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                  <Lock size={9} /> PIN
-                </div>
-              )}
-              {activeChannel.allowedRoles !== 'all' && (
-                <div className="hidden sm:flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                  <Lock size={9} /> Restricted
-                </div>
-              )}
-              {isOfficer && (
-                <button onClick={() => setShowSettings(true)}
-                  className="w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
-                  <Settings size={14} />
-                </button>
-              )}
-            </div>
+            {isOfficer && (
+              <button onClick={() => setShowSettings(true)}
+                className="w-8 h-8 hover:bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0">
+                <Settings size={15} />
+              </button>
+            )}
           </>
         ) : (
           <p className="text-gray-400 text-sm">Select a channel</p>
@@ -454,9 +452,10 @@ export default function Channels() {
 
           {/* Input bar */}
           {activeChannel && (
-            <div className="px-4 pb-4 pt-2 bg-white border-t border-gray-100 flex-shrink-0">
+            <div className="px-4 pb-5 pt-3 bg-white border-t border-gray-100 flex-shrink-0"
+              style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
               <form onSubmit={send}
-                className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 focus-within:border-navy/30 focus-within:bg-white transition-all">
+                className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus-within:border-navy/40 focus-within:shadow-sm transition-all">
                 <input
                   ref={inputRef}
                   value={input}
@@ -464,13 +463,13 @@ export default function Channels() {
                   onKeyDown={e => {
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(e); }
                   }}
-                  placeholder={`Message #${activeChannel.name}…`}
-                  className="flex-1 bg-transparent text-sm outline-none text-gray-900 placeholder-gray-400 resize-none leading-relaxed"
+                  placeholder={`Message ${activeChannel.name}…`}
+                  className="flex-1 bg-transparent text-sm outline-none text-gray-900 placeholder-gray-400"
                   maxLength={4000}
                   disabled={sending}
                 />
                 <button type="submit" disabled={!input.trim() || sending}
-                  className="w-8 h-8 flex items-center justify-center bg-navy text-white rounded-xl disabled:opacity-25 hover:bg-navy/80 transition-all active:scale-95 flex-shrink-0">
+                  className="w-8 h-8 flex items-center justify-center bg-navy text-white rounded-xl disabled:opacity-20 hover:bg-navy/85 transition-all active:scale-95 flex-shrink-0">
                   <Send size={13} />
                 </button>
               </form>
@@ -515,9 +514,9 @@ export default function Channels() {
             <div className="flex items-center gap-2 input-field">
               <Hash size={13} className="text-gray-400" />
               <input className="flex-1 bg-transparent outline-none text-sm"
-                placeholder="general, officers, rush-2026…"
+                placeholder="Officers, General, Rush 2026…"
                 value={newChannel.name}
-                onChange={e => setNewChannel(p => ({ ...p, name: e.target.value.toLowerCase().replace(/\s+/g, '-') }))} />
+                onChange={e => setNewChannel(p => ({ ...p, name: e.target.value }))} />
             </div>
           </div>
           <div>
@@ -623,7 +622,7 @@ function ChannelSettings({ channel, onUpdate, onDelete, onClose }) {
       <div>
         <label className="label">Name</label>
         <input className="input-field w-full text-sm" value={form.name}
-          onChange={e => setForm(p => ({ ...p, name: e.target.value.toLowerCase().replace(/\s+/g, '-') }))} />
+          onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
       </div>
       <div>
         <label className="label">Description</label>

@@ -56,7 +56,7 @@ const createChannel = async (req, res) => {
     const { name, description, emoji, allowedRoles = 'all', allowedMembers, pin, pinHint, type = 'public' } = req.body;
     if (!name) return res.status(400).json({ success: false, error: 'Channel name required' });
 
-    const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    const cleanName = name.trim();
 
     let pinHash = null;
     let channelType = type;
@@ -68,7 +68,7 @@ const createChannel = async (req, res) => {
 
     const channel = await prisma.channel.create({
       data: {
-        orgId, name: slug, description, emoji,
+        orgId, name: cleanName, description, emoji,
         allowedRoles,
         allowedMembers: allowedMembers || null,
         pinHash,
@@ -94,7 +94,7 @@ const updateChannel = async (req, res) => {
     if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
 
     const updates = {};
-    if (name) updates.name = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    if (name) updates.name = name.trim();
     if (description !== undefined) updates.description = description;
     if (emoji !== undefined) updates.emoji = emoji;
     if (allowedRoles !== undefined) updates.allowedRoles = allowedRoles;
