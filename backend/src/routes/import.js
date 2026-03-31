@@ -47,7 +47,7 @@ router.delete('/members', async (req, res) => {
   try {
     const orgId = req.user.orgId;
     const ghosts = await prisma.member.findMany({
-      where: { orgId, email: { endsWith: '.import@chapter.local' } },
+      where: { orgId, email: { endsWith: '.import@chapter.local' }, duesPayments: { none: {} } },
       select: { id: true },
     });
     const ids = ghosts.map(m => m.id);

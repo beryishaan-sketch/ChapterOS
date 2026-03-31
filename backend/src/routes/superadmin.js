@@ -156,8 +156,9 @@ router.post('/clear-imported', requireSuperAdmin, async (req, res) => {
   const { orgId } = req.body;
   if (!orgId) return res.status(400).json({ success: false, error: 'orgId required' });
   try {
+    // Only clear import-placeholder members that have NO dues payments (truly empty/bad imports)
     const ghosts = await prisma.member.findMany({
-      where: { orgId, email: { endsWith: '.import@chapter.local' } },
+      where: { orgId, email: { endsWith: '.import@chapter.local' }, duesPayments: { none: {} } },
       select: { id: true },
     });
     const ids = ghosts.map(m => m.id);

@@ -22,13 +22,19 @@ const getStats = async (req, res) => {
       }),
     ]);
 
-    const paidDues = await prisma.duesPayment.aggregate({
-      where: { member: { orgId }, status: 'paid' },
-      _sum: { amount: true },
+    const allPayments = await prisma.duesPayment.findMany({
+      where: { member: { orgId } },
+      select: { amount: true, status: true, winterPayment: true, springPayment: true },
     });
 
-    const totalDues = duesStats._sum.amount || 0;
-    const collectedDues = paidDues._sum.amount || 0;
+    const totalDues = allPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const collectedDues = allPayments.reduce((s, p) => {
+      const wp = p.winterPayment || 0;
+      const sp = p.springPayment || 0;
+      if (wp + sp > 0) return s + wp + sp;
+      if (p.status === 'paid') return s + (p.amount || 0);
+      return s;
+    }, 0);
     const duesRate = totalDues > 0 ? Math.round((collectedDues / totalDues) * 100) : 0;
 
     return res.json({

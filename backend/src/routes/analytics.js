@@ -41,8 +41,15 @@ router.get('/', async (req, res) => {
     if (duesRecords.length > 0) {
       const latest = duesRecords[0];
       const paid = latest.payments.filter(p => p.status === 'paid').length;
-      duesCollected = latest.payments.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount, 0);
-      duesOwed = latest.payments.filter(p => p.status !== 'paid').reduce((s, p) => s + p.amount, 0);
+      // Use actual winter+spring payments if available
+      duesCollected = latest.payments.reduce((s, p) => {
+        const wp = p.winterPayment || 0;
+        const sp = p.springPayment || 0;
+        if (wp + sp > 0) return s + wp + sp;
+        if (p.status === 'paid') return s + p.amount;
+        return s;
+      }, 0);
+      duesOwed = latest.payments.reduce((s, p) => s + (p.owing || 0), 0);
       duesRate = activeMembers.length > 0 ? Math.round((paid / activeMembers.length) * 100) : 0;
     }
 
