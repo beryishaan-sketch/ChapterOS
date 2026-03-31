@@ -8,7 +8,7 @@ const FIELD_MAP = {
   firstName: ['first', 'firstname', 'first_name', 'fname', 'given', 'preferredname', 'preferred'],
   lastName:  ['last', 'lastname', 'last_name', 'lname', 'surname', 'family', 'familyname'],
   email:     ['email', 'mail', 'e-mail', 'emailaddress', 'email_address', 'scholemail', 'universitye'],
-  phone:     ['phone', 'cell', 'mobile', 'number', 'contact', 'phonenumber', 'cellphone', 'cellnumber'],
+  phone:     ['phone', 'cell', 'mobile', 'contact', 'phonenumber', 'cellphone', 'cellnumber'],
   major:     ['major', 'program', 'study', 'degree', 'field', 'concentration', 'curriculum'],
   year:      ['year', 'grade', 'class', 'graduation', 'grad', 'classstanding', 'academicyear', 'classyear', 'graduationyear'],
   pledgeClass: ['pledge', 'pledgeclass', 'pledge_class', 'chapter', 'semester', 'cohort', 'initiationclass', 'initiationsemester', 'classof', 'pledgesemester'],
@@ -18,13 +18,13 @@ const FIELD_MAP = {
   linkedin:  ['linkedin', 'linkedinurl', 'linkedin_url', 'profile'],
   mutualConnections: ['mutual', 'connections', 'referred', 'referral', 'knows', 'referredby', 'mutualfriend'],
   notes:     ['notes', 'comments', 'remarks', 'note', 'memo', 'additional', 'info', 'other'],
-  // Dues fields
-  duesPaid:    ['paid', 'dues', 'payment', 'duespaid', 'paidstatus', 'dusstatus'],
-  duesAmount:  ['amount', 'balance', 'owes', 'duesamount', 'totaldue', 'duesspring', 'duesfall', 'duessemester', 'semesterdues'],
-  duesOwing:   ['ar', 'a/r', 'owing', 'remaining', 'outstanding', 'balance', 'owed', 'receivable', 'accountsreceivable'],
-  duesPaidWinter: ['paymentsmadewinter', 'winterpayment', 'paidwinter'],
-  duesPaidSpring: ['paytmentsmadespring', 'paymentsmadespring', 'springpayment', 'paidspring'],
-  duesDiscount:   ['discount', 'reduction', 'waiver', 'dj', 'prez', 'senior'],
+  // Dues fields — order matters: more specific first
+  duesOwing:      ['accountsreceivable', 'owing', 'remaining', 'outstanding', 'receivable'],
+  duesPaidWinter: ['paymentsmadewinter', 'paymentsfall', 'winterpayment', 'paidwinter', 'madewinter'],
+  duesPaidSpring: ['paytmentsmadespring', 'paymentsmadespring', 'springpayment', 'paidspring', 'madespring'],
+  duesDiscount:   ['discount', 'reduction', 'waiver'],
+  duesAmount:     ['duesspring', 'duesfall', 'duessemester', 'semesterdues', 'duesamount', 'totaldue', 'totalowed', 'duesowed'],
+  duesPaid:       ['duespaid', 'paidstatus', 'ispaid', 'paid'],
   // Events fields
   eventTitle:    ['event', 'eventtitle', 'eventname', 'title'],
   eventDate:     ['date', 'eventdate', 'when', 'datetime'],
@@ -36,12 +36,22 @@ function detectMapping(headers) {
   const mapping = {};
   headers.forEach(header => {
     const h = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Special-case: "A/R" or "AR" = accounts receivable = duesOwing
+    if (/^a\/r$|^ar$/.test(header.trim().toLowerCase())) {
+      if (!mapping.duesOwing) mapping.duesOwing = header;
+      return;
+    }
+    let bestField = null, bestLen = 0;
     for (const [field, aliases] of Object.entries(FIELD_MAP)) {
-      if (aliases.some(a => h.includes(a.replace(/[^a-z0-9]/g, '')))) {
-        if (!mapping[field]) mapping[field] = header;
-        break;
+      for (const a of aliases) {
+        const norm = a.replace(/[^a-z0-9]/g, '');
+        // Require alias to be at least 4 chars to avoid false positives (e.g. "ar", "dj")
+        if (norm.length >= 4 && h.includes(norm) && norm.length > bestLen) {
+          bestField = field; bestLen = norm.length;
+        }
       }
     }
+    if (bestField && !mapping[bestField]) mapping[bestField] = header;
   });
   return mapping;
 }
