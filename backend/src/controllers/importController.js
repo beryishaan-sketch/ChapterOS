@@ -279,12 +279,8 @@ const importMembers = async (req, res) => {
           if (candidates.length === 1) member = candidates[0]; // only match if unambiguous
         }
 
-        if (!member && isDuesOnlyImport) {
-          // Dues-only: don't create ghost members, just skip unmatched rows
-          skipped++;
-          errors.push(`No match for "${firstName} ${lastName}" — skipped`);
-          continue;
-        }
+        // If member not found and this is dues-only, create them as a member placeholder
+        // (safe: name deduplication above prevents duplicates on re-import)
 
         if (!member) {
           member = await prisma.member.create({
