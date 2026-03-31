@@ -115,6 +115,8 @@ router.post('/nuke-org', requireSuperAdmin, async (req, res) => {
       try { await prisma.$executeRawUnsafe(`DELETE FROM "PasswordResetToken" WHERE "memberId" = ANY(ARRAY[${memberIds.map(id => `'${id}'`).join(',')}])`); } catch {}
       try { await prisma.$executeRawUnsafe(`DELETE FROM "Transaction" WHERE "createdById" = ANY(ARRAY[${memberIds.map(id => `'${id}'`).join(',')}])`); } catch {}
       try { await prisma.$executeRawUnsafe(`DELETE FROM "Transaction" WHERE "orgId" = '${orgId}'`); } catch {}
+      try { await prisma.$executeRawUnsafe(`DELETE FROM "Notification" WHERE "memberId" = ANY(ARRAY[${memberIds.map(id => `'${id}'`).join(',')}])`); } catch {}
+      try { await prisma.$executeRawUnsafe(`DELETE FROM "Notification" WHERE "orgId" = '${orgId}'`); } catch {}
     }
 
     await prisma.$executeRawUnsafe(`DELETE FROM "DuesRecord" WHERE "orgId" = '${orgId}'`);

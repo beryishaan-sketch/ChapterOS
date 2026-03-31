@@ -35,17 +35,37 @@ const FIELD_MAP = {
 function detectMapping(headers) {
   const mapping = {};
   headers.forEach(header => {
-    const h = header.toLowerCase().replace(/[^a-z0-9]/g, '');
-    // Special-case: "A/R" or "AR" = accounts receivable = duesOwing
-    if (/^a\/r$|^ar$/.test(header.trim().toLowerCase())) {
+    const raw = header.trim();
+    const h = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // Special-cases for ambiguous column names
+    if (/^a\/r$/i.test(raw) || /^ar$/i.test(raw) || /^accounts?\s*receivable$/i.test(raw)) {
       if (!mapping.duesOwing) mapping.duesOwing = header;
       return;
     }
+    // "DUES Spring/Fall/Semester" = total dues, NOT a paid-status column
+    if (/^dues\s+(spring|fall|winter|summer|semester)/i.test(raw)) {
+      if (!mapping.duesAmount) mapping.duesAmount = header;
+      return;
+    }
+    // "Dues Owed (Carried)" / "Balance Carried" = carried over, skip (don't confuse with current dues)
+    if (/carried|carryover|carry.over/i.test(raw)) {
+      return; // skip — not a current-semester dues column
+    }
+    // "Payments Made (Winter/Fall)" / "Payments Made (Spring)"
+    if (/payments?\s*made\s*(winter|fall)/i.test(raw) || /winter\s*pay/i.test(raw)) {
+      if (!mapping.duesPaidWinter) mapping.duesPaidWinter = header;
+      return;
+    }
+    if (/pay[tm]+ents?\s*made\s*(spring|summer)/i.test(raw) || /spring\s*pay/i.test(raw)) {
+      if (!mapping.duesPaidSpring) mapping.duesPaidSpring = header;
+      return;
+    }
+
     let bestField = null, bestLen = 0;
     for (const [field, aliases] of Object.entries(FIELD_MAP)) {
       for (const a of aliases) {
         const norm = a.replace(/[^a-z0-9]/g, '');
-        // Require alias to be at least 4 chars to avoid false positives (e.g. "ar", "dj")
         if (norm.length >= 4 && h.includes(norm) && norm.length > bestLen) {
           bestField = field; bestLen = norm.length;
         }
