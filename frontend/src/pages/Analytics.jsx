@@ -105,7 +105,7 @@ export default function Analytics() {
       {/* Top stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard icon={Users} label="Total Members" value={totalMembers} sub={`${members.filter(m => m.role !== 'alumni').length} active`} color="bg-navy" />
-        <StatCard icon={DollarSign} label="Dues Collected" value={`$${(data?.duesCollected || 0).toLocaleString()}`} sub={`${data?.duesRate || 0}% collection rate`} color="bg-emerald-500" />
+        <StatCard icon={DollarSign} label="Dues Collected" value={`$${((data?.duesCollected || 0) / 100).toLocaleString()}`} sub={`${data?.duesRate || 0}% collection rate`} color="bg-emerald-500" />
         <StatCard icon={Star} label="Active PNMs" value={data?.activePNMs || pnms.filter(p => !['pledged','dropped'].includes(p.stage)).length} sub={`${pnms.filter(p => p.stage === 'pledged').length} pledged`} color="bg-purple-500" />
         <StatCard icon={Calendar} label="Upcoming Events" value={upcoming} sub={`${past} past events`} color="bg-blue-500" />
       </div>
