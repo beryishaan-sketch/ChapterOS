@@ -200,7 +200,10 @@ const importMembers = async (req, res) => {
 
     // If dues fields are mapped, find or create a dues record for current semester
     let duesRecord = null;
-    const hasDuesData = mapping.duesPaid || mapping.duesAmount;
+    const hasDuesData = mapping.duesPaid || mapping.duesAmount || mapping.duesOwing || mapping.duesPaidSpring || mapping.duesPaidWinter;
+    // Dues-only import: has dues data but no member-creation fields (email, position, gpa, pledgeClass, major)
+    // In this mode, skip creating new members — only update dues for existing matched members
+    const isDuesOnlyImport = hasDuesData && !mapping.email && !mapping.gpa && !mapping.position && !mapping.pledgeClass && !mapping.major;
     if (hasDuesData) {
       const now = new Date();
       const semester = now.getMonth() < 6 ? `Spring ${now.getFullYear()}` : `Fall ${now.getFullYear()}`;
@@ -248,6 +251,13 @@ const importMembers = async (req, res) => {
           if (candidates.length === 1) member = candidates[0]; // only match if unambiguous
         }
 
+        if (!member && isDuesOnlyImport) {
+          // Dues-only: don't create ghost members, just skip unmatched rows
+          skipped++;
+          errors.push(`No match for "${firstName} ${lastName}" — skipped`);
+          continue;
+        }
+
         if (!member) {
           member = await prisma.member.create({
             data: {
@@ -266,16 +276,19 @@ const importMembers = async (req, res) => {
           });
           created++;
         } else {
-          // Update existing member with any new data
-          const updates = {};
-          if (gpa && !member.gpa) updates.gpa = gpa;
-          if (mapping.pledgeClass && row[mapping.pledgeClass] && !member.pledgeClass) updates.pledgeClass = row[mapping.pledgeClass]?.trim();
-          if (mapping.major && row[mapping.major] && !member.major) updates.major = row[mapping.major]?.trim();
-          if (mapping.phone && row[mapping.phone] && !member.phone) updates.phone = row[mapping.phone]?.trim();
-          if (Object.keys(updates).length > 0) {
-            await prisma.member.update({ where: { id: member.id }, data: updates });
+          // Update existing member — only fill in missing fields, never overwrite existing data
+          // And never update profile fields from a dues-only import
+          if (!isDuesOnlyImport) {
+            const updates = {};
+            if (gpa && !member.gpa) updates.gpa = gpa;
+            if (mapping.pledgeClass && row[mapping.pledgeClass] && !member.pledgeClass) updates.pledgeClass = row[mapping.pledgeClass]?.trim();
+            if (mapping.major && row[mapping.major] && !member.major) updates.major = row[mapping.major]?.trim();
+            if (mapping.phone && row[mapping.phone] && !member.phone) updates.phone = row[mapping.phone]?.trim();
+            if (Object.keys(updates).length > 0) {
+              await prisma.member.update({ where: { id: member.id }, data: updates });
+            }
           }
-          created++; // count updates too
+          created++;
         }
 
         // Handle dues status
