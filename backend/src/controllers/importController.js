@@ -271,13 +271,7 @@ const importMembers = async (req, res) => {
             }
           });
         }
-        if (!member && firstName && lastName) {
-          // Fuzzy: try first name only if last name might be formatted differently
-          const candidates = await prisma.member.findMany({
-            where: { orgId, firstName: { equals: firstName, mode: 'insensitive' } }
-          });
-          if (candidates.length === 1) member = candidates[0]; // only match if unambiguous
-        }
+        // No first-name-only fuzzy match — too dangerous with common names (e.g. two Aidans, two Alexes)
 
         // If member not found and this is dues-only, create them as a member placeholder
         // (safe: name deduplication above prevents duplicates on re-import)
@@ -286,7 +280,7 @@ const importMembers = async (req, res) => {
           member = await prisma.member.create({
             data: {
               orgId, firstName, lastName,
-              email: email || `${firstName.toLowerCase()}.${(lastName || 'member').toLowerCase()}.import@chapter.local`,
+              email: email || `${firstName.toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'')}.${(lastName || 'member').toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'')}.import@chapter.local`,
               passwordHash: defaultPassword,
               mustChangePassword: true,
               role: 'member',
