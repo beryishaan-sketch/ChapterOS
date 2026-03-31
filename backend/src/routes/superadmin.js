@@ -134,4 +134,45 @@ router.post('/nuke-org', requireSuperAdmin, async (req, res) => {
   }
 });
 
+// Clear all dues for an org (keeps members)
+router.post('/clear-dues', requireSuperAdmin, async (req, res) => {
+  const { orgId } = req.body;
+  if (!orgId) return res.status(400).json({ success: false, error: 'orgId required' });
+  try {
+    const records = await prisma.duesRecord.findMany({ where: { orgId }, select: { id: true } });
+    const ids = records.map(r => r.id);
+    if (ids.length) {
+      await prisma.$executeRawUnsafe(`DELETE FROM "DuesPayment" WHERE "duesRecordId" = ANY(ARRAY[${ids.map(id => `'${id}'`).join(',')}])`);
+    }
+    await prisma.$executeRawUnsafe(`DELETE FROM "DuesRecord" WHERE "orgId" = '${orgId}'`);
+    return res.json({ success: true, message: `All dues cleared for ${orgId}` });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Clear all ghost members (email ends with .import@chapter.local) + their dues
+router.post('/clear-imported', requireSuperAdmin, async (req, res) => {
+  const { orgId } = req.body;
+  if (!orgId) return res.status(400).json({ success: false, error: 'orgId required' });
+  try {
+    const ghosts = await prisma.member.findMany({
+      where: { orgId, email: { endsWith: '.import@chapter.local' } },
+      select: { id: true },
+    });
+    const ids = ghosts.map(m => m.id);
+    if (ids.length) {
+      const arr = ids.map(id => `'${id}'`).join(',');
+      try { await prisma.$executeRawUnsafe(`DELETE FROM "DuesPayment" WHERE "memberId" = ANY(ARRAY[${arr}])`); } catch {}
+      try { await prisma.$executeRawUnsafe(`DELETE FROM "Attendance" WHERE "memberId" = ANY(ARRAY[${arr}])`); } catch {}
+      try { await prisma.$executeRawUnsafe(`DELETE FROM "Notification" WHERE "memberId" = ANY(ARRAY[${arr}])`); } catch {}
+      try { await prisma.$executeRawUnsafe(`DELETE FROM "Transaction" WHERE "createdById" = ANY(ARRAY[${arr}])`); } catch {}
+      await prisma.$executeRawUnsafe(`DELETE FROM "Member" WHERE id = ANY(ARRAY[${arr}])`);
+    }
+    return res.json({ success: true, deleted: ids.length });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 module.exports = router;

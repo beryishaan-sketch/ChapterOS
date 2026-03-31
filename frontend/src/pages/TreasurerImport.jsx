@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   DollarSign, Upload, FileSpreadsheet, CheckCircle2,
-  ArrowRight, ChevronLeft, AlertCircle, X, Users
+  ArrowRight, ChevronLeft, AlertCircle, X, Users, Trash2
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +29,19 @@ export default function TreasurerImport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [clearing, setClearing] = useState(null); // 'dues' | 'members' | null
+  const [clearConfirm, setClearConfirm] = useState(null);
+
+  const handleClear = async (type) => {
+    setClearing(type);
+    try {
+      await client.delete(`/import/${type}`);
+      setClearConfirm(null);
+      navigate(type === 'dues' ? '/dues' : '/members');
+    } catch (e) {
+      setError(e.response?.data?.error || 'Clear failed');
+    } finally { setClearing(null); }
+  };
 
   const FIELD_OPTIONS = [
     { value: '',               label: '— Skip —' },
@@ -262,6 +275,56 @@ export default function TreasurerImport() {
           </div>
         </div>
       )}
+
+      {/* Danger zone — reset imported data */}
+      <div className="mt-10 border border-red-100 rounded-2xl overflow-hidden">
+        <div className="bg-red-50 px-4 py-3 border-b border-red-100">
+          <p className="text-sm font-bold text-red-700">Reset Imported Data</p>
+          <p className="text-xs text-red-500 mt-0.5">Use this if an import went wrong and you need to start fresh</p>
+        </div>
+        <div className="p-4 space-y-3">
+          {/* Clear dues */}
+          {clearConfirm === 'dues' ? (
+            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-200">
+              <p className="flex-1 text-sm text-red-700 font-medium">Delete ALL dues records?</p>
+              <button onClick={() => handleClear('dues')} disabled={clearing === 'dues'}
+                className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-colors">
+                {clearing === 'dues' ? 'Clearing…' : 'Yes, clear dues'}
+              </button>
+              <button onClick={() => setClearConfirm(null)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"><X size={14} /></button>
+            </div>
+          ) : (
+            <button onClick={() => setClearConfirm('dues')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-red-200 hover:bg-red-50 transition-colors text-left group">
+              <Trash2 size={15} className="text-red-400 group-hover:text-red-600" />
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Clear All Dues</p>
+                <p className="text-xs text-gray-400">Removes all dues records. Members stay.</p>
+              </div>
+            </button>
+          )}
+          {/* Clear ghost members */}
+          {clearConfirm === 'members' ? (
+            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-200">
+              <p className="flex-1 text-sm text-red-700 font-medium">Delete all imported ghost members?</p>
+              <button onClick={() => handleClear('members')} disabled={clearing === 'members'}
+                className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-colors">
+                {clearing === 'members' ? 'Clearing…' : 'Yes, remove ghosts'}
+              </button>
+              <button onClick={() => setClearConfirm(null)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"><X size={14} /></button>
+            </div>
+          ) : (
+            <button onClick={() => setClearConfirm('members')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-red-200 hover:bg-red-50 transition-colors text-left group">
+              <Users size={15} className="text-red-400 group-hover:text-red-600" />
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Clear Imported Members</p>
+                <p className="text-xs text-gray-400">Removes ghost accounts created by bad imports. Your real account stays.</p>
+              </div>
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
