@@ -273,8 +273,11 @@ const importMembers = async (req, res) => {
         }
         // No first-name-only fuzzy match — too dangerous with common names (e.g. two Aidans, two Alexes)
 
-        // If member not found and this is dues-only, create them as a member placeholder
-        // (safe: name deduplication above prevents duplicates on re-import)
+        if (!member && isDuesOnlyImport) {
+          skipped++;
+          errors.push(`"${firstName} ${lastName}" — no matching member found`);
+          continue;
+        }
 
         if (!member) {
           member = await prisma.member.create({

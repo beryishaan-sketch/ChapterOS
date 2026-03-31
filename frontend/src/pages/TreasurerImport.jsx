@@ -255,16 +255,28 @@ export default function TreasurerImport() {
           <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Import Complete</h2>
           <p className="text-gray-500 mb-6">{result.duesSummary || 'Dues data synced successfully'}</p>
 
-          <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto mb-8">
+          <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto mb-6">
             <div className="bg-emerald-50 rounded-2xl p-4">
               <p className="text-2xl font-extrabold text-emerald-700">{result.created || 0}</p>
-              <p className="text-xs text-emerald-600 mt-1">Members added</p>
+              <p className="text-xs text-emerald-600 mt-1">Dues updated</p>
             </div>
-            <div className="bg-blue-50 rounded-2xl p-4">
-              <p className="text-2xl font-extrabold text-blue-700">{result.skipped || 0}</p>
-              <p className="text-xs text-blue-600 mt-1">Already existed</p>
+            <div className="bg-amber-50 rounded-2xl p-4">
+              <p className="text-2xl font-extrabold text-amber-700">{result.skipped || 0}</p>
+              <p className="text-xs text-amber-600 mt-1">Not matched</p>
             </div>
           </div>
+
+          {/* Show unmatched names */}
+          {result.errors?.length > 0 && (
+            <div className="max-w-sm mx-auto mb-6 text-left">
+              <p className="text-xs font-semibold text-amber-700 mb-2">⚠️ These names weren't found in Members — import members first, then re-import dues:</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 max-h-40 overflow-y-auto">
+                {result.errors.map((e, i) => (
+                  <p key={i} className="text-xs text-amber-800 py-0.5">{e}</p>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3 max-w-xs mx-auto">
             <button onClick={() => navigate('/dues')} className="btn-primary w-full justify-center gap-2">
