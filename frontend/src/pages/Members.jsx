@@ -253,12 +253,7 @@ const MemberProfileModal = ({ member, isOpen, onClose, onUpdate, isAdmin }) => {
             </div>
           )}
 
-          {member.points != null && (
-            <div className="flex items-center gap-2 p-3.5 bg-gold/5 border border-gold/20 rounded-xl">
-              <Star size={14} className="text-gold-dark" />
-              <span className="text-sm font-semibold text-gold-dark">{member.points} merit points</span>
-            </div>
-          )}
+          <PointsManager member={member} isAdmin={isAdmin} onUpdate={onUpdate} />
         </div>
       )}
 
@@ -274,6 +269,51 @@ const MemberProfileModal = ({ member, isOpen, onClose, onUpdate, isAdmin }) => {
         <MemberPermissions memberId={member.id} memberName={`${member.firstName} ${member.lastName}`} memberRole={member.role} />
       )}
     </Modal>
+  );
+};
+
+const PointsManager = ({ member, isAdmin, onUpdate }) => {
+  const [points, setPoints] = useState(member.points ?? 0);
+  const [input, setInput] = useState('');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const adjust = async (delta) => {
+    const amt = parseInt(input);
+    if (!amt || isNaN(amt)) return;
+    setSaving(true);
+    try {
+      const res = await client.post(`/leaderboard/${member.id}/points`, { points: delta * amt, reason });
+      setPoints(res.data.data.points);
+      onUpdate({ ...member, points: res.data.data.points });
+      setInput(''); setReason('');
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <div className="p-3.5 bg-gold/5 border border-gold/20 rounded-xl space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Star size={14} className="text-gold-dark" />
+          <span className="text-sm font-semibold text-gold-dark">{points} merit points</span>
+        </div>
+      </div>
+      {isAdmin && (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input type="number" min="1" className="input-field flex-1 text-sm" placeholder="Points"
+              value={input} onChange={e => setInput(e.target.value)} />
+            <button onClick={() => adjust(1)} disabled={saving || !input}
+              className="px-3 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 disabled:opacity-40">+</button>
+            <button onClick={() => adjust(-1)} disabled={saving || !input}
+              className="px-3 py-2 bg-red-400 text-white rounded-xl text-sm font-bold hover:bg-red-500 disabled:opacity-40">−</button>
+          </div>
+          <input className="input-field w-full text-sm" placeholder="Reason (optional)"
+            value={reason} onChange={e => setReason(e.target.value)} />
+        </div>
+      )}
+    </div>
   );
 };
 
