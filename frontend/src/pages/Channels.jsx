@@ -157,7 +157,9 @@ export default function Channels() {
   const inputRef = useRef(null);
 
   const [newChannel, setNewChannel] = useState({ name: '', description: '', emoji: '💬', allowedRoles: 'all', pin: '', pinHint: '' });
-  const [unlockedChannels, setUnlockedChannels] = useState(new Set());
+  const [unlockedChannels, setUnlockedChannels] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('unlockedChannels') || '[]')); } catch { return new Set(); }
+  });
   const [pinEntry, setPinEntry] = useState(null);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
@@ -227,7 +229,11 @@ export default function Channels() {
     try {
       const res = await client.post(`/channels/${pinEntry.channelId}/verify-pin`, { pin: pinInput });
       if (res.data.success) {
-        setUnlockedChannels(prev => new Set([...prev, pinEntry.channelId]));
+        setUnlockedChannels(prev => {
+          const next = new Set([...prev, pinEntry.channelId]);
+          localStorage.setItem('unlockedChannels', JSON.stringify([...next]));
+          return next;
+        });
         setPinEntry(null); setPinInput(''); setPinError('');
       }
     } catch (e) {
@@ -362,7 +368,7 @@ export default function Channels() {
                   <Lock size={9} /> Restricted
                 </div>
               )}
-              {isAdmin && (
+              {isOfficer && (
                 <button onClick={() => setShowSettings(true)}
                   className="w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
                   <Settings size={14} />
@@ -573,6 +579,30 @@ function ChannelSettings({ channel, onUpdate, onDelete, onClose }) {
     emoji: channel.emoji || '💬',
     allowedRoles: channel.allowedRoles || 'all',
   });
+  const [pinSection, setPinSection] = useState('idle'); // idle | set | remove
+  const [newPin, setNewPin] = useState('');
+  const [pinHint, setPinHint] = useState('');
+  const [pinSaving, setPinSaving] = useState(false);
+  const [pinMsg, setPinMsg] = useState('');
+
+  const savePin = async () => {
+    if (newPin.length < 4) { setPinMsg('PIN must be at least 4 digits'); return; }
+    setPinSaving(true);
+    try {
+      await onUpdate({ pin: newPin, pinHint });
+      setPinSection('idle'); setNewPin(''); setPinHint('');
+      setPinMsg('');
+    } catch { setPinMsg('Failed to save PIN'); }
+    setPinSaving(false);
+  };
+
+  const removePin = async () => {
+    setPinSaving(true);
+    try { await onUpdate({ removePin: true }); setPinSection('idle'); }
+    catch { setPinMsg('Failed to remove PIN'); }
+    setPinSaving(false);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -604,6 +634,65 @@ function ChannelSettings({ channel, onUpdate, onDelete, onClose }) {
           {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
       </div>
+
+      {/* PIN Lock Management */}
+      <div className="border border-gray-100 rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock size={14} className={channel.isLocked ? 'text-red-500' : 'text-gray-300'} />
+            <span className="text-sm font-semibold text-gray-800">Passcode Lock</span>
+            {channel.isLocked && <span className="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-medium">Active</span>}
+          </div>
+          {pinSection === 'idle' && (
+            <button onClick={() => setPinSection(channel.isLocked ? 'remove' : 'set')}
+              className="text-xs font-semibold text-navy hover:underline">
+              {channel.isLocked ? 'Change / Remove' : 'Set Passcode'}
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-gray-400">
+          {channel.isLocked
+            ? `Members must enter the passcode to read messages.${channel.pinHint ? ` Hint: "${channel.pinHint}"` : ''}`
+            : 'Require a passcode to access this channel.'}
+        </p>
+
+        {pinSection === 'set' && (
+          <div className="space-y-2 pt-1">
+            <input type="password" className="input-field w-full text-sm font-mono tracking-widest"
+              placeholder="New passcode (min 4 digits)" value={newPin}
+              onChange={e => setNewPin(e.target.value)} autoFocus />
+            <input className="input-field w-full text-sm" placeholder="Hint shown to members (optional)"
+              value={pinHint} onChange={e => setPinHint(e.target.value)} />
+            {pinMsg && <p className="text-xs text-red-500">{pinMsg}</p>}
+            <div className="flex gap-2">
+              <button onClick={() => { setPinSection('idle'); setNewPin(''); setPinMsg(''); }}
+                className="btn-secondary flex-1 text-sm py-2">Cancel</button>
+              <button onClick={savePin} disabled={pinSaving || newPin.length < 4}
+                className="btn-primary flex-1 text-sm py-2">
+                {pinSaving ? 'Saving…' : '🔒 Set Passcode'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {pinSection === 'remove' && (
+          <div className="space-y-2 pt-1">
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2">This will remove the passcode and make the channel accessible to everyone with role access.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setPinSection('idle')} className="btn-secondary flex-1 text-sm py-2">Cancel</button>
+              <button onClick={removePin} disabled={pinSaving} className="flex-1 text-sm py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors">
+                {pinSaving ? 'Removing…' : 'Remove Passcode'}
+              </button>
+            </div>
+            {channel.isLocked && (
+              <button onClick={() => setPinSection('set')} className="w-full text-xs text-navy font-semibold hover:underline text-center pt-1">
+                Change passcode instead →
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2">
         <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
         <button onClick={() => onUpdate(form)} className="btn-primary flex-1">Save</button>
