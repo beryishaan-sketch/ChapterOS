@@ -32,6 +32,7 @@ const NAV_GROUPS = [
     label: 'Finance',
     items: [
       { to: '/dues', icon: CreditCard, label: 'Dues' },
+      { to: '/dues/import', icon: Upload, label: 'Import Dues' },
       { to: '/budget', icon: Wallet, label: 'Treasury' },
     ],
   },
