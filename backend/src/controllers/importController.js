@@ -108,7 +108,7 @@ function parseCSV(text) {
     return result;
   };
 
-  const headers = parseLine(lines[0]);
+  const headers = parseLine(lines[0]).map(h => h.trim()); // trim header names
   const rows = lines.slice(1).filter(l => l.trim()).map(line => {
     const values = parseLine(line);
     const row = {};
