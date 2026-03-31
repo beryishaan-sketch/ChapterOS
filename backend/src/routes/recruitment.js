@@ -48,6 +48,7 @@ router.get('/bid-results', async (req, res) => {
 router.get('/:id', getPNM);
 router.post('/', createPNM);
 router.put('/:id', updatePNM);
+router.patch('/:id', updatePNM);
 router.delete('/:id', requireRole('admin', 'officer'), deletePNM);
 router.post('/:id/vote', votePNM);
 router.patch('/:id/stage', updateStage);
