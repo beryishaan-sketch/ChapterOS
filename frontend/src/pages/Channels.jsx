@@ -292,11 +292,14 @@ export default function Channels() {
   const updateChannel = async (updates) => {
     try {
       const res = await client.put(`/channels/${activeChannel.id}`, updates);
+      if (!res.data.success) throw new Error(res.data.error || 'Update failed');
       const updated = res.data.data;
       setChannels(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
-      setActiveChannel(prev => ({ ...prev, ...updated }));
+      setActiveChannel(updated);
       setShowSettings(false);
-    } catch {}
+    } catch (e) {
+      alert(e.response?.data?.error || e.message || 'Failed to update channel');
+    }
   };
 
   if (loading) return (
