@@ -49,7 +49,7 @@ const EventFormModal = ({ isOpen, onClose, onSave, editEvent }) => {
         title: editEvent.title || '',
         type: editEvent.type || 'mixer',
         date: d ? d.toISOString().split('T')[0] : '',
-        time: d ? d.toTimeString().slice(0, 5) : '',
+        time: d ? `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}` : '',
         location: editEvent.location || '',
         description: editEvent.description || '',
         guestCap: editEvent.guestCap || '',
@@ -67,7 +67,7 @@ const EventFormModal = ({ isOpen, onClose, onSave, editEvent }) => {
     if (!form.date) { setError('Event date is required.'); return; }
     setLoading(true);
     try {
-      const dateTime = form.time ? `${form.date}T${form.time}:00` : `${form.date}T18:00:00`;
+      const dateTime = form.time ? `${form.date}T${form.time}:00Z` : `${form.date}T18:00:00Z`;
       const payload = { ...form, date: dateTime, guestCap: form.guestCap ? parseInt(form.guestCap) : null };
       delete payload.time;
 

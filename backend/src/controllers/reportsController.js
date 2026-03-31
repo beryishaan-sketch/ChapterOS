@@ -114,16 +114,22 @@ const generateFinancial = async (req, res) => {
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const totalDuesExpected = duesRecords.reduce((s, d) => s + d.payments.reduce((ps, p) => ps + p.amount, 0), 0);
-  const totalDuesPaid = duesRecords.reduce((s, d) => s + d.payments.filter(p => p.status === 'paid').reduce((ps, p) => ps + p.amount, 0), 0);
+  // Use actual winter+spring payments (same logic as dashboard)
+  const totalDuesPaid = duesRecords.reduce((s, d) => s + d.payments.reduce((ps, p) => {
+    const wp = p.winterPayment || 0; const sp = p.springPayment || 0;
+    if (wp + sp > 0) return ps + wp + sp;
+    if (p.status === 'paid') return ps + p.amount;
+    return ps;
+  }, 0), 0);
 
   doc.y += 10;
   const summaryY = doc.y;
   const boxW = (doc.page.width - 80 - 30) / 4;
   [
-    { label: 'Dues Expected', val: `$${totalDuesExpected.toLocaleString()}` },
-    { label: 'Dues Collected', val: `$${totalDuesPaid.toLocaleString()}` },
-    { label: 'Total Income', val: `$${totalIncome.toLocaleString()}` },
-    { label: 'Total Expenses', val: `$${totalExpense.toLocaleString()}` },
+    { label: 'Dues Expected', val: `$${(totalDuesExpected/100).toLocaleString()}` },
+    { label: 'Dues Collected', val: `$${(totalDuesPaid/100).toLocaleString()}` },
+    { label: 'Total Income', val: `$${(totalIncome/100).toLocaleString()}` },
+    { label: 'Total Expenses', val: `$${(totalExpense/100).toLocaleString()}` },
   ].forEach(({ label, val }, i) => {
     const x = 40 + i * (boxW + 10);
     doc.rect(x, summaryY, boxW, 50).fill(LIGHT);

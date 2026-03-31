@@ -24,7 +24,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
       onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}>
 
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-fade-in" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
 
       {/* Sheet */}
       <div className={`relative w-full ${SIZES[size]} bg-white flex flex-col

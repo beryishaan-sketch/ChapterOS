@@ -31,9 +31,9 @@ const NAV_GROUPS = [
   {
     label: 'Finance',
     items: [
-      { to: '/dues', icon: CreditCard, label: 'Dues' },
+      { to: '/dues', icon: CreditCard, label: 'Dues', end: true },
       { to: '/dues/import', icon: Upload, label: 'Import Dues' },
-      { to: '/budget', icon: Wallet, label: 'Treasury' },
+      { to: '/budget', icon: Wallet, label: 'Treasury', end: true },
       { to: '/budget/import', icon: Upload, label: 'Import Transactions' },
     ],
   },
@@ -63,8 +63,8 @@ const NAV_GROUPS = [
   },
 ];
 
-const NavItem = ({ to, icon: Icon, label, badge, onClick }) => (
-  <NavLink to={to} onClick={onClick}
+const NavItem = ({ to, icon: Icon, label, badge, onClick, end: endProp }) => (
+  <NavLink to={to} onClick={onClick} end={endProp}
     className={({ isActive }) =>
       `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 group ${
         isActive ? 'bg-gold text-navy-dark shadow-sm' : 'text-white/60 hover:text-white hover:bg-white/8'

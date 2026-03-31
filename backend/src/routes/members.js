@@ -14,6 +14,21 @@ router.get('/', getMembers);
 router.get('/stats', getStats);
 router.post('/invite', requireRole('admin', 'officer'), createMember);
 router.get('/:id', getMember);
+
+// GET /api/members/:id/dues
+router.get('/:id/dues', async (req, res) => {
+  try {
+    const member = await prisma.member.findFirst({ where: { id: req.params.id, orgId: req.user.orgId } });
+    if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
+    const dues = await prisma.duesPayment.findMany({
+      where: { memberId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    return res.json({ success: true, data: dues });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: 'Failed to get dues' });
+  }
+});
 router.post('/', requireRole('admin', 'officer'), createMember);
 router.put('/:id', updateMember);
 router.patch('/:id', updateMember);
