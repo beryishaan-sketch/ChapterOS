@@ -15,6 +15,7 @@ import Events from './pages/Events';
 import GuestList from './pages/GuestList';
 import Dues from './pages/Dues';
 import TreasurerImport from './pages/TreasurerImport';
+import TreasuryImport from './pages/TreasuryImport';
 import Members from './pages/Members';
 import RoleManager from './pages/RoleManager';
 import Attendance from './pages/Attendance';
@@ -124,6 +125,7 @@ function App() {
       </Route>
       <Route path="/budget" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Budget />} />
+        <Route path="import" element={<TreasuryImport />} />
       </Route>
       <Route path="/risk" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<RiskManagement />} />

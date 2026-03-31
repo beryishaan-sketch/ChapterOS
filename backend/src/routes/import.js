@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { preview, importMembers, importPNMs, importEvents } = require('../controllers/importController');
+const { preview, importMembers, importPNMs, importEvents, importTransactions } = require('../controllers/importController');
 const { verifyToken } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const { PrismaClient } = require('@prisma/client');
@@ -13,6 +13,18 @@ router.post('/preview', preview);
 router.post('/members', importMembers);
 router.post('/pnms', importPNMs);
 router.post('/events', importEvents);
+router.post('/transactions', importTransactions);
+
+// Clear all transactions for this org
+router.delete('/transactions', async (req, res) => {
+  try {
+    const orgId = req.user.orgId;
+    await prisma.$executeRawUnsafe(`DELETE FROM "Transaction" WHERE "orgId" = '${orgId}'`);
+    return res.json({ success: true, message: 'All transactions cleared' });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
 
 // Clear all dues records for this org
 router.delete('/dues', async (req, res) => {

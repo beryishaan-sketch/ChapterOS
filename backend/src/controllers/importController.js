@@ -18,6 +18,14 @@ const FIELD_MAP = {
   linkedin:  ['linkedin', 'linkedinurl', 'linkedin_url', 'profile'],
   mutualConnections: ['mutual', 'connections', 'referred', 'referral', 'knows', 'referredby', 'mutualfriend'],
   notes:     ['notes', 'comments', 'remarks', 'note', 'memo', 'additional', 'info', 'other'],
+  // Transaction/treasury fields
+  txDescription: ['description', 'memo', 'detail', 'item', 'particulars', 'narrative', 'transaction', 'txn'],
+  txAmount:      ['amount', 'total', 'value', 'sum'],
+  txType:        ['type', 'txtype', 'transactiontype', 'direction', 'debitcredit'],
+  txIncome:      ['income', 'credit', 'deposit', 'revenue', 'received', 'in'],
+  txExpense:     ['expense', 'debit', 'withdrawal', 'cost', 'spent', 'out', 'payment'],
+  txDate:        ['date', 'txdate', 'transactiondate', 'when', 'postdate', 'valuedate'],
+  txCategory:    ['category', 'cat', 'class', 'tag', 'account', 'budget'],
   // Dues fields — order matters: more specific first
   duesOwing:      ['accountsreceivable', 'owing', 'remaining', 'outstanding', 'receivable'],
   duesPaidWinter: ['paymentsmadewinter', 'paymentsfall', 'winterpayment', 'paidwinter', 'madewinter'],
@@ -479,4 +487,75 @@ const importEvents = async (req, res) => {
   }
 };
 
-module.exports = { preview, importMembers, importPNMs, importEvents };
+const importTransactions = async (req, res) => {
+  try {
+    const { csv, mapping } = req.body;
+    if (!csv || !mapping) return res.status(400).json({ success: false, error: 'CSV and mapping required' });
+
+    const { rows } = parseCSV(csv);
+    const orgId = req.user.orgId;
+    const memberId = req.user.id;
+
+    const parseDollar = (val) => {
+      if (!val) return null;
+      const cleaned = val.toString().replace(/[\$,\s]/g, '').trim();
+      if (!cleaned || cleaned === '-') return null;
+      const n = parseFloat(cleaned);
+      return isNaN(n) ? null : Math.round(Math.abs(n) * 100);
+    };
+
+    let created = 0, skipped = 0;
+
+    for (const row of rows) {
+      try {
+        const description = mapping.txDescription ? row[mapping.txDescription]?.trim() : null;
+        const rawAmount = parseDollar(mapping.txAmount ? row[mapping.txAmount] : null);
+        if (!description || !rawAmount) { skipped++; continue; }
+
+        // Determine type: income or expense
+        let type = 'expense';
+        if (mapping.txType) {
+          const t = row[mapping.txType]?.trim()?.toLowerCase() || '';
+          if (/income|revenue|deposit|credit|in\b/.test(t)) type = 'income';
+          else if (/expense|debit|out\b|payment|cost/.test(t)) type = 'expense';
+          else type = t === 'income' ? 'income' : 'expense';
+        } else if (mapping.txIncome && parseDollar(row[mapping.txIncome])) {
+          type = 'income';
+          // Amount comes from income column
+        } else if (mapping.txExpense && parseDollar(row[mapping.txExpense])) {
+          type = 'expense';
+        }
+
+        // Handle split income/expense columns
+        const incomeAmt = mapping.txIncome ? parseDollar(row[mapping.txIncome]) : null;
+        const expenseAmt = mapping.txExpense ? parseDollar(row[mapping.txExpense]) : null;
+        const finalAmount = incomeAmt || expenseAmt || rawAmount;
+        const finalType = incomeAmt ? 'income' : expenseAmt ? 'expense' : type;
+
+        const dateStr = mapping.txDate ? row[mapping.txDate]?.trim() : null;
+        const date = dateStr ? new Date(dateStr) : new Date();
+        const category = mapping.txCategory ? row[mapping.txCategory]?.trim()?.toLowerCase() || 'other' : 'other';
+
+        await prisma.transaction.create({
+          data: {
+            orgId,
+            createdById: memberId,
+            type: finalType,
+            amount: finalAmount,
+            description,
+            category: ['dues', 'fundraising', 'supplies', 'venue', 'food', 'other'].includes(category) ? category : 'other',
+            date: isNaN(date.getTime()) ? new Date() : date,
+          },
+        });
+        created++;
+      } catch { skipped++; }
+    }
+
+    return res.json({ success: true, data: { created, skipped } });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ success: false, error: 'Import failed' });
+  }
+};
+
+module.exports = { preview, importMembers, importPNMs, importEvents, importTransactions };
