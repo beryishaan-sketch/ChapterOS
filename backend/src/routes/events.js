@@ -10,6 +10,7 @@ router.get('/', getEvents);
 router.get('/:id', getEvent);
 router.post('/', requireRole('admin', 'officer'), createEvent);
 router.put('/:id', requireRole('admin', 'officer'), updateEvent);
+router.patch('/:id', requireRole('admin', 'officer'), updateEvent);
 router.delete('/:id', requireRole('admin'), deleteEvent);
 router.post('/:id/guests', submitGuest);
 router.patch('/:id/guests/:guestId', requireRole('admin', 'officer'), updateGuestStatus);

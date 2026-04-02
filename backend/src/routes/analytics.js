@@ -79,12 +79,16 @@ router.get('/', async (req, res) => {
     };
 
     // Chapter health score (0-100)
-    const healthScore = Math.round(
-      (duesRate * 0.35) +
-      (attendanceRate * 0.25) +
-      (riskRate * 0.20) +
-      (Math.min(((avgGpa || 2.5) - 2.0) / 2.0 * 100, 100) * 0.20)
-    );
+    // Health score — weighted, attendance only counts if events exist
+    const hasEvents = events.length > 0;
+    const attScore = hasEvents ? attendanceRate : duesRate; // fallback to dues if no events
+    const healthScore = Math.min(100, Math.round(
+      (duesRate * 0.40) +
+      (attScore * 0.20) +
+      (riskRate * 0.15) +
+      (Math.min(((avgGpa || 3.0) - 2.0) / 2.0 * 100, 100) * 0.15) +
+      (members.length >= 10 ? 10 : members.length) // base points for active chapter
+    ));
 
     // Income vs expense last 30 days
     const income30 = recentTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);

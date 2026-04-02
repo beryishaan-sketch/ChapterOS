@@ -39,12 +39,14 @@ const AddMemberModal = ({ isOpen, onClose, onSave }) => {
   const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setError(''); };
 
   const handleInvite = async () => {
-    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { setError('Enter a valid email.'); return; }
+    // Invite requires full name — use manual add instead
+    if (!form.firstName || !form.lastName) { setError('First and last name are required.'); return; }
+    if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) { setError('Enter a valid email.'); return; }
     setLoading(true);
     try {
-      const res = await client.post('/members/invite', { emails: [email] });
-      if (res.data.success) { setSuccess(`Invite sent to ${email}`); setEmail(''); }
-      else setError(res.data.error || 'Failed to send invite');
+      const res = await client.post('/members', form);
+      if (res.data.success) { onSave(res.data.data); onClose(); }
+      else setError(res.data.error || 'Failed to add member');
     } catch { setError('Something went wrong.'); }
     finally { setLoading(false); }
   };

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Hash, Plus, Send, Trash2, Settings, Lock, Globe,
-  ChevronLeft, X, Eye, EyeOff, KeyRound, ShieldAlert, Search
-} from 'lucide-react';
+import { Plus, Send, Trash2, Settings, Lock, ChevronLeft, Eye, EyeOff, ShieldAlert, KeyRound, Hash, Users } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 
+/* ─── constants ─── */
 const ROLE_OPTIONS = [
   { value: 'all',           label: '🌐 Everyone' },
   { value: 'admin,officer', label: '⭐ Officers & Above' },
@@ -14,132 +12,198 @@ const ROLE_OPTIONS = [
   { value: 'member',        label: '👥 Members Only' },
   { value: 'pledge',        label: '🔰 Pledges Only' },
 ];
+const EMOJI_OPTIONS = ['💬','⭐','📅','🤝','💰','🏆','📢','🎉','🛡️','📋','🔒','⚡','🎯','🗳️','🏠','🎓'];
+const AVATAR_BG = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4','#C9A84C','#0F1C3F'];
+const avatarBg  = (s='') => AVATAR_BG[s.split('').reduce((a,c)=>a+c.charCodeAt(0),0)%AVATAR_BG.length];
+const initials  = (f='',l='') => `${f[0]||''}${l[0]||''}`.toUpperCase();
 
-const EMOJI_OPTIONS = ['💬', '⭐', '📅', '🤝', '💰', '🏆', '📢', '🎉', '🛡️', '📋', '🔒', '⚡', '🎯', '🗳️'];
-
-const AVATAR_COLORS = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4','#0F1C3F'];
-const avatarColor = (name = '') => AVATAR_COLORS[name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
-
-function Avatar({ firstName = '', lastName = '', size = 8 }) {
-  const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
-  const color = avatarColor(firstName + lastName);
+function Avatar({ firstName, lastName, size=32 }) {
   return (
-    <div className={`w-${size} h-${size} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0`}
-      style={{ background: color, width: `${size * 4}px`, height: `${size * 4}px`, fontSize: `${size * 1.5}px` }}>
-      {initials}
+    <div style={{ width:size, height:size, background:avatarBg(firstName+lastName), borderRadius:'50%',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      color:'#fff', fontWeight:700, fontSize:size*0.38, flexShrink:0 }}>
+      {initials(firstName, lastName)}
     </div>
   );
 }
 
-// Groups consecutive messages from same author
-function groupMessages(messages) {
+function fmtTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+  const time = d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  if (isToday) return `Today at ${time}`;
+  if (isYesterday) return `Yesterday at ${time}`;
+  return d.toLocaleDateString([],{month:'short',day:'numeric'}) + ' at ' + time;
+}
+
+function groupMessages(msgs) {
   const groups = [];
-  let current = null;
-  for (const msg of messages) {
-    const authorId = msg.authorId;
-    const ts = new Date(msg.createdAt);
-    const prev = current?.messages[current.messages.length - 1];
-    const gap = prev ? (ts - new Date(prev.createdAt)) / 1000 / 60 > 5 : true;
-    if (current && current.authorId === authorId && !gap) {
-      current.messages.push(msg);
-    } else {
-      current = { authorId, author: msg.author, messages: [msg] };
-      groups.push(current);
-    }
-  }
+  msgs.forEach(msg => {
+    const last = groups[groups.length-1];
+    const sameAuthor = last && last.authorId === msg.authorId;
+    const within5min = last && (new Date(msg.createdAt)-new Date(last.messages[last.messages.length-1].createdAt)) < 5*60000;
+    if (sameAuthor && within5min) last.messages.push(msg);
+    else groups.push({ authorId:msg.authorId, author:msg.author, messages:[msg] });
+  });
   return groups;
 }
 
-function MessageGroup({ group, isOwn, onDelete, canDelete }) {
+/* ─── message group (Discord-style) ─── */
+function MessageGroup({ group, isOwn, canDelete, onDelete }) {
   const { author, messages } = group;
-  const time = new Date(messages[0].createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-
+  const [hovering, setHovering] = useState(null);
   return (
-    <div className={`flex gap-3 px-4 py-1 group ${isOwn ? 'flex-row-reverse' : ''}`}>
-      {/* Avatar — only show for others */}
-      {!isOwn && (
-        <div className="flex-shrink-0 mt-1">
-          <Avatar firstName={author?.firstName} lastName={author?.lastName} size={8} />
-        </div>
-      )}
-
-      <div className={`flex flex-col gap-0.5 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
-        {/* Name + time */}
-        {!isOwn && (
-          <div className="flex items-baseline gap-2 px-1">
-            <span className="text-xs font-semibold text-gray-700">
-              {author?.firstName} {author?.lastName}
+    <div className="flex gap-3 px-4 py-1 hover:bg-gray-50/60 group"
+      onMouseLeave={()=>setHovering(null)}>
+      <div className="mt-0.5 flex-shrink-0">
+        <Avatar firstName={author?.firstName} lastName={author?.lastName} size={36} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2 mb-0.5">
+          <span className="text-[13px] font-bold text-gray-900">
+            {author?.firstName} {author?.lastName}
+            {isOwn && <span className="ml-1 text-[10px] font-medium text-navy/50">(you)</span>}
+          </span>
+          {author?.position && (
+            <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
+              {author.position}
             </span>
-            {author?.position && (
-              <span className="text-[10px] text-amber-600 font-medium">{author.position}</span>
-            )}
-            <span className="text-[10px] text-gray-400">{time}</span>
-          </div>
-        )}
-
-        {/* Bubbles */}
-        {messages.map((msg, i) => (
-          <div key={msg.id} className={`relative group/msg flex items-end gap-1.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
-            <div className={`px-3.5 py-2 text-sm leading-relaxed break-words
-              ${isOwn
-                ? 'bg-navy text-white rounded-[18px] rounded-br-[4px]'
-                : 'bg-white border border-gray-100 text-gray-900 rounded-[18px] rounded-bl-[4px] shadow-sm'
-              }
-              ${messages.length > 1 && i === 0 && isOwn ? 'rounded-br-[18px]' : ''}
-              ${messages.length > 1 && i > 0 && i < messages.length - 1 && isOwn ? 'rounded-r-[4px]' : ''}
-              ${messages.length > 1 && i === messages.length - 1 && isOwn ? 'rounded-br-[4px]' : ''}
-              ${messages.length > 1 && i === 0 && !isOwn ? 'rounded-bl-[18px]' : ''}
-              ${messages.length > 1 && i > 0 && i < messages.length - 1 && !isOwn ? 'rounded-l-[4px]' : ''}
-              ${messages.length > 1 && i === messages.length - 1 && !isOwn ? 'rounded-bl-[4px]' : ''}
-            `}>
-              {msg.content}
-            </div>
-            {canDelete && (
-              <button onClick={() => onDelete(msg.id)}
-                className="opacity-0 group-hover/msg:opacity-100 p-1 hover:bg-red-50 text-gray-300 hover:text-red-400 rounded-lg transition-all flex-shrink-0">
+          )}
+          <span className="text-[11px] text-gray-400">{fmtTime(messages[0].createdAt)}</span>
+        </div>
+        {messages.map((msg,i) => (
+          <div key={msg.id} className="relative group/msg"
+            onMouseEnter={()=>setHovering(msg.id)}>
+            <p className="text-[14px] text-gray-800 leading-relaxed break-words">{msg.content}</p>
+            {hovering===msg.id && canDelete && (
+              <button onClick={()=>onDelete(msg.id)}
+                className="absolute -top-1 right-0 w-6 h-6 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg flex items-center justify-center transition-colors opacity-0 group-hover/msg:opacity-100">
                 <Trash2 size={11} />
               </button>
             )}
           </div>
         ))}
-
-        {isOwn && (
-          <span className="text-[10px] text-gray-400 px-1">{time}</span>
-        )}
       </div>
     </div>
   );
 }
 
-function ChannelRow({ channel, active, onClick }) {
-  const lastMsg = channel.messages?.[0];
+/* ─── date divider ─── */
+function DateDivider({ date }) {
   return (
-    <button onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group
-        ${active ? 'bg-white/12 shadow-sm' : 'hover:bg-white/6'}`}>
-      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 transition-all
-        ${active ? 'bg-white/20 shadow-sm' : 'bg-white/8 group-hover:bg-white/12'}`}>
-        {channel.emoji || '💬'}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className={`font-semibold text-sm truncate ${active ? 'text-white' : 'text-white/75 group-hover:text-white/90'}`}>
-            {channel.name}
-          </span>
-          {channel.isLocked && <Lock size={9} className="text-white/35 flex-shrink-0" />}
-        </div>
-        <p className={`text-xs truncate mt-0.5 ${active ? 'text-white/50' : 'text-white/30'}`}>
-          {lastMsg ? `${lastMsg.author?.firstName}: ${lastMsg.content}` : channel.description || 'No messages yet'}
-        </p>
-      </div>
-    </button>
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex-1 h-px bg-gray-100" />
+      <span className="text-[11px] font-semibold text-gray-400 bg-white px-2">{date}</span>
+      <div className="flex-1 h-px bg-gray-100" />
+    </div>
   );
 }
 
+/* ─── channel settings ─── */
+function ChannelSettings({ channel, onUpdate, onDelete, onClose }) {
+  const [form, setForm] = useState({ name:channel.name, description:channel.description||'', emoji:channel.emoji||'💬', allowedRoles:channel.allowedRoles||'all' });
+  const [pinMode, setPinMode] = useState('idle');
+  const [newPin, setNewPin] = useState('');
+  const [pinHint, setPinHint] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const savePin = async () => {
+    if (newPin.length < 4) { setErr('PIN must be at least 4 digits'); return; }
+    setSaving(true);
+    try { await onUpdate({ pin:newPin, pinHint }); setPinMode('idle'); setNewPin(''); setErr(''); }
+    catch { setErr('Failed to save'); }
+    setSaving(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="label">Icon</p>
+        <div className="flex flex-wrap gap-2">
+          {EMOJI_OPTIONS.map(e=>(
+            <button key={e} onClick={()=>setForm(p=>({...p,emoji:e}))}
+              className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${form.emoji===e?'bg-navy text-white scale-110':'bg-gray-100 hover:bg-gray-200'}`}>
+              {e}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="label">Name</p>
+        <input className="input-field w-full" value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} />
+      </div>
+      <div>
+        <p className="label">Description</p>
+        <input className="input-field w-full text-sm" value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} placeholder="What's this channel for?" />
+      </div>
+      <div>
+        <p className="label">Who can access</p>
+        <select className="select-field w-full" value={form.allowedRoles} onChange={e=>setForm(p=>({...p,allowedRoles:e.target.value}))}>
+          {ROLE_OPTIONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+      </div>
+
+      {/* Passcode */}
+      <div className="border border-gray-100 rounded-2xl p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock size={13} className={channel.isLocked?'text-red-500':'text-gray-300'} />
+            <span className="text-sm font-semibold text-gray-800">Passcode Lock</span>
+            {channel.isLocked && <span className="text-[10px] bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-semibold">Active</span>}
+          </div>
+          {pinMode==='idle' && (
+            <button className="text-xs font-semibold text-navy hover:underline" onClick={()=>setPinMode(channel.isLocked?'remove':'set')}>
+              {channel.isLocked?'Change / Remove':'Set Passcode'}
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-gray-400">{channel.isLocked?`Members enter a passcode to read messages.${channel.pinHint?` Hint: "${channel.pinHint}"`:''}`:'Require a passcode to access this channel.'}</p>
+        {pinMode==='set' && (
+          <div className="space-y-2 pt-1">
+            <input type="password" className="input-field w-full font-mono tracking-widest" placeholder="New passcode (min 4)" value={newPin} onChange={e=>setNewPin(e.target.value)} autoFocus />
+            <input className="input-field w-full text-sm" placeholder="Hint shown to members (optional)" value={pinHint} onChange={e=>setPinHint(e.target.value)} />
+            {err && <p className="text-xs text-red-500">{err}</p>}
+            <div className="flex gap-2">
+              <button className="btn-secondary flex-1 text-sm" onClick={()=>{setPinMode('idle');setNewPin('');setErr('');}}>Cancel</button>
+              <button className="btn-primary flex-1 text-sm" onClick={savePin} disabled={saving||newPin.length<4}>🔒 Set Passcode</button>
+            </div>
+          </div>
+        )}
+        {pinMode==='remove' && (
+          <div className="space-y-2 pt-1">
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2">This removes the passcode and opens the channel to anyone with role access.</p>
+            <div className="flex gap-2">
+              <button className="btn-secondary flex-1 text-sm" onClick={()=>setPinMode('idle')}>Cancel</button>
+              <button className="flex-1 text-sm py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors" onClick={async()=>{setSaving(true);await onUpdate({removePin:true});setPinMode('idle');setSaving(false);}} disabled={saving}>Remove</button>
+            </div>
+            <button className="w-full text-xs text-navy font-semibold hover:underline text-center" onClick={()=>setPinMode('set')}>Change passcode instead →</button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+        <button className="btn-primary flex-1" onClick={()=>onUpdate(form)}>Save Changes</button>
+      </div>
+      <div className="pt-1 border-t border-gray-100">
+        <button className="w-full py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors" onClick={onDelete}>
+          Delete Channel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── main component ─── */
 export default function Channels() {
   const { user } = useAuth();
   const [channels, setChannels] = useState([]);
-  const [activeChannel, setActiveChannel] = useState(null);
+  const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -147,273 +211,238 @@ export default function Channels() {
   const [showCreate, setShowCreate] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [mobileView, setMobileView] = useState('list');
-  const messagesEndRef = useRef(null);
-  const pollRef = useRef(null);
-  const lastMsgId = useRef(null);
-  const inputRef = useRef(null);
-
-  const [newChannel, setNewChannel] = useState({ name: '', description: '', emoji: '💬', allowedRoles: 'all', pin: '', pinHint: '' });
-  const [unlockedChannels, setUnlockedChannels] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('unlockedChannels') || '[]')); } catch { return new Set(); }
-  });
+  const [newCh, setNewCh] = useState({ name:'', description:'', emoji:'💬', allowedRoles:'all', pin:'', pinHint:'' });
+  const [unlocked, setUnlocked] = useState(()=>{ try{return new Set(JSON.parse(localStorage.getItem('unlockedChannels')||'[]'))}catch{return new Set()} });
   const [pinEntry, setPinEntry] = useState(null);
   const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState('');
-  const [showPin, setShowPin] = useState(false);
+  const [pinErr, setPinErr] = useState('');
+  const [showPinText, setShowPinText] = useState(false);
+  const bottomRef = useRef(null);
+  const pollRef = useRef(null);
+  const lastIdRef = useRef(null);
+  const inputRef = useRef(null);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin   = user?.role === 'admin';
   const isOfficer = user?.role === 'admin' || user?.role === 'officer';
 
+  /* fetch */
   const fetchChannels = useCallback(async () => {
-    try {
-      const res = await client.get('/channels');
-      const list = res.data.data || [];
-      setChannels(list);
-      if (!activeChannel && list.length > 0) setActiveChannel(list[0]);
-    } catch {}
-  }, [activeChannel]);
+    const res = await client.get('/channels');
+    const list = res.data.data || [];
+    setChannels(list);
+    if (!active && list.length>0) setActive(list[0]);
+  }, [active]);
 
-  const fetchMessages = useCallback(async (channelId) => {
-    if (!channelId) return;
-    try {
-      const res = await client.get(`/channels/${channelId}/messages?limit=80`);
-      const msgs = res.data.data || [];
-      setMessages(msgs);
-      if (msgs.length > 0) lastMsgId.current = msgs[msgs.length - 1].id;
-    } catch {}
+  const fetchMessages = useCallback(async (id) => {
+    const res = await client.get(`/channels/${id}/messages?limit=80`);
+    const msgs = res.data.data || [];
+    setMessages(msgs);
+    if (msgs.length) lastIdRef.current = msgs[msgs.length-1].id;
   }, []);
 
-  useEffect(() => { fetchChannels().finally(() => setLoading(false)); }, []);
+  useEffect(()=>{ fetchChannels().finally(()=>setLoading(false)); },[]);
 
-  useEffect(() => {
-    if (activeChannel) {
-      fetchMessages(activeChannel.id);
-      clearInterval(pollRef.current);
-      pollRef.current = setInterval(async () => {
-        try {
-          const res = await client.get(`/channels/${activeChannel.id}/messages?limit=20`);
-          const msgs = res.data.data || [];
-          if (msgs.length > 0 && msgs[msgs.length - 1].id !== lastMsgId.current) {
-            setMessages(msgs);
-            lastMsgId.current = msgs[msgs.length - 1].id;
-          }
-        } catch {}
-      }, 3000);
-    }
-    return () => clearInterval(pollRef.current);
-  }, [activeChannel?.id]);
+  useEffect(()=>{
+    if (!active) return;
+    fetchMessages(active.id);
+    clearInterval(pollRef.current);
+    pollRef.current = setInterval(async()=>{
+      try {
+        const res = await client.get(`/channels/${active.id}/messages?limit=20`);
+        const msgs = res.data.data||[];
+        if (msgs.length && msgs[msgs.length-1].id !== lastIdRef.current) {
+          setMessages(msgs);
+          lastIdRef.current = msgs[msgs.length-1].id;
+        }
+      } catch {}
+    }, 3000);
+    return ()=>clearInterval(pollRef.current);
+  }, [active?.id]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:'smooth'}); }, [messages]);
 
+  /* actions */
   const selectChannel = (ch) => {
-    if (ch.isLocked && !unlockedChannels.has(ch.id)) {
-      setPinEntry({ channelId: ch.id, channelName: ch.name, pinHint: ch.pinHint });
-      setPinInput(''); setPinError('');
-      setActiveChannel(ch);
-      setMobileView('chat');
-      return;
-    }
-    setActiveChannel(ch);
-    setMobileView('chat');
-    setTimeout(() => inputRef.current?.focus(), 100);
+    if (ch.isLocked && !unlocked.has(ch.id)) { setPinEntry(ch); setPinInput(''); setPinErr(''); }
+    else { setActive(ch); setMobileView('chat'); }
   };
 
   const submitPin = async () => {
     if (!pinInput) return;
     try {
-      const res = await client.post(`/channels/${pinEntry.channelId}/verify-pin`, { pin: pinInput });
-      if (res.data.success) {
-        setUnlockedChannels(prev => {
-          const next = new Set([...prev, pinEntry.channelId]);
-          localStorage.setItem('unlockedChannels', JSON.stringify([...next]));
-          return next;
-        });
-        setPinEntry(null); setPinInput(''); setPinError('');
-      }
-    } catch (e) {
-      setPinError(e.response?.data?.error || 'Wrong PIN');
-      setPinInput('');
-    }
+      await client.post(`/channels/${pinEntry.id}/verify-pin`, { pin: pinInput });
+      setUnlocked(prev=>{ const n=new Set([...prev,pinEntry.id]); localStorage.setItem('unlockedChannels',JSON.stringify([...n])); return n; });
+      setActive(pinEntry); setMobileView('chat'); setPinEntry(null); setPinInput('');
+    } catch { setPinErr('Wrong passcode — try again'); setPinInput(''); }
   };
 
   const send = async (e) => {
     e.preventDefault();
-    if (!input.trim() || !activeChannel || sending) return;
+    if (!input.trim()||!active||sending) return;
     setSending(true);
-    const text = input.trim();
-    setInput('');
+    const text = input.trim(); setInput('');
     try {
-      const res = await client.post(`/channels/${activeChannel.id}/messages`, { content: text });
-      setMessages(prev => [...prev, res.data.data]);
-      lastMsgId.current = res.data.data.id;
+      const res = await client.post(`/channels/${active.id}/messages`, { content:text });
+      setMessages(p=>[...p, res.data.data]);
+      lastIdRef.current = res.data.data.id;
     } catch { setInput(text); }
-    finally { setSending(false); }
+    setSending(false);
   };
 
   const deleteMsg = async (msgId) => {
-    try {
-      await client.delete(`/channels/${activeChannel.id}/messages/${msgId}`);
-      setMessages(prev => prev.filter(m => m.id !== msgId));
-    } catch {}
+    await client.delete(`/channels/${active.id}/messages/${msgId}`);
+    setMessages(p=>p.filter(m=>m.id!==msgId));
   };
 
   const createChannel = async () => {
-    if (!newChannel.name.trim()) return;
+    if (!newCh.name.trim()) return;
     try {
-      const payload = { ...newChannel };
+      const payload = {...newCh};
       if (!payload.pin) { delete payload.pin; delete payload.pinHint; }
       const res = await client.post('/channels', payload);
       const created = res.data.data;
-      setChannels(prev => [...prev, created]);
-      if (created.isLocked) setUnlockedChannels(prev => new Set([...prev, created.id]));
-      setActiveChannel(created);
+      setChannels(p=>[...p, created]);
+      if (created.isLocked) setUnlocked(p=>new Set([...p, created.id]));
+      setActive(created); setMobileView('chat');
       setShowCreate(false);
-      setNewChannel({ name: '', description: '', emoji: '💬', allowedRoles: 'all', pin: '', pinHint: '' });
-    } catch {}
-  };
-
-  const deleteChannel = async (id) => {
-    if (!window.confirm('Delete this channel?')) return;
-    try {
-      await client.delete(`/channels/${id}`);
-      const remaining = channels.filter(c => c.id !== id);
-      setChannels(remaining);
-      setActiveChannel(remaining[0] || null);
-      setShowSettings(false);
+      setNewCh({ name:'', description:'', emoji:'💬', allowedRoles:'all', pin:'', pinHint:'' });
     } catch {}
   };
 
   const updateChannel = async (updates) => {
     try {
-      const res = await client.put(`/channels/${activeChannel.id}`, updates);
-      if (!res.data.success) throw new Error(res.data.error || 'Update failed');
+      const res = await client.put(`/channels/${active.id}`, updates);
+      if (!res.data.success) throw new Error(res.data.error);
       const updated = res.data.data;
-      setChannels(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
-      setActiveChannel(updated);
-      setShowSettings(false);
-    } catch (e) {
-      alert(e.response?.data?.error || e.message || 'Failed to update channel');
-    }
+      setChannels(p=>p.map(c=>c.id===updated.id?{...c,...updated}:c));
+      setActive(updated); setShowSettings(false);
+    } catch (e) { alert(e.response?.data?.error||e.message||'Failed to update'); }
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin w-6 h-6 border-2 border-navy border-t-transparent rounded-full" />
-    </div>
-  );
+  const deleteChannel = async () => {
+    if (!window.confirm('Delete this channel?')) return;
+    await client.delete(`/channels/${active.id}`);
+    const rest = channels.filter(c=>c.id!==active.id);
+    setChannels(rest); setActive(rest[0]||null); setShowSettings(false);
+  };
 
-  const messageGroups = groupMessages(messages);
+  /* ─── grouped messages with date dividers ─── */
+  const renderMessages = () => {
+    const groups = groupMessages(messages);
+    const elements = [];
+    let lastDate = null;
+    groups.forEach((group,i) => {
+      const d = new Date(group.messages[0].createdAt);
+      const dateStr = d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+      if (dateStr !== lastDate) {
+        elements.push(<DateDivider key={`d-${i}`} date={dateStr} />);
+        lastDate = dateStr;
+      }
+      elements.push(
+        <MessageGroup key={i} group={group}
+          isOwn={group.authorId===user?.id}
+          canDelete={group.messages.some(m=>m.authorId===user?.id||isAdmin)}
+          onDelete={deleteMsg} />
+      );
+    });
+    return elements;
+  };
 
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-6 h-6 border-2 border-navy border-t-transparent rounded-full" /></div>;
+
+  /* ─── sidebar ─── */
   const sidebar = (
-    <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg, #111d42 0%, #0d1735 100%)' }}>
-      {/* Sidebar header */}
-      <div className="px-4 pt-5 pb-4 flex-shrink-0 border-b border-white/6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-extrabold text-white text-[15px] tracking-tight">Channels</h2>
-            <p className="text-white/35 text-xs mt-0.5">{channels.length} active</p>
-          </div>
+    <div className="flex flex-col h-full" style={{background:'linear-gradient(160deg,#0f1c3f 0%,#0b1530 100%)'}}>
+      <div className="px-4 pt-5 pb-3 flex-shrink-0">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-white font-extrabold text-[15px] tracking-tight">Channels</span>
           {isOfficer && (
-            <button onClick={() => setShowCreate(true)}
-              className="w-8 h-8 bg-white/10 hover:bg-white/18 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95">
-              <Plus size={15} className="text-white" />
+            <button onClick={()=>setShowCreate(true)}
+              className="w-7 h-7 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all">
+              <Plus size={14} className="text-white" />
             </button>
           )}
         </div>
+        <p className="text-white/30 text-[11px]">{channels.length} channels</p>
       </div>
 
-      {/* Channels list */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 no-scrollbar">
-        {channels.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-3xl mb-2">💬</p>
-            <p className="text-white/30 text-xs">No channels yet</p>
-          </div>
-        ) : channels.map(ch => (
-          <ChannelRow key={ch.id} channel={ch} active={activeChannel?.id === ch.id} onClick={() => selectChannel(ch)} />
-        ))}
+      <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
+        {channels.map(ch=>{
+          const isActive = active?.id===ch.id;
+          const lastMsg = ch.messages?.[0];
+          return (
+            <button key={ch.id} onClick={()=>selectChannel(ch)}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all group ${isActive?'bg-white/12':'hover:bg-white/6'}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-all ${isActive?'bg-white/18':'bg-white/6 group-hover:bg-white/10'}`}>
+                {ch.emoji||'💬'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[13px] font-semibold truncate ${isActive?'text-white':'text-white/65 group-hover:text-white/85'}`}>{ch.name}</span>
+                  {ch.isLocked && <Lock size={9} className="text-white/30 flex-shrink-0" />}
+                  {ch.allowedRoles!=='all' && <span className="text-[9px] bg-white/10 text-white/40 px-1 rounded font-medium">restricted</span>}
+                </div>
+                <p className={`text-[11px] truncate mt-0.5 ${isActive?'text-white/45':'text-white/25'}`}>
+                  {lastMsg ? `${lastMsg.author?.firstName}: ${lastMsg.content}` : ch.description||'No messages yet'}
+                </p>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 
-  const isLocked = activeChannel?.isLocked && !unlockedChannels.has(activeChannel?.id);
+  /* ─── chat area ─── */
+  const isLocked = active?.isLocked && !unlocked.has(active?.id);
 
   const chatArea = (
-    <div className="flex flex-col h-full bg-white">
-      {/* Chat header */}
-      <div className="flex items-center gap-3 px-4 py-3.5 bg-white border-b border-gray-100 flex-shrink-0 shadow-sm">
-        <button className="md:hidden p-1.5 -ml-1 hover:bg-gray-100 rounded-lg transition-colors" onClick={() => setMobileView('list')}>
-          <ChevronLeft size={18} className="text-gray-600" />
+    <div className="flex-1 flex flex-col min-w-0 bg-white h-full">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0" style={{boxShadow:'0 1px 0 rgba(0,0,0,0.06)'}}>
+        <button className="md:hidden p-1.5 -ml-1 hover:bg-gray-100 rounded-lg" onClick={()=>setMobileView('list')}>
+          <ChevronLeft size={18} className="text-gray-500" />
         </button>
-        {activeChannel ? (
+        {active ? (
           <>
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-navy/6">
-              {activeChannel.emoji || '💬'}
-            </div>
+            <div className="w-9 h-9 rounded-xl bg-navy/7 flex items-center justify-center text-xl flex-shrink-0">{active.emoji||'💬'}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-gray-900 text-[15px] leading-tight">{activeChannel.name}</h3>
-                {activeChannel.isLocked && (
-                  <span className="flex items-center gap-1 bg-red-50 text-red-500 border border-red-100 rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                    <Lock size={8} /> PIN
-                  </span>
-                )}
-                {activeChannel.allowedRoles !== 'all' && (
-                  <span className="hidden sm:flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                    Restricted
-                  </span>
-                )}
+                <h3 className="font-extrabold text-gray-900 text-[15px]">{active.name}</h3>
+                {active.isLocked && <span className="flex items-center gap-1 text-[10px] bg-red-50 text-red-500 border border-red-100 px-2 py-0.5 rounded-full font-semibold"><Lock size={8}/>PIN</span>}
+                {active.allowedRoles!=='all' && <span className="hidden sm:flex text-[10px] bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-full font-semibold">Restricted</span>}
               </div>
-              {activeChannel.description && (
-                <p className="text-xs text-gray-400 truncate mt-0.5">{activeChannel.description}</p>
-              )}
+              {active.description && <p className="text-xs text-gray-400 truncate">{active.description}</p>}
             </div>
             {isOfficer && (
-              <button onClick={() => setShowSettings(true)}
-                className="w-8 h-8 hover:bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0">
-                <Settings size={15} />
+              <button onClick={()=>setShowSettings(true)} className="w-8 h-8 hover:bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors">
+                <Settings size={15}/>
               </button>
             )}
           </>
-        ) : (
-          <p className="text-gray-400 text-sm">Select a channel</p>
-        )}
+        ) : <p className="text-gray-400 text-sm font-medium">Select a channel</p>}
       </div>
 
       {/* PIN lock screen */}
       {isLocked && (
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 w-full max-w-xs text-center">
-            <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <ShieldAlert size={26} className="text-red-500" />
+            <div className="w-14 h-14 bg-navy/8 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <ShieldAlert size={26} className="text-navy" />
             </div>
-            <h3 className="font-extrabold text-gray-900 text-lg mb-1">PIN Required</h3>
-            <p className="text-sm text-gray-400 mb-4">
-              {activeChannel?.pinHint ? `Hint: ${activeChannel.pinHint}` : 'Enter PIN to unlock this channel'}
-            </p>
-            {pinError && (
-              <p className="text-xs text-red-500 bg-red-50 rounded-xl px-3 py-2 mb-3">{pinError}</p>
-            )}
+            <h3 className="font-extrabold text-gray-900 text-lg mb-1">Passcode Required</h3>
+            <p className="text-sm text-gray-400 mb-5">{active?.pinHint?`Hint: ${active.pinHint}`:'Enter the passcode to access this channel'}</p>
+            {pinErr && <p className="text-xs text-red-500 bg-red-50 rounded-xl px-3 py-2 mb-3">{pinErr}</p>}
             <div className="relative mb-3">
-              <input
-                type={showPin ? 'text' : 'password'}
-                className="input-field w-full text-center text-2xl font-mono tracking-[0.3em] pr-10"
-                placeholder="••••"
-                value={pinInput}
-                onChange={e => setPinInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && submitPin()}
-                autoFocus
-              />
-              <button type="button" onClick={() => setShowPin(s => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                {showPin ? <EyeOff size={14} /> : <Eye size={14} />}
+              <input type={showPinText?'text':'password'} className="input-field w-full text-center text-xl font-mono tracking-[0.3em] pr-10"
+                placeholder="••••" value={pinInput} onChange={e=>setPinInput(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&submitPin()} autoFocus />
+              <button type="button" onClick={()=>setShowPinText(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                {showPinText?<EyeOff size={14}/>:<Eye size={14}/>}
               </button>
             </div>
-            <button onClick={submitPin} disabled={!pinInput}
-              className="btn-primary w-full justify-center gap-2">
-              <KeyRound size={14} /> Unlock
+            <button onClick={submitPin} disabled={!pinInput} className="btn-primary w-full justify-center gap-2">
+              <KeyRound size={14}/> Unlock
             </button>
           </div>
         </div>
@@ -423,54 +452,41 @@ export default function Channels() {
       {!isLocked && (
         <>
           <div className="flex-1 overflow-y-auto py-4">
-            {!activeChannel ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-300">
-                <div className="text-5xl mb-3">💬</div>
-                <p className="text-sm font-medium">Pick a channel</p>
+            {!active ? (
+              <div className="flex flex-col items-center justify-center h-full text-center px-8">
+                <div className="w-16 h-16 bg-navy/6 rounded-3xl flex items-center justify-center mb-4 text-3xl">💬</div>
+                <p className="font-extrabold text-gray-800 text-lg">Welcome to Channels</p>
+                <p className="text-sm text-gray-400 mt-1 max-w-xs">Select a channel from the left to start messaging your chapter.</p>
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full">
-                <div className="text-5xl mb-3">{activeChannel.emoji}</div>
-                <p className="font-bold text-gray-700">#{activeChannel.name}</p>
-                <p className="text-sm text-gray-400 mt-1">No messages yet — say something 👋</p>
+              <div className="flex flex-col items-center justify-center h-full text-center px-8">
+                <div className="w-16 h-16 bg-navy/6 rounded-3xl flex items-center justify-center mb-4 text-3xl">{active.emoji}</div>
+                <p className="font-extrabold text-gray-800 text-lg">{active.name}</p>
+                <p className="text-sm text-gray-400 mt-1">No messages yet — be the first to say something 👋</p>
               </div>
             ) : (
-              <div className="space-y-1">
-                {messageGroups.map((group, i) => (
-                  <MessageGroup
-                    key={i}
-                    group={group}
-                    isOwn={group.authorId === user?.id}
-                    canDelete={group.messages.some(m => m.authorId === user?.id || isAdmin)}
-                    onDelete={deleteMsg}
-                  />
-                ))}
-                <div ref={messagesEndRef} className="h-2" />
+              <div>
+                {renderMessages()}
+                <div ref={bottomRef} className="h-4" />
               </div>
             )}
           </div>
 
-          {/* Input bar */}
-          {activeChannel && (
-            <div className="px-4 pb-5 pt-3 bg-white border-t border-gray-100 flex-shrink-0"
-              style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
+          {/* Input */}
+          {active && (
+            <div className="px-4 pb-5 pt-2 border-t border-gray-100 bg-white flex-shrink-0"
+              style={{paddingBottom:'max(20px,env(safe-area-inset-bottom))'}}>
               <form onSubmit={send}
-                className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus-within:border-navy/40 focus-within:shadow-sm transition-all">
-                <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(e); }
-                  }}
-                  placeholder={`Message ${activeChannel.name}…`}
+                className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus-within:border-navy/30 focus-within:bg-white focus-within:shadow-sm transition-all">
+                <Avatar firstName={user?.firstName||''} lastName={user?.lastName||''} size={28} />
+                <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)}
+                  onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e);} }}
+                  placeholder={`Message ${active.name}…`}
                   className="flex-1 bg-transparent text-sm outline-none text-gray-900 placeholder-gray-400"
-                  maxLength={4000}
-                  disabled={sending}
-                />
-                <button type="submit" disabled={!input.trim() || sending}
+                  maxLength={4000} disabled={sending} />
+                <button type="submit" disabled={!input.trim()||sending}
                   className="w-8 h-8 flex items-center justify-center bg-navy text-white rounded-xl disabled:opacity-20 hover:bg-navy/85 transition-all active:scale-95 flex-shrink-0">
-                  <Send size={13} />
+                  <Send size={13}/>
                 </button>
               </form>
             </div>
@@ -481,230 +497,82 @@ export default function Channels() {
   );
 
   return (
-    <div className="h-[calc(100vh-7rem)] md:h-[calc(100vh-5rem)] flex rounded-2xl overflow-hidden border border-gray-200 shadow-sm -mx-4 md:mx-0">
+    <div className="flex h-[calc(100dvh-4rem)] md:h-[calc(100dvh-0px)] -m-4 md:-m-6 overflow-hidden rounded-2xl shadow-sm border border-gray-100">
       {/* Sidebar */}
-      <div className={`w-64 flex-shrink-0
-        ${mobileView === 'chat' ? 'hidden md:flex md:flex-col' : 'flex flex-col w-full md:w-64'}`}>
+      <div className={`w-64 flex-shrink-0 border-r border-white/8 ${mobileView==='chat'?'hidden md:flex':'flex'} flex-col`}>
         {sidebar}
       </div>
 
       {/* Chat */}
-      <div className={`flex-1 flex flex-col min-w-0
-        ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 ${mobileView==='list'?'hidden md:flex':'flex'}`}>
         {chatArea}
       </div>
 
-      {/* Create Channel Modal */}
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="New Channel">
+      {/* Modals */}
+      <Modal isOpen={showCreate} onClose={()=>setShowCreate(false)} title="New Channel">
         <div className="space-y-4">
           <div>
-            <label className="label">Icon</label>
-            <div className="flex gap-2 flex-wrap">
-              {EMOJI_OPTIONS.map(e => (
-                <button key={e} onClick={() => setNewChannel(p => ({ ...p, emoji: e }))}
-                  className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all
-                    ${newChannel.emoji === e ? 'bg-navy text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>
+            <p className="label">Icon</p>
+            <div className="flex flex-wrap gap-2">
+              {EMOJI_OPTIONS.map(e=>(
+                <button key={e} onClick={()=>setNewCh(p=>({...p,emoji:e}))}
+                  className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${newCh.emoji===e?'bg-navy text-white':'bg-gray-100 hover:bg-gray-200'}`}>
                   {e}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <label className="label">Name</label>
-            <div className="flex items-center gap-2 input-field">
-              <Hash size={13} className="text-gray-400" />
-              <input className="flex-1 bg-transparent outline-none text-sm"
-                placeholder="Officers, General, Rush 2026…"
-                value={newChannel.name}
-                onChange={e => setNewChannel(p => ({ ...p, name: e.target.value }))} />
-            </div>
+            <p className="label">Name</p>
+            <input className="input-field w-full" placeholder="Officers, General, Rush 2026…"
+              value={newCh.name} onChange={e=>setNewCh(p=>({...p,name:e.target.value}))} autoFocus />
           </div>
           <div>
-            <label className="label">Description <span className="text-gray-400 font-normal">(optional)</span></label>
+            <p className="label">Description <span className="text-gray-400 font-normal text-xs">— optional</span></p>
             <input className="input-field w-full text-sm" placeholder="What's this channel for?"
-              value={newChannel.description}
-              onChange={e => setNewChannel(p => ({ ...p, description: e.target.value }))} />
+              value={newCh.description} onChange={e=>setNewCh(p=>({...p,description:e.target.value}))} />
           </div>
           <div>
-            <label className="label">Who can see it</label>
-            <select className="select-field w-full" value={newChannel.allowedRoles}
-              onChange={e => setNewChannel(p => ({ ...p, allowedRoles: e.target.value }))}>
-              {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            <p className="label">Who can access</p>
+            <select className="select-field w-full" value={newCh.allowedRoles} onChange={e=>setNewCh(p=>({...p,allowedRoles:e.target.value}))}>
+              {ROLE_OPTIONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <ShieldAlert size={14} className="text-red-500" />
-              <p className="text-sm font-semibold text-gray-900">PIN Lock <span className="text-xs text-gray-400 font-normal">— optional</span></p>
-            </div>
-            <p className="text-xs text-gray-400">Requires a PIN to read — great for exec-only threads.</p>
-            <div className="relative">
-              <input type={showPin ? 'text' : 'password'} className="input-field w-full pr-10 text-sm"
-                placeholder="Set a PIN (leave blank for none)"
-                value={newChannel.pin}
-                onChange={e => setNewChannel(p => ({ ...p, pin: e.target.value }))} />
-              <button type="button" onClick={() => setShowPin(s => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                {showPin ? <EyeOff size={13} /> : <Eye size={13} />}
-              </button>
-            </div>
-            {newChannel.pin && (
-              <input className="input-field w-full text-sm" placeholder="PIN hint (visible to members)"
-                value={newChannel.pinHint}
-                onChange={e => setNewChannel(p => ({ ...p, pinHint: e.target.value }))} />
-            )}
+          <div>
+            <p className="label">Passcode <span className="text-gray-400 font-normal text-xs">— optional, locks the channel</span></p>
+            <input type="password" className="input-field w-full font-mono" placeholder="Leave blank for open access"
+              value={newCh.pin} onChange={e=>setNewCh(p=>({...p,pin:e.target.value}))} />
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={() => setShowCreate(false)} className="btn-secondary flex-1">Cancel</button>
-            <button onClick={createChannel} disabled={!newChannel.name.trim()} className="btn-primary flex-1">
-              {newChannel.pin ? '🔒 Create Locked' : 'Create Channel'}
+            <button className="btn-secondary flex-1" onClick={()=>setShowCreate(false)}>Cancel</button>
+            <button className="btn-primary flex-1" onClick={createChannel} disabled={!newCh.name.trim()}>
+              {newCh.pin?'🔒 Create Locked':'Create Channel'}
             </button>
           </div>
         </div>
       </Modal>
 
-      {/* Settings Modal */}
-      {activeChannel && (
-        <Modal isOpen={showSettings} onClose={() => setShowSettings(false)} title={`#${activeChannel.name}`}>
-          <ChannelSettings channel={activeChannel} onUpdate={updateChannel}
-            onDelete={() => deleteChannel(activeChannel.id)} onClose={() => setShowSettings(false)} />
+      {/* PIN entry modal */}
+      {pinEntry && (
+        <Modal isOpen={!!pinEntry} onClose={()=>setPinEntry(null)} title="">
+          <div className="text-center py-4">
+            <div className="w-14 h-14 bg-navy/8 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">{pinEntry.emoji||'🔒'}</div>
+            <h3 className="font-extrabold text-gray-900 text-lg mb-1">{pinEntry.name}</h3>
+            <p className="text-sm text-gray-400 mb-5">{pinEntry.pinHint?`Hint: ${pinEntry.pinHint}`:'Enter passcode to unlock'}</p>
+            {pinErr && <p className="text-xs text-red-500 bg-red-50 rounded-xl px-3 py-2 mb-3">{pinErr}</p>}
+            <input type="password" className="input-field w-full text-center text-xl font-mono tracking-widest mb-3"
+              placeholder="••••" value={pinInput} onChange={e=>setPinInput(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&submitPin()} autoFocus />
+            <button onClick={submitPin} disabled={!pinInput} className="btn-primary w-full justify-center"><KeyRound size={14}/> Unlock</button>
+          </div>
         </Modal>
       )}
-    </div>
-  );
-}
 
-function ChannelSettings({ channel, onUpdate, onDelete, onClose }) {
-  const [form, setForm] = useState({
-    name: channel.name,
-    description: channel.description || '',
-    emoji: channel.emoji || '💬',
-    allowedRoles: channel.allowedRoles || 'all',
-  });
-  const [pinSection, setPinSection] = useState('idle'); // idle | set | remove
-  const [newPin, setNewPin] = useState('');
-  const [pinHint, setPinHint] = useState('');
-  const [pinSaving, setPinSaving] = useState(false);
-  const [pinMsg, setPinMsg] = useState('');
-
-  const savePin = async () => {
-    if (newPin.length < 4) { setPinMsg('PIN must be at least 4 digits'); return; }
-    setPinSaving(true);
-    try {
-      await onUpdate({ pin: newPin, pinHint });
-      setPinSection('idle'); setNewPin(''); setPinHint('');
-      setPinMsg('');
-    } catch { setPinMsg('Failed to save PIN'); }
-    setPinSaving(false);
-  };
-
-  const removePin = async () => {
-    setPinSaving(true);
-    try { await onUpdate({ removePin: true }); setPinSection('idle'); }
-    catch { setPinMsg('Failed to remove PIN'); }
-    setPinSaving(false);
-  };
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="label">Icon</label>
-        <div className="flex gap-2 flex-wrap">
-          {EMOJI_OPTIONS.map(e => (
-            <button key={e} onClick={() => setForm(p => ({ ...p, emoji: e }))}
-              className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all
-                ${form.emoji === e ? 'bg-navy text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>
-              {e}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="label">Name</label>
-        <input className="input-field w-full text-sm" value={form.name}
-          onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
-      </div>
-      <div>
-        <label className="label">Description</label>
-        <input className="input-field w-full text-sm" value={form.description}
-          onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
-      </div>
-      <div>
-        <label className="label">Access</label>
-        <select className="select-field w-full" value={form.allowedRoles}
-          onChange={e => setForm(p => ({ ...p, allowedRoles: e.target.value }))}>
-          {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-        </select>
-      </div>
-
-      {/* PIN Lock Management */}
-      <div className="border border-gray-100 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Lock size={14} className={channel.isLocked ? 'text-red-500' : 'text-gray-300'} />
-            <span className="text-sm font-semibold text-gray-800">Passcode Lock</span>
-            {channel.isLocked && <span className="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-medium">Active</span>}
-          </div>
-          {pinSection === 'idle' && (
-            <button onClick={() => setPinSection(channel.isLocked ? 'remove' : 'set')}
-              className="text-xs font-semibold text-navy hover:underline">
-              {channel.isLocked ? 'Change / Remove' : 'Set Passcode'}
-            </button>
-          )}
-        </div>
-        <p className="text-xs text-gray-400">
-          {channel.isLocked
-            ? `Members must enter the passcode to read messages.${channel.pinHint ? ` Hint: "${channel.pinHint}"` : ''}`
-            : 'Require a passcode to access this channel.'}
-        </p>
-
-        {pinSection === 'set' && (
-          <div className="space-y-2 pt-1">
-            <input type="password" className="input-field w-full text-sm font-mono tracking-widest"
-              placeholder="New passcode (min 4 digits)" value={newPin}
-              onChange={e => setNewPin(e.target.value)} autoFocus />
-            <input className="input-field w-full text-sm" placeholder="Hint shown to members (optional)"
-              value={pinHint} onChange={e => setPinHint(e.target.value)} />
-            {pinMsg && <p className="text-xs text-red-500">{pinMsg}</p>}
-            <div className="flex gap-2">
-              <button onClick={() => { setPinSection('idle'); setNewPin(''); setPinMsg(''); }}
-                className="btn-secondary flex-1 text-sm py-2">Cancel</button>
-              <button onClick={savePin} disabled={pinSaving || newPin.length < 4}
-                className="btn-primary flex-1 text-sm py-2">
-                {pinSaving ? 'Saving…' : '🔒 Set Passcode'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {pinSection === 'remove' && (
-          <div className="space-y-2 pt-1">
-            <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2">This will remove the passcode and make the channel accessible to everyone with role access.</p>
-            <div className="flex gap-2">
-              <button onClick={() => setPinSection('idle')} className="btn-secondary flex-1 text-sm py-2">Cancel</button>
-              <button onClick={removePin} disabled={pinSaving} className="flex-1 text-sm py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors">
-                {pinSaving ? 'Removing…' : 'Remove Passcode'}
-              </button>
-            </div>
-            {channel.isLocked && (
-              <button onClick={() => setPinSection('set')} className="w-full text-xs text-navy font-semibold hover:underline text-center pt-1">
-                Change passcode instead →
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-2">
-        <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-        <button onClick={() => onUpdate(form)} className="btn-primary flex-1">Save</button>
-      </div>
-      <div className="pt-2 border-t border-gray-100">
-        <button onClick={onDelete}
-          className="w-full py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors">
-          Delete Channel
-        </button>
-      </div>
+      {active && (
+        <Modal isOpen={showSettings} onClose={()=>setShowSettings(false)} title={`${active.emoji} ${active.name}`}>
+          <ChannelSettings channel={active} onUpdate={updateChannel} onDelete={deleteChannel} onClose={()=>setShowSettings(false)} />
+        </Modal>
+      )}
     </div>
   );
 }

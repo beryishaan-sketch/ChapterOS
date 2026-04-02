@@ -56,7 +56,7 @@ export default function Dashboard() {
 
   const firstName = user?.firstName || 'Brother';
   const org = user?.org;
-  const duesRate = stats ? Math.round((stats.duesCollected / Math.max(stats.totalMembers, 1)) * 100) : 0;
+  const duesRate = stats?.duesRate ?? 0; // use backend-calculated rate
 
   if (loading) return (
     <div className="flex flex-col gap-4 animate-pulse">
