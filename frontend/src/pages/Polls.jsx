@@ -104,7 +104,7 @@ export default function Polls() {
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-gray-400">{totalVotes} vote{totalVotes !== 1 ? 's' : ''}</span>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${expired ? 'bg-gray-100 text-gray-500' : 'bg-emerald-50 text-emerald-600'}`}>
-                        {expired ? 'Closed' : `Closes ${timeAgo(new Date(poll.expiresAt?.getTime?.() || Date.now() - 1))}`}
+                        {expired ? 'Closed' : poll.expiresAt ? `Closes ${new Date(poll.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Open'}
                       </span>
                     </div>
                   </div>

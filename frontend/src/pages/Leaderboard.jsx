@@ -106,7 +106,8 @@ export default function Leaderboard() {
   const rowValue = (m) => tab === 'points' ? m.points || 0 : tab === 'gpa' ? m.gpa || 0 : m.studyHours || 0;
 
   const totalPoints = members.reduce((s, m) => s + (m.points || 0), 0);
-  const avgGpa = active.filter(m => m.gpa).reduce((s, m, _, a) => s + m.gpa / a.length, 0);
+  const withGpa = active.filter(m => m.gpa);
+  const avgGpa = withGpa.length > 0 ? withGpa.reduce((s, m) => s + m.gpa, 0) / withGpa.length : 0;
 
   if (loading) return (
     <div className="max-w-lg mx-auto space-y-3">

@@ -130,7 +130,7 @@ const PlanComparison = ({ currentPlan, onUpgrade }) => (
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {currentPlan === 'Basic' ? 'Upgrade' : plan.price > currentPlan?.price ? 'Upgrade' : 'Downgrade'}
+                {PLANS.findIndex(p => p.name === plan.name) > PLANS.findIndex(p => p.name === currentPlan) ? 'Upgrade' : 'Downgrade'}
               </button>
             )}
           </div>

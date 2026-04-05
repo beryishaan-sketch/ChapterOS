@@ -11,7 +11,7 @@ const avatarColors = ['bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-oran
 const avatarColor = (name) => avatarColors[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % avatarColors.length];
 
 const QRScanModal = ({ isOpen, onClose, eventId }) => {
-  const checkInUrl = eventId ? `${window.location.origin}/checkin/${eventId}` : '';
+  const checkInUrl = eventId ? `${window.location.origin}/checkin?event=${eventId}` : '';
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="QR Check-in" size="sm">
       <div className="text-center space-y-4">
