@@ -64,6 +64,7 @@ const createMember = async (req, res) => {
         orgId: req.user.orgId,
         email, firstName, lastName,
         passwordHash,
+        mustChangePassword: true,
         role: role || 'member',
         position, pledgeClass, year, major, phone,
         gpa: gpa ? parseFloat(gpa) : null,
