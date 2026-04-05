@@ -39,6 +39,8 @@ import ChangePassword from './pages/ChangePassword';
 import SetPassword from './pages/SetPassword';
 import BidVoting from './pages/BidVoting';
 import Channels from './pages/Channels';
+import RoleManager from './pages/RoleManager';
+import SuperAdmin from './pages/SuperAdmin';
 
 function App() {
   const { loading } = useAuth();
@@ -142,7 +144,11 @@ function App() {
       <Route path="/channels" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Channels />} />
       </Route>
+      <Route path="/roles" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<RoleManager />} />
+      </Route>
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/superadmin" element={<SuperAdmin />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
     <InstallPrompt />
