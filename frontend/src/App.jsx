@@ -35,6 +35,8 @@ import Reports from './pages/Reports';
 import AdminDashboard from './pages/AdminDashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import ChangePassword from './pages/ChangePassword';
+import SetPassword from './pages/SetPassword';
 import BidVoting from './pages/BidVoting';
 import Channels from './pages/Channels';
 
@@ -60,6 +62,8 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+      <Route path="/set-password" element={<SetPassword />} />
       <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
       <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
