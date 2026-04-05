@@ -168,7 +168,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={{ padding: '20px 16px 0' }}>
+      <div style={{ padding: '20px 16px 0', background: '#111113' }}>
         <OnboardingChecklist />
 
         {/* ── STATS GRID ── */}
@@ -206,7 +206,7 @@ export default function Dashboard() {
 
         {/* ── QUICK ACTIONS ── */}
         <div style={{ marginBottom: 24 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#6C6C70', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
             Quick Actions
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -218,8 +218,8 @@ export default function Dashboard() {
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   gap: 6, padding: '12px 4px',
-                  background: '#fff', borderRadius: 14,
-                  boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)',
+                  background: '#1c1c1e', borderRadius: 14,
+                  border: '0.5px solid rgba(255,255,255,0.07)',
                   WebkitTapHighlightColor: 'transparent',
                   textDecoration: 'none',
                 }}
@@ -232,7 +232,7 @@ export default function Dashboard() {
                 }}>
                   <Icon size={20} color={color} strokeWidth={1.8} />
                 </div>
-                <span style={{ fontSize: 11, color: '#3C3C43', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>
                   {label}
                 </span>
               </Link>
@@ -243,28 +243,28 @@ export default function Dashboard() {
         {/* ── UPCOMING EVENTS ── */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <p style={{ fontSize: 20, fontWeight: 700, color: '#000', margin: 0, letterSpacing: '-0.02em' }}>
+            <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
               Upcoming
             </p>
-            <Link to="/events" onClick={() => impact('light')} style={{ color: '#0F1C3F', fontSize: 14, fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}>
-              See all <ChevronRight size={14} />
+            <Link to="/events" onClick={() => impact('light')} style={{ color: '#C9A84C', fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}>
+              See all <ChevronRight size={13} />
             </Link>
           </div>
           {events.length === 0 ? (
-            <div style={{ background: '#fff', borderRadius: 14, padding: 24, textAlign: 'center', boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
-              <CalendarDays size={28} color="#C7C7CC" style={{ margin: '0 auto 8px' }} />
-              <p style={{ fontSize: 14, color: '#8E8E93', margin: 0 }}>No upcoming events</p>
-              <Link to="/events" style={{ fontSize: 13, color: '#0F1C3F', fontWeight: 600, textDecoration: 'none', marginTop: 6, display: 'block' }}>Create one →</Link>
+            <div style={{ background: '#1c1c1e', borderRadius: 14, padding: 24, textAlign: 'center', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+              <CalendarDays size={28} color="rgba(255,255,255,0.2)" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', margin: 0 }}>No upcoming events</p>
+              <Link to="/events" style={{ fontSize: 13, color: '#C9A84C', fontWeight: 600, textDecoration: 'none', marginTop: 6, display: 'block' }}>Create one →</Link>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {events.map((e, i) => (
                 <div key={e.id} onClick={() => { impact('light'); navigate('/events'); }}
                   style={{
-                    background: '#fff', borderRadius: 14,
+                    background: '#1c1c1e', borderRadius: 14,
                     padding: '12px 14px',
                     display: 'flex', alignItems: 'center', gap: 12,
-                    boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)',
+                    border: '0.5px solid rgba(255,255,255,0.07)',
                     cursor: 'pointer',
                     WebkitTapHighlightColor: 'transparent',
                   }}
@@ -272,19 +272,19 @@ export default function Dashboard() {
                 >
                   <div style={{
                     width: 44, height: 44, borderRadius: 12,
-                    background: (EVENT_COLORS[e.type] || EVENT_COLORS.other) + '18',
+                    background: (EVENT_COLORS[e.type] || EVENT_COLORS.other) + '22',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
                     <CalendarDays size={20} color={EVENT_COLORS[e.type] || EVENT_COLORS.other} strokeWidth={1.8} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 15, fontWeight: 600, color: '#000', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
-                    <p style={{ fontSize: 13, color: '#8E8E93', margin: '2px 0 0' }}>{fmtDate(e.date)}</p>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>{fmtDate(e.date)}</p>
                   </div>
                   <span style={{
                     fontSize: 11, fontWeight: 600, color: EVENT_COLORS[e.type] || EVENT_COLORS.other,
-                    background: (EVENT_COLORS[e.type] || EVENT_COLORS.other) + '18',
+                    background: (EVENT_COLORS[e.type] || EVENT_COLORS.other) + '22',
                     padding: '3px 8px', borderRadius: 20, textTransform: 'capitalize',
                   }}>{e.type}</span>
                 </div>
@@ -295,16 +295,16 @@ export default function Dashboard() {
 
         {/* ── ACTIVITY FEED ── */}
         <div style={{ marginBottom: 32 }}>
-          <p style={{ fontSize: 20, fontWeight: 700, color: '#000', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
             Recent Activity
           </p>
           {activity.length === 0 ? (
-            <div style={{ background: '#fff', borderRadius: 14, padding: 24, textAlign: 'center', boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
-              <Clock size={28} color="#C7C7CC" style={{ margin: '0 auto 8px' }} />
-              <p style={{ fontSize: 14, color: '#8E8E93', margin: 0 }}>No activity yet</p>
+            <div style={{ background: '#1c1c1e', borderRadius: 14, padding: 24, textAlign: 'center', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+              <Clock size={28} color="rgba(255,255,255,0.2)" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', margin: 0 }}>No activity yet</p>
             </div>
           ) : (
-            <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
+            <div style={{ background: '#1c1c1e', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
               {activity.map((item, i) => {
                 const cfg = ACTIVITY_ICONS[item.type] || ACTIVITY_ICONS.default;
                 const Icon = cfg.icon;
@@ -312,19 +312,19 @@ export default function Dashboard() {
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '12px 14px',
-                    borderBottom: i < activity.length - 1 ? '0.5px solid rgba(0,0,0,0.08)' : 'none',
+                    borderBottom: i < activity.length - 1 ? '0.5px solid rgba(255,255,255,0.06)' : 'none',
                   }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%',
-                      background: cfg.bg + '20',
+                      background: cfg.bg + '25',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0,
                     }}>
                       <Icon size={16} color={cfg.bg} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 14, color: '#000', margin: 0, lineHeight: 1.3 }}>{item.message}</p>
-                      <p style={{ fontSize: 12, color: '#8E8E93', margin: '2px 0 0' }}>{timeAgo(item.createdAt)}</p>
+                      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: 0, lineHeight: 1.3 }}>{item.message}</p>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', margin: '2px 0 0' }}>{timeAgo(item.createdAt)}</p>
                     </div>
                   </div>
                 );

@@ -21,7 +21,7 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', system-ui, sans-serif;
     @apply text-gray-900;
-    background: #F2F2F7; /* iOS system background */
+    background: #111113; /* dark premium background */
     margin: 0;
     padding: 0;
     /* Edge-to-edge on iOS — content goes behind status bar */

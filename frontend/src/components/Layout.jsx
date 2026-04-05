@@ -9,7 +9,7 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#F2F2F7' }}>
+    <div className="flex min-h-screen" style={{ background: '#111113' }}>
       {/* Sidebar — desktop only */}
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 

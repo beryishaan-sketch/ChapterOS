@@ -108,10 +108,10 @@ export default function IOSTabBar() {
         left: 0,
         right: 0,
         zIndex: 50,
-        background: 'rgba(249,249,249,0.92)',
-        backdropFilter: 'saturate(180%) blur(20px)',
-        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-        borderTop: '0.5px solid rgba(0,0,0,0.18)',
+        background: 'rgba(14,14,16,0.96)',
+        backdropFilter: 'saturate(180%) blur(24px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(24px)',
+        borderTop: '0.5px solid rgba(255,255,255,0.08)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
       className="lg:hidden"
@@ -135,17 +135,17 @@ export default function IOSTabBar() {
               }}
             >
               <div style={{
-                color: isActive ? '#0F1C3F' : '#8E8E93',
-                transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                color: isActive ? '#C9A84C' : 'rgba(255,255,255,0.3)',
+                transform: isActive ? 'scale(1.08)' : 'scale(1)',
                 transition: 'all 0.15s ease',
               }}>
                 <Icon filled={isActive} />
               </div>
               <span style={{
                 fontSize: 10,
-                fontWeight: 500,
+                fontWeight: isActive ? 600 : 400,
                 letterSpacing: '-0.01em',
-                color: isActive ? '#0F1C3F' : '#8E8E93',
+                color: isActive ? '#C9A84C' : 'rgba(255,255,255,0.3)',
                 lineHeight: 1,
                 fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
                 transition: 'color 0.15s ease',
