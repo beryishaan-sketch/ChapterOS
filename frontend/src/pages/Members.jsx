@@ -7,6 +7,7 @@ import {
 import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useHaptic } from '../hooks/useHaptic';
 
 const ROLES = ['admin', 'officer', 'member', 'alumni', 'pledge'];
 const ROLE_CONFIG = {
@@ -556,12 +557,13 @@ const MemberRow = ({ member, onClick }) => {
 
 export default function Members() {
   const { user } = useAuth();
+  const { impact } = useHaptic();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('list');
   const [showAdd, setShowAdd] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
 
@@ -591,134 +593,162 @@ export default function Members() {
     return matchSearch && matchRole && matchClass;
   });
 
+  const ROLE_PILLS = ['all', ...ROLES];
+  const avatarBg = ['#007AFF','#AF52DE','#34C759','#FF9500','#FF3B30','#30B0C7','#FF6B35'];
+  const getAvatarBg = (name) => avatarBg[(name || '').split('').reduce((a,c) => a+c.charCodeAt(0),0) % avatarBg.length];
+
   return (
-    <div>
-      {/* Header */}
-      <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="page-title">Members</h1>
-          <p className="page-subtitle">{members.length} member{members.length !== 1 ? 's' : ''} in your chapter</p>
-        </div>
-        {isAdmin && (
-          <div className="flex gap-2 self-start sm:self-auto flex-wrap">
-            <button className="btn-secondary" onClick={async () => {
-              if (!window.confirm('Remove duplicate members (same email or name)? This cannot be undone.')) return;
-              const res = await client.post('/members/dedup').catch(() => null);
-              if (res?.data?.success) { alert(`Removed ${res.data.data.removed} duplicate(s)`); fetchMembers(); }
-            }}>
-              Dedup
-            </button>
-            <button className="btn-primary" onClick={() => setShowAdd(true)}>
-              <Plus size={16} /> Add Member
-            </button>
+    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+
+      {/* ── iOS HEADER ── */}
+      <div style={{
+        background: 'linear-gradient(160deg, #0F1C3F 0%, #1a2f6b 100%)',
+        padding: '52px 16px 20px',
+        paddingTop: 'max(52px, calc(env(safe-area-inset-top) + 36px))',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <h1 style={{ color: '#fff', fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: '-0.03em' }}>Members</h1>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: '3px 0 0' }}>
+              {members.length} {members.length === 1 ? 'member' : 'members'}
+            </p>
           </div>
-        )}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <div className="relative flex-1 min-w-0" style={{ minWidth: '180px' }}>
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input className="input-field pl-10 py-2" placeholder="Search members…" value={search} onChange={e => setSearch(e.target.value)} />
-          {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={14} /></button>}
-        </div>
-
-        <select className="select-field py-2 text-sm" style={{ width: 'auto' }} value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
-          <option value="all">All roles</option>
-          {ROLES.map(r => <option key={r} value={r}>{ROLE_CONFIG[r].label}</option>)}
-        </select>
-
-        {pledgeClasses.length > 0 && (
-          <select className="select-field py-2 text-sm" style={{ width: 'auto' }} value={classFilter} onChange={e => setClassFilter(e.target.value)}>
-            <option value="all">All classes</option>
-            {pledgeClasses.map(pc => <option key={pc} value={pc}>{pc}</option>)}
-          </select>
-        )}
-
-        <div className="flex bg-gray-100 rounded-xl p-1 ml-auto">
-          <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
-            <LayoutGrid size={16} />
-          </button>
-          <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
-            <List size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Members Grid / List */}
-      {loading ? (
-        viewMode === 'grid' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array(8).fill(0).map((_, i) => (
-              <div key={i} className="card p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="skeleton w-12 h-12 rounded-2xl" />
-                  <div className="skeleton w-24 h-4 rounded" />
-                </div>
-                <div className="skeleton w-16 h-5 rounded-full" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {Array(6).fill(0).map((_, i) => (
-              <div key={i} className="card flex items-center gap-3 px-4 py-3.5">
-                <div className="skeleton w-11 h-11 rounded-xl flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="skeleton h-4 w-32 rounded" />
-                  <div className="skeleton h-3 w-48 rounded" />
-                </div>
-                <div className="skeleton w-16 h-5 rounded-full" />
-              </div>
-            ))}
-          </div>
-        )
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center mx-auto mb-5">
-            <Users size={36} className="text-gray-300" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-500 mb-1">
-            {search || roleFilter !== 'all' || classFilter !== 'all' ? 'No members match your filters' : 'No members yet'}
-          </h3>
-          <p className="text-sm text-gray-400 mb-6">
-            {search || roleFilter !== 'all' || classFilter !== 'all' ? 'Try adjusting your search or filters.' : 'Add your first member to get started.'}
-          </p>
-          {isAdmin && !search && roleFilter === 'all' && classFilter === 'all' && (
-            <button className="btn-primary" onClick={() => setShowAdd(true)}>
-              <Plus size={16} /> Add Member
+          {isAdmin && (
+            <button
+              onClick={() => { impact('medium'); setShowAdd(true); }}
+              style={{
+                width: 36, height: 36, borderRadius: '50%',
+                background: '#C9A84C', border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+              }}
+              className="active:scale-90 transition-transform duration-100"
+            >
+              <Plus size={20} color="#0F1C3F" strokeWidth={2.5} />
             </button>
           )}
         </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filtered.map(m => (
-            <MemberCard key={m.id} member={m} onClick={() => setSelectedMember(m)} onUpdate={handleUpdate} isAdmin={isAdmin} />
-          ))}
+
+        {/* Search bar */}
+        <div style={{ position: 'relative' }}>
+          <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search members…"
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              background: 'rgba(255,255,255,0.12)',
+              border: 'none', borderRadius: 12,
+              padding: '10px 36px 10px 38px',
+              color: '#fff', fontSize: 16,
+              fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+              outline: 'none',
+            }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.3)', border: 'none', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
+              <X size={12} />
+            </button>
+          )}
         </div>
-      ) : (
-        /* iOS-style: all rows inside ONE card with dividers */
-        <div className="card overflow-hidden">
-          {filtered.map((m, i) => (
-            <div key={m.id}
-              onClick={() => setSelectedMember(m)}
-              className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-gray-50 transition-colors
-                ${i < filtered.length - 1 ? 'border-b border-gray-50' : ''}`}>
-              <div className={`w-10 h-10 ${avatarColor(m.firstName + m.lastName)} rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                {initials(m.firstName, m.lastName)}
+      </div>
+
+      {/* Role filter pills */}
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', padding: '12px 16px', display: 'flex', gap: 8, scrollbarWidth: 'none' }}>
+        {ROLE_PILLS.map(r => (
+          <button key={r} onClick={() => { impact('light'); setRoleFilter(r); }} style={{
+            flexShrink: 0,
+            padding: '6px 14px', borderRadius: 20,
+            border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 600,
+            fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+            background: roleFilter === r ? '#0F1C3F' : '#E5E5EA',
+            color: roleFilter === r ? '#fff' : '#3C3C43',
+            WebkitTapHighlightColor: 'transparent',
+            transition: 'all 0.15s ease',
+          }}>
+            {r === 'all' ? 'All' : ROLE_CONFIG[r]?.label || r}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: '0 16px 16px' }}>
+        {/* Members list */}
+        {loading ? (
+          <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
+            {Array(6).fill(0).map((_, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderBottom: i < 5 ? '0.5px solid rgba(0,0,0,0.08)' : 'none' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E5E5EA', flexShrink: 0 }} className="skeleton" />
+                <div style={{ flex: 1 }}>
+                  <div style={{ height: 14, width: 130, background: '#E5E5EA', borderRadius: 4, marginBottom: 8 }} className="skeleton" />
+                  <div style={{ height: 12, width: 180, background: '#E5E5EA', borderRadius: 4 }} className="skeleton" />
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-semibold text-gray-900 truncate leading-tight">{m.firstName} {m.lastName}</p>
-                <p className="text-[13px] text-gray-400 truncate mt-0.5">{m.position || m.email}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <RoleChanger member={m} onUpdate={handleUpdate} isAdmin={isAdmin} />
-                <ChevronRight size={15} className="text-gray-300" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 16px', background: '#fff', borderRadius: 14, boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
+            <Users size={40} color="#C7C7CC" style={{ margin: '0 auto 12px' }} />
+            <p style={{ fontSize: 16, fontWeight: 600, color: '#3C3C43', margin: '0 0 4px' }}>
+              {search || roleFilter !== 'all' ? 'No matches' : 'No members yet'}
+            </p>
+            <p style={{ fontSize: 14, color: '#8E8E93', margin: 0 }}>
+              {search || roleFilter !== 'all' ? 'Try a different filter' : 'Add your first member'}
+            </p>
+          </div>
+        ) : (
+          <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
+            {filtered.map((m, i) => {
+              const bg = getAvatarBg(m.firstName + m.lastName);
+              const roleColors = { admin: '#C9A84C', officer: '#007AFF', member: '#34C759', pledge: '#FF9500', alumni: '#8E8E93' };
+              return (
+                <div
+                  key={m.id}
+                  onClick={() => { impact('light'); setSelectedMember(m); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '11px 14px',
+                    borderBottom: i < filtered.length - 1 ? '0.5px solid rgba(0,0,0,0.08)' : 'none',
+                    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                  }}
+                  className="active:bg-gray-50 transition-colors duration-75"
+                >
+                  {m.avatarUrl ? (
+                    <img src={m.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{
+                      width: 44, height: 44, borderRadius: '50%',
+                      background: bg, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', fontWeight: 700, fontSize: 15,
+                    }}>
+                      {initials(m.firstName, m.lastName)}
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: '#000', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+                      {m.firstName} {m.lastName}
+                    </p>
+                    <p style={{ fontSize: 13, color: '#8E8E93', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {m.position || m.pledgeClass || m.email || m.major || ''}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600,
+                      color: roleColors[m.role] || '#8E8E93',
+                      background: (roleColors[m.role] || '#8E8E93') + '18',
+                      padding: '3px 8px', borderRadius: 10, textTransform: 'capitalize',
+                    }}>{m.role}</span>
+                    <ChevronRight size={16} color="#C7C7CC" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Modals */}
       <AddMemberModal isOpen={showAdd} onClose={() => setShowAdd(false)} onSave={(m) => setMembers(prev => [m, ...prev])} />

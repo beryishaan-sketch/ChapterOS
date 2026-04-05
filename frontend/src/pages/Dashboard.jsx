@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  Users, DollarSign, CalendarDays, TrendingUp, Zap,
-  Plus, ChevronRight, ArrowRight, UserPlus, BarChart2,
-  Star, CheckCircle2, Clock
+  Users, DollarSign, CalendarDays, TrendingUp,
+  ChevronRight, UserPlus, BarChart2, Star, Bell,
+  Zap, Clock, ArrowRight
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useHaptic } from '../hooks/useHaptic';
+import { IOSStatCard } from '../components/IOSList';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 
 const greeting = () => {
@@ -20,85 +22,47 @@ const timeAgo = (d) => {
   if (!d) return '';
   const s = Math.floor((Date.now() - new Date(d)) / 1000);
   if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s/60)}m ago`;
-  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
-  return `${Math.floor(s/86400)}d ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
 };
 
-const fmtDate = (d) => {
-  const dt = new Date(d);
-  return dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+const ACTIVITY_ICONS = {
+  dues_paid: { bg: '#34C759', icon: DollarSign },
+  member_joined: { bg: '#007AFF', icon: UserPlus },
+  event_created: { bg: '#AF52DE', icon: CalendarDays },
+  default: { bg: '#8E8E93', icon: Zap },
 };
 
-const EVENT_DOT = {
-  mixer: 'bg-blue-400', formal: 'bg-gold', meeting: 'bg-navy/40',
-  philanthropy: 'bg-emerald-400', social: 'bg-purple-400', other: 'bg-gray-300',
+const EVENT_COLORS = {
+  mixer: '#007AFF', formal: '#C9A84C', meeting: '#0F1C3F',
+  philanthropy: '#34C759', social: '#AF52DE', other: '#8E8E93',
 };
 
-const ACTIVITY_CFG = {
-  dues_paid:     { bg: 'bg-emerald-100', color: 'text-emerald-600', icon: DollarSign },
-  member_joined: { bg: 'bg-blue-100',    color: 'text-blue-600',    icon: UserPlus },
-  event_created: { bg: 'bg-purple-100',  color: 'text-purple-600',  icon: CalendarDays },
-  default:       { bg: 'bg-gray-100',    color: 'text-gray-500',    icon: Zap },
-};
-
-function HealthRing({ score }) {
-  const r = 28, circ = 2 * Math.PI * r;
-  const dash = (score / 100) * circ;
-  const color = score >= 75 ? '#10b981' : score >= 50 ? '#C9A84C' : '#f87171';
-  const label = score >= 75 ? 'Excellent' : score >= 50 ? 'Good' : 'Needs Work';
-
-  return (
-    <div className="flex items-center gap-4">
-      <div className="relative w-16 h-16 flex-shrink-0">
-        <svg className="-rotate-90" viewBox="0 0 72 72" width="64" height="64">
-          <circle cx="36" cy="36" r={r} fill="none" stroke="#f1f5f9" strokeWidth="6" />
-          <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="6"
-            strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-            style={{ transition: 'stroke-dasharray 1s ease' }} />
-        </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-sm font-black text-gray-900">{score}</span>
-      </div>
-      <div>
-        <p className="text-sm font-bold text-gray-900">Chapter Health</p>
-        <p className="text-xs font-semibold mt-0.5" style={{ color }}>{label}</p>
-        <p className="text-xs text-gray-400 mt-0.5">Dues · Events · Members · Rush</p>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, icon: Icon, color, to, sub }) {
-  return (
-    <Link to={to} className="card p-4 flex items-start gap-3 active:scale-95 transition-all duration-150 hover:shadow-card-hover group">
-      <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
-        <Icon size={18} className="text-white" strokeWidth={2} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xl font-black text-gray-900 leading-tight tabular-nums">{value ?? '—'}</p>
-        <p className="text-xs text-gray-400 mt-0.5 truncate">{label}</p>
-        {sub && <p className="text-xs text-emerald-500 font-medium mt-0.5">{sub}</p>}
-      </div>
-      <ChevronRight size={14} className="text-gray-200 group-hover:text-gray-400 transition-colors mt-1 flex-shrink-0" />
-    </Link>
-  );
-}
+const QUICK = [
+  { to: '/members', icon: UserPlus, label: 'Add Member', color: '#007AFF' },
+  { to: '/events', icon: CalendarDays, label: 'New Event', color: '#AF52DE' },
+  { to: '/recruitment', icon: Star, label: 'Rush', color: '#C9A84C' },
+  { to: '/analytics', icon: BarChart2, label: 'Analytics', color: '#30B0C7' },
+];
 
 export default function Dashboard() {
   const { user, org } = useAuth();
+  const { impact } = useHaptic();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [events, setEvents] = useState([]);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     Promise.all([
       client.get('/dashboard/stats').catch(() => null),
       client.get('/events?upcoming=true&limit=4').catch(() => null),
-      client.get('/dashboard/activity?limit=6').catch(() => null),
+      client.get('/dashboard/activity?limit=8').catch(() => null),
     ]).then(([s, e, a]) => {
-      if (!s && !e && !a) { setLoadError(true); return; }
       if (s?.data?.success) setStats(s.data.data);
       if (e?.data?.success) setEvents(e.data.data || []);
       if (a?.data?.success) setActivity(a.data.data || []);
@@ -112,152 +76,255 @@ export default function Dashboard() {
     (Math.min(stats.activePNMs || 0, 20) / 20) * 100 * 0.15
   )) : 0;
 
-  if (loading) return (
-    <div className="max-w-2xl mx-auto lg:max-w-none space-y-4">
-      <div className="card h-24 skeleton" />
-      <div className="grid grid-cols-2 gap-3">
-        {Array(4).fill(0).map((_,i) => <div key={i} className="card h-20 skeleton" />)}
-      </div>
-      <div className="card h-48 skeleton" />
-    </div>
-  );
-
-  if (loadError) return (
-    <div className="max-w-2xl mx-auto lg:max-w-none">
-      <div className="card p-12 text-center">
-        <p className="text-gray-400 font-medium mb-2">Couldn't load dashboard</p>
-        <p className="text-sm text-gray-300 mb-4">Check your connection and try again</p>
-        <button onClick={() => window.location.reload()} className="btn-primary mx-auto">Retry</button>
-      </div>
-    </div>
-  );
+  const healthColor = healthScore >= 75 ? '#34C759' : healthScore >= 50 ? '#FF9500' : '#FF3B30';
 
   return (
-    <div className="max-w-2xl mx-auto lg:max-w-none">
-      <OnboardingChecklist />
+    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
 
-      {/* ── HEADER ── */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-lg font-black text-gray-900 tracking-tight">
-            {greeting()}, {user?.firstName}
-          </h1>
-          <p className="text-sm text-gray-400 mt-0.5">{org?.name}</p>
-        </div>
-        <Link to="/events" className="btn-primary btn-sm gap-1.5">
-          <Plus size={14} /> Event
-        </Link>
-      </div>
+      {/* ── HERO HEADER ── */}
+      <div style={{
+        background: 'linear-gradient(160deg, #0F1C3F 0%, #1a2f6b 100%)',
+        padding: '56px 20px 28px',
+        paddingTop: 'max(56px, calc(env(safe-area-inset-top) + 40px))',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Decorative circles */}
+        <div style={{
+          position: 'absolute', top: -40, right: -40,
+          width: 180, height: 180, borderRadius: '50%',
+          background: 'rgba(201,168,76,0.12)',
+        }} />
+        <div style={{
+          position: 'absolute', top: 20, right: 20,
+          width: 80, height: 80, borderRadius: '50%',
+          background: 'rgba(201,168,76,0.08)',
+        }} />
 
-      {/* ── HEALTH + QUICK STATS ── */}
-      <div className="card p-5 mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <HealthRing score={healthScore} />
-          <Link to="/analytics" className="text-xs text-navy font-semibold flex items-center gap-1 hover:underline">
-            Full analytics <ArrowRight size={11} />
-          </Link>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, margin: '0 0 4px', fontWeight: 500 }}>
+              {org?.name}
+            </p>
+            <h1 style={{ color: '#fff', fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+              {greeting()},{'\n'}
+              <span style={{ color: '#C9A84C' }}>{user?.firstName}</span>
+            </h1>
+          </div>
+          <button
+            onClick={() => { impact('light'); navigate('/profile'); }}
+            style={{
+              width: 42, height: 42, borderRadius: '50%',
+              background: 'rgba(201,168,76,0.2)',
+              border: '2px solid rgba(201,168,76,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#C9A84C', fontWeight: 700, fontSize: 15,
+              WebkitTapHighlightColor: 'transparent', cursor: 'pointer',
+            }}
+          >
+            {user?.firstName?.[0]}{user?.lastName?.[0]}
+          </button>
         </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          {[
-            { pct: stats?.duesRate || 0, label: 'Dues collected', color: 'bg-emerald-500' },
-            { pct: Math.min(100, ((stats?.upcomingEvents || 0) / 5) * 100), label: 'Events this month', color: 'bg-purple-500' },
-          ].map(({ pct, label, color }) => (
-            <div key={label}>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-gray-500 font-medium">{label}</span>
-                <span className="font-bold text-gray-900">{Math.round(pct)}%</span>
-              </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
-              </div>
+
+        {/* Health ring */}
+        <div style={{
+          marginTop: 20,
+          background: 'rgba(255,255,255,0.08)',
+          borderRadius: 16,
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}>
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
+            <circle
+              cx="26" cy="26" r="22" fill="none"
+              stroke={healthColor} strokeWidth="5"
+              strokeDasharray={`${(healthScore / 100) * 138.2} 138.2`}
+              strokeLinecap="round"
+              transform="rotate(-90 26 26)"
+              style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.34,1.56,0.64,1)' }}
+            />
+            <text x="26" y="30" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="700" fontFamily="-apple-system">{healthScore}</text>
+          </svg>
+          <div>
+            <p style={{ color: '#fff', fontWeight: 600, fontSize: 15, margin: 0 }}>Chapter Health</p>
+            <p style={{ color: healthColor, fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>
+              {healthScore >= 75 ? '✓ Excellent' : healthScore >= 50 ? 'Good' : 'Needs attention'}
+            </p>
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, margin: '2px 0 0' }}>Dues · Events · Members · Rush</p>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div>
+              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dues</p>
+              <p style={{ color: '#fff', fontSize: 13, fontWeight: 600, margin: 0 }}>{stats?.duesRate ?? '—'}%</p>
             </div>
-          ))}
+            <div>
+              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Events</p>
+              <p style={{ color: '#fff', fontSize: 13, fontWeight: 600, margin: 0 }}>{stats?.upcomingEvents ?? '—'}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── STATS GRID ── */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <StatCard label="Total Members" value={stats?.totalMembers} icon={Users} color="bg-navy" to="/members" />
-        <StatCard label="Dues Rate" value={stats?.duesRate != null ? `${stats.duesRate}%` : '—'} icon={DollarSign} color="bg-emerald-500" to="/dues" sub={stats?.duesRate >= 80 ? 'On track' : null} />
-        <StatCard label="Upcoming Events" value={stats?.upcomingEvents} icon={CalendarDays} color="bg-purple-500" to="/events" />
-        <StatCard label="Active PNMs" value={stats?.activePNMs} icon={TrendingUp} color="bg-orange-500" to="/recruitment" />
-      </div>
+      <div style={{ padding: '20px 16px 0' }}>
+        <OnboardingChecklist />
 
-      {/* ── QUICK ACTIONS ── */}
-      <div className="card p-4 mb-4">
-        <p className="section-title mb-3">Quick Actions</p>
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { to: '/members', icon: UserPlus, label: 'Add Member', bg: 'bg-blue-50', fg: 'text-blue-600' },
-            { to: '/events', icon: CalendarDays, label: 'New Event', bg: 'bg-purple-50', fg: 'text-purple-600' },
-            { to: '/recruitment', icon: Star, label: 'Add PNM', bg: 'bg-gold/10', fg: 'text-gold-dark' },
-            { to: '/analytics', icon: BarChart2, label: 'Analytics', bg: 'bg-gray-100', fg: 'text-gray-600' },
-          ].map(({ to, icon: Icon, label, bg, fg }) => (
-            <Link key={to} to={to}
-              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl ${bg} active:scale-95 transition-transform`}>
-              <Icon size={18} className={fg} />
-              <span className={`text-[10px] font-bold ${fg} text-center leading-tight`}>{label}</span>
-            </Link>
-          ))}
+        {/* ── STATS GRID ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+          <IOSStatCard
+            label="Members"
+            value={loading ? '—' : stats?.totalMembers}
+            color="#0F1C3F"
+            icon={<Users size={16} />}
+            onClick={() => { impact('light'); navigate('/members'); }}
+          />
+          <IOSStatCard
+            label="Dues Rate"
+            value={loading ? '—' : `${stats?.duesRate ?? 0}%`}
+            color="#34C759"
+            icon={<DollarSign size={16} />}
+            sub={stats?.duesRate >= 80 ? 'On track ↑' : null}
+            onClick={() => { impact('light'); navigate('/dues'); }}
+          />
+          <IOSStatCard
+            label="Upcoming Events"
+            value={loading ? '—' : stats?.upcomingEvents}
+            color="#AF52DE"
+            icon={<CalendarDays size={16} />}
+            onClick={() => { impact('light'); navigate('/events'); }}
+          />
+          <IOSStatCard
+            label="Active PNMs"
+            value={loading ? '—' : stats?.activePNMs}
+            color="#FF9500"
+            icon={<TrendingUp size={16} />}
+            onClick={() => { impact('light'); navigate('/recruitment'); }}
+          />
         </div>
-      </div>
 
-      {/* ── BOTTOM PANELS ── */}
-      <div className="lg:grid lg:grid-cols-2 lg:gap-4 space-y-4 lg:space-y-0">
+        {/* ── QUICK ACTIONS ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#6C6C70', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
+            Quick Actions
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+            {QUICK.map(({ to, icon: Icon, label, color }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => impact('light')}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 6, padding: '12px 4px',
+                  background: '#fff', borderRadius: 14,
+                  boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)',
+                  WebkitTapHighlightColor: 'transparent',
+                  textDecoration: 'none',
+                }}
+                className="active:scale-95 transition-transform duration-100"
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: color + '18',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon size={20} color={color} strokeWidth={1.8} />
+                </div>
+                <span style={{ fontSize: 11, color: '#3C3C43', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>
+                  {label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
 
-        {/* Upcoming Events */}
-        <div className="card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
-            <p className="text-sm font-bold text-gray-900">Upcoming Events</p>
-            <Link to="/events" className="text-xs font-semibold text-navy hover:underline flex items-center gap-0.5">
-              All <ChevronRight size={11} />
+        {/* ── UPCOMING EVENTS ── */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <p style={{ fontSize: 20, fontWeight: 700, color: '#000', margin: 0, letterSpacing: '-0.02em' }}>
+              Upcoming
+            </p>
+            <Link to="/events" onClick={() => impact('light')} style={{ color: '#0F1C3F', fontSize: 14, fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}>
+              See all <ChevronRight size={14} />
             </Link>
           </div>
           {events.length === 0 ? (
-            <div className="py-10 text-center">
-              <CalendarDays size={28} className="text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No upcoming events</p>
-              <Link to="/events" className="text-xs text-navy font-medium mt-1 inline-block">Create one →</Link>
+            <div style={{ background: '#fff', borderRadius: 14, padding: 24, textAlign: 'center', boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
+              <CalendarDays size={28} color="#C7C7CC" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: 14, color: '#8E8E93', margin: 0 }}>No upcoming events</p>
+              <Link to="/events" style={{ fontSize: 13, color: '#0F1C3F', fontWeight: 600, textDecoration: 'none', marginTop: 6, display: 'block' }}>Create one →</Link>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
-              {events.map(e => (
-                <div key={e.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${EVENT_DOT[e.type] || EVENT_DOT.other}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{e.title}</p>
-                    <p className="text-xs text-gray-400">{fmtDate(e.date)}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {events.map((e, i) => (
+                <div key={e.id} onClick={() => { impact('light'); navigate('/events'); }}
+                  style={{
+                    background: '#fff', borderRadius: 14,
+                    padding: '12px 14px',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)',
+                    cursor: 'pointer',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                  className="active:scale-[0.98] transition-transform duration-75"
+                >
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12,
+                    background: (EVENT_COLORS[e.type] || EVENT_COLORS.other) + '18',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <CalendarDays size={20} color={EVENT_COLORS[e.type] || EVENT_COLORS.other} strokeWidth={1.8} />
                   </div>
-                  <span className="text-xs text-gray-300 capitalize flex-shrink-0">{e.type}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: '#000', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
+                    <p style={{ fontSize: 13, color: '#8E8E93', margin: '2px 0 0' }}>{fmtDate(e.date)}</p>
+                  </div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: EVENT_COLORS[e.type] || EVENT_COLORS.other,
+                    background: (EVENT_COLORS[e.type] || EVENT_COLORS.other) + '18',
+                    padding: '3px 8px', borderRadius: 20, textTransform: 'capitalize',
+                  }}>{e.type}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Activity Feed */}
-        <div className="card overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-50">
-            <p className="text-sm font-bold text-gray-900">Recent Activity</p>
-          </div>
+        {/* ── ACTIVITY FEED ── */}
+        <div style={{ marginBottom: 32 }}>
+          <p style={{ fontSize: 20, fontWeight: 700, color: '#000', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
+            Recent Activity
+          </p>
           {activity.length === 0 ? (
-            <div className="py-10 text-center">
-              <Clock size={28} className="text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No activity yet</p>
+            <div style={{ background: '#fff', borderRadius: 14, padding: 24, textAlign: 'center', boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
+              <Clock size={28} color="#C7C7CC" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: 14, color: '#8E8E93', margin: 0 }}>No activity yet</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)' }}>
               {activity.map((item, i) => {
-                const cfg = ACTIVITY_CFG[item.type] || ACTIVITY_CFG.default;
+                const cfg = ACTIVITY_ICONS[item.type] || ACTIVITY_ICONS.default;
                 const Icon = cfg.icon;
                 return (
-                  <div key={i} className="flex items-start gap-3 px-5 py-3.5">
-                    <div className={`w-7 h-7 ${cfg.bg} rounded-full flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                      <Icon size={13} className={cfg.color} />
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px',
+                    borderBottom: i < activity.length - 1 ? '0.5px solid rgba(0,0,0,0.08)' : 'none',
+                  }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      background: cfg.bg + '20',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Icon size={16} color={cfg.bg} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800 leading-snug">{item.message}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{timeAgo(item.createdAt)}</p>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, color: '#000', margin: 0, lineHeight: 1.3 }}>{item.message}</p>
+                      <p style={{ fontSize: 12, color: '#8E8E93', margin: '2px 0 0' }}>{timeAgo(item.createdAt)}</p>
                     </div>
                   </div>
                 );

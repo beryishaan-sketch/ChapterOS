@@ -19,7 +19,8 @@
   }
 
   body {
-    @apply font-sans text-gray-900;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', system-ui, sans-serif;
+    @apply text-gray-900;
     background: #F2F2F7; /* iOS system background */
     margin: 0;
     padding: 0;
