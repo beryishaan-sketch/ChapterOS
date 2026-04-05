@@ -198,7 +198,8 @@ export default function Dues() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handlePaymentSave = (updated) => {
-    setDues(prev => prev.map(d => d.id === updated.id ? updated : d));
+    setDues(prev => prev.map(d => d.id === updated.id ? { ...d, status: updated.status, paidAmount: updated.amount, paidDate: updated.paidAt } : d));
+    fetchData(); // re-fetch to get accurate flat data from server
   };
 
   const sendReminder = async (dueId) => {
@@ -317,7 +318,7 @@ export default function Dues() {
             </button>
             <button onClick={async () => {
               if (!dues[0]?.id) return;
-              const r = await client.post('/dues/sms-reminders', { duesRecordId: dues[0].id }).catch(() => null);
+              const r = await client.post('/dues/sms-reminders', { duesRecordId: dues[0].duesRecordId }).catch(() => null);
               if (r?.data?.data) alert(`📱 SMS sent to ${r.data.data.sent} members${r.data.data.noPhone > 0 ? ` (${r.data.data.noPhone} had no phone number)` : ''}`);
             }} className="btn-secondary py-2 bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" title="SMS reminders to unpaid members">
               📱 SMS Unpaid
