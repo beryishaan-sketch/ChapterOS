@@ -22,7 +22,12 @@ const getEvents = async (req, res) => {
       take: limit ? parseInt(limit) : undefined,
     });
 
-    return res.json({ success: true, data: events });
+    const normalized = events.map(e => ({
+      ...e,
+      guestCount: e._count?.guestLists ?? 0,
+      guestCap: e.guestCapPerMember,
+    }));
+    return res.json({ success: true, data: normalized });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, error: 'Failed to fetch events' });
@@ -45,7 +50,11 @@ const getEvent = async (req, res) => {
       },
     });
     if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
-    return res.json({ success: true, data: event });
+    return res.json({ success: true, data: {
+      ...event,
+      guestCount: event._count?.guestLists ?? 0,
+      guestCap: event.guestCapPerMember,
+    } });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, error: 'Failed to fetch event' });
@@ -54,7 +63,8 @@ const getEvent = async (req, res) => {
 
 const createEvent = async (req, res) => {
   try {
-    const { title, type, date, location, description, guestCapPerMember, totalCapacity, requiresWaiver } = req.body;
+    const { title, type, date, location, description, totalCapacity, requiresWaiver } = req.body;
+    const guestCapPerMember = req.body.guestCapPerMember ?? req.body.guestCap;
     if (!title || !type || !date) {
       return res.status(400).json({ success: false, error: 'Title, type, and date are required' });
     }
@@ -106,6 +116,10 @@ const updateEvent = async (req, res) => {
   try {
     const allowed = ['title', 'type', 'date', 'location', 'description', 'guestCapPerMember', 'totalCapacity', 'requiresWaiver'];
     const updates = {};
+    // Accept guestCap as frontend alias for guestCapPerMember
+    if (req.body.guestCap !== undefined && req.body.guestCapPerMember === undefined) {
+      req.body.guestCapPerMember = req.body.guestCap;
+    }
     for (const key of allowed) {
       if (req.body[key] !== undefined) {
         if (key === 'date') updates[key] = new Date(req.body[key]);

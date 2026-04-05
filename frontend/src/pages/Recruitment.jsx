@@ -248,20 +248,16 @@ const PNMPanel = ({ pnm, onClose, onUpdate }) => {
           </div>
 
           {/* Event Attendance */}
-          {pnm.eventAttendance && pnm.eventAttendance.length > 0 && (
+          {pnm.eventAttendances && pnm.eventAttendances.length > 0 && (
             <div>
               <label className="label flex items-center gap-2">
                 <Calendar size={14} />Event Attendance
               </label>
               <div className="space-y-2">
-                {pnm.eventAttendance.map((ev, i) => (
+                {pnm.eventAttendances.map((ev, i) => (
                   <div key={i} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
-                    <span className="text-sm text-gray-700">{ev.title}</span>
-                    {ev.attended ? (
-                      <span className="badge-green">Attended</span>
-                    ) : (
-                      <span className="badge-gray">Absent</span>
-                    )}
+                    <span className="text-sm text-gray-700">{ev.event?.title || 'Event'}</span>
+                    <span className="badge-green">Attended</span>
                   </div>
                 ))}
               </div>

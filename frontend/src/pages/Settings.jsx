@@ -304,7 +304,11 @@ export default function Settings() {
   const addOfficer = async () => {
     if (!newOfficer.memberId || !newOfficer.role) return;
     try {
-      const res = await client.post('/orgs/current/officers', newOfficer);
+      const res = await client.post('/orgs/current/officers', {
+        memberId: newOfficer.memberId,
+        role: 'officer',
+        position: newOfficer.role,
+      });
       if (res.data.success) {
         setOfficers(prev => [...prev, res.data.data]);
         setShowAddOfficer(false);
@@ -460,7 +464,7 @@ export default function Settings() {
                 {officers.map(o => (
                   <div key={o.id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{o.memberName}</p>
+                      <p className="text-sm font-semibold text-gray-900">{o.firstName} {o.lastName}</p>
                       <p className="text-xs text-gray-500">{o.role}</p>
                     </div>
                     <button onClick={() => removeOfficer(o.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">

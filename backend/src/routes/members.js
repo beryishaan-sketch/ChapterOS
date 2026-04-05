@@ -42,6 +42,23 @@ router.post('/invite', requireRole('admin', 'officer'), async (req, res) => {
   }
 });
 
+// POST /members/dedup — remove duplicate members (same email within org)
+router.post('/dedup', requireRole('admin'), async (req, res) => {
+  try {
+    const members = await prisma.member.findMany({ where: { orgId: req.user.orgId }, select: { id: true, email: true, createdAt: true }, orderBy: { createdAt: 'asc' } });
+    const seen = new Map();
+    const toDelete = [];
+    for (const m of members) {
+      const key = m.email.toLowerCase();
+      if (seen.has(key)) { toDelete.push(m.id); } else { seen.set(key, m.id); }
+    }
+    if (toDelete.length > 0) {
+      await prisma.member.deleteMany({ where: { id: { in: toDelete }, orgId: req.user.orgId } });
+    }
+    return res.json({ success: true, data: { removed: toDelete.length } });
+  } catch (e) { return res.status(500).json({ success: false, error: 'Failed to dedup members' }); }
+});
+
 router.get('/:id', getMember);
 router.post('/', requireRole('admin', 'officer'), createMember);
 router.put('/:id', updateMember);
