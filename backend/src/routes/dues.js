@@ -9,6 +9,7 @@ router.use(verifyToken);
 router.get('/', getDuesRecords);
 router.post('/', requireRole('admin', 'officer'), createDuesRecord);
 router.get('/status', getDuesStatus);
+router.get('/fines', (req, res) => res.json({ success: true, data: [] }));
 router.patch('/payments/:paymentId', requireRole('admin', 'officer'), markPaid);
 router.post('/reminders', requireRole('admin', 'officer'), sendReminders);
 router.post('/sms-reminders', requireRole('admin', 'officer'), sendSMSReminders);

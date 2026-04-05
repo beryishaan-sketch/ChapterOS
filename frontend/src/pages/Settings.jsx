@@ -117,7 +117,7 @@ function InviteCodeCard() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [regen, setRegen] = useState(false);
 
-  const joinLink = code ? `https://chapteros.app/register?invite=${code}` : '';
+  const joinLink = code ? `${window.location.origin}/register?invite=${code}` : '';
 
   useEffect(() => {
     client.get('/orgs/current').then(r => setCode(r.data.data?.inviteCode));

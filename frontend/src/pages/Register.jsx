@@ -1,51 +1,50 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import client from '../api/client';
 import { Zap, Eye, EyeOff, ArrowRight, Users, Plus } from 'lucide-react';
 
 export default function Register() {
-  const { login } = useAuth();
+  const { refreshUser } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
-  const [mode, setMode] = useState(searchParams.get('code') ? 'join' : null); // null | 'create' | 'join'
+  const [mode, setMode] = useState(null); // null | 'create' | 'join'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const [createForm, setCreateForm] = useState({ orgName: '', orgType: 'fraternity', school: '', firstName: '', lastName: '', email: '', password: '', position: '' });
-  const [joinForm, setJoinForm] = useState({ inviteCode: (searchParams.get('code') || '').toUpperCase(), firstName: '', lastName: '', email: '', password: '' });
+  const [joinForm, setJoinForm] = useState({ inviteCode: '', firstName: '', lastName: '', email: '', password: '' });
 
   const handleCreate = async (e) => {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(createForm),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      login(data.data.token, data.data.member, data.data.org);
+      const res = await client.post('/auth/register', createForm);
+      if (!res.data.success) throw new Error(res.data.error);
+      localStorage.setItem('token', res.data.data.token);
+      await refreshUser();
       navigate('/onboarding');
-    } catch (e) { setError(e.message || 'Registration failed'); }
-    finally { setLoading(false); }
+    } catch (e) {
+      setError(e.response?.data?.error || e.message || 'Registration failed');
+    } finally { setLoading(false); }
   };
 
   const handleJoin = async (e) => {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res = await fetch('/api/auth/join', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...joinForm, inviteCode: joinForm.inviteCode.toUpperCase() }),
+      const res = await client.post('/auth/join', {
+        ...joinForm,
+        inviteCode: joinForm.inviteCode.toUpperCase(),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      login(data.data.token, data.data.member, data.data.org);
+      if (!res.data.success) throw new Error(res.data.error);
+      localStorage.setItem('token', res.data.data.token);
+      await refreshUser();
       navigate('/dashboard');
-    } catch (e) { setError(e.message || 'Failed to join chapter'); }
-    finally { setLoading(false); }
+    } catch (e) {
+      setError(e.response?.data?.error || e.message || 'Failed to join chapter');
+    } finally { setLoading(false); }
   };
 
   return (
@@ -57,7 +56,7 @@ export default function Register() {
             <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center">
               <Zap size={20} className="text-navy-dark" strokeWidth={2.5} />
             </div>
-            <span className="text-2xl font-bold text-white">ChapterHQ</span>
+            <span className="text-2xl font-bold text-white">ChapterOS</span>
           </Link>
         </div>
 
@@ -74,7 +73,7 @@ export default function Register() {
                 </div>
                 <div className="text-left">
                   <p className="font-semibold text-gray-900">Create a chapter</p>
-                  <p className="text-sm text-gray-500">Set up ChapterHQ for your organization</p>
+                  <p className="text-sm text-gray-500">Set up ChapterOS for your organization</p>
                 </div>
                 <ArrowRight size={16} className="text-gray-300 group-hover:text-navy ml-auto transition-colors" />
               </button>

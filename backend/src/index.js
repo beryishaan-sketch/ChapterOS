@@ -37,7 +37,7 @@ app.use('/api/auth/join', authLimiter);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'ChapterHQ API is running', timestamp: new Date().toISOString() });
+  res.json({ success: true, message: 'ChapterOS API is running', timestamp: new Date().toISOString() });
 });
 
 // Routes
@@ -58,15 +58,10 @@ app.use('/api/import', require('./routes/import'));
 app.use('/api/budget', require('./routes/budget'));
 app.use('/api/risk', require('./routes/risk'));
 app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/documents', require('./routes/documents'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/sponsors', require('./routes/sponsors'));
 app.use('/api/channels', require('./routes/channels'));
-app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/leaderboard', require('./routes/leaderboard'));
-app.use('/api/push', require('./routes/push').router);
-app.use('/api/superadmin', require('./routes/superadmin'));
 app.use('/uploads', require('express').static(require('path').join(__dirname, '../../uploads')));
 
 // Start cron jobs
@@ -79,11 +74,10 @@ startWeeklyDigestCron();
 const frontendDist = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendDist));
 app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) {
-    // API route not found — return JSON 404 instead of hanging
-    return res.status(404).json({ success: false, error: 'API route not found' });
+  // Only serve index.html for non-API routes
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(frontendDist, 'index.html'));
   }
-  res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
 // Global error handler
@@ -91,8 +85,7 @@ app.use(logger.errorMiddleware);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`ChapterHQ running on port ${PORT} — http://187.124.151.175:${PORT}`);
+  console.log(`ChapterOS running on port ${PORT}`);
 });
 
 module.exports = app;
-// deploy trigger Sun Mar 29 21:24:02 UTC 2026

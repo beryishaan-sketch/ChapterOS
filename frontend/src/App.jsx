@@ -14,10 +14,7 @@ import Recruitment from './pages/Recruitment';
 import Events from './pages/Events';
 import GuestList from './pages/GuestList';
 import Dues from './pages/Dues';
-import TreasurerImport from './pages/TreasurerImport';
-import TreasuryImport from './pages/TreasuryImport';
 import Members from './pages/Members';
-import RoleManager from './pages/RoleManager';
 import Attendance from './pages/Attendance';
 import Settings from './pages/Settings';
 import Billing from './pages/Billing';
@@ -31,8 +28,6 @@ import Sponsors from './pages/Sponsors';
 import Budget from './pages/Budget';
 import RiskManagement from './pages/RiskManagement';
 import Profile from './pages/Profile';
-import SetPassword from './pages/SetPassword';
-import ChangePassword from './pages/ChangePassword';
 import Documents from './pages/Documents';
 import More from './pages/More';
 import Academics from './pages/Academics';
@@ -42,9 +37,6 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import BidVoting from './pages/BidVoting';
 import Channels from './pages/Channels';
-import TermsOfService from './pages/TermsOfService';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import SuperAdmin from './pages/SuperAdmin';
 
 function App() {
   const { loading } = useAuth();
@@ -54,7 +46,7 @@ function App() {
       <div className="min-h-screen gradient-navy flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
-          <p className="text-white/60 text-sm font-medium">Loading ChapterHQ…</p>
+          <p className="text-white/60 text-sm font-medium">Loading ChapterOS…</p>
         </div>
       </div>
     );
@@ -87,13 +79,9 @@ function App() {
       </Route>
       <Route path="/dues" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dues />} />
-        <Route path="import" element={<TreasurerImport />} />
       </Route>
       <Route path="/members" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Members />} />
-      </Route>
-      <Route path="/roles" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route index element={<RoleManager />} />
       </Route>
       <Route path="/attendance" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Attendance />} />
@@ -125,7 +113,6 @@ function App() {
       </Route>
       <Route path="/budget" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Budget />} />
-        <Route path="import" element={<TreasuryImport />} />
       </Route>
       <Route path="/risk" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<RiskManagement />} />
@@ -152,11 +139,7 @@ function App() {
         <Route index element={<Channels />} />
       </Route>
       <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/superadmin" element={<SuperAdmin />} />
-      <Route path="/terms" element={<TermsOfService />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/set-password" element={<SetPassword />} />
-      <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
     <InstallPrompt />
     </>

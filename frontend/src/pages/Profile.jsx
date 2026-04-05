@@ -1,168 +1,213 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  User, Mail, Phone, BookOpen, GraduationCap, Calendar,
-  Shield, Edit3, Check, X, LogOut, Key, ChevronRight, Camera
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Phone, Save, CheckCircle2, Trophy, BookOpen, ClipboardList, Clock, ChevronRight } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
-const AVATAR_COLORS = ['#0F1C3F','#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4'];
+const ROLE_CONFIG = {
+  admin: { label: 'Admin', cls: 'bg-red-100 text-red-700 border-red-200' },
+  officer: { label: 'Officer', cls: 'bg-gold/15 text-gold-dark border-gold/30' },
+  member: { label: 'Member', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
+  alumni: { label: 'Alumni', cls: 'bg-gray-100 text-gray-600 border-gray-200' },
+};
+
+const AVATAR_COLORS = [
+  'from-navy to-blue-700',
+  'from-purple-600 to-purple-800',
+  'from-emerald-600 to-teal-700',
+  'from-orange-500 to-orange-700',
+];
 
 export default function Profile() {
-  const { user, logout, updateUser } = useAuth();
-  const navigate = useNavigate();
-  const [editing, setEditing] = useState(false);
+  const { user, refreshUser } = useAuth();
   const [form, setForm] = useState({
-    firstName: user?.firstName || '',
-    lastName:  user?.lastName  || '',
-    phone:     user?.phone     || '',
-    major:     user?.major     || '',
-    year:      user?.year      || '',
-    gpa:       user?.gpa       || '',
-    linkedin:  user?.linkedin  || '',
-    hometown:  user?.hometown  || '',
+    firstName: '', lastName: '', phone: '', major: '', year: '', pledgeClass: '', position: ''
   });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
 
-  const color = AVATAR_COLORS[(user?.firstName?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
-  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase();
+  useEffect(() => {
+    client.get('/auth/me').then(res => {
+      const m = res.data.data;
+      setForm({
+        firstName: m.firstName || '',
+        lastName: m.lastName || '',
+        phone: m.phone || '',
+        major: m.major || '',
+        year: m.year || '',
+        pledgeClass: m.pledgeClass || '',
+        position: m.position || '',
+      });
+    }).finally(() => setLoading(false));
+  }, []);
 
-  const ROLE_LABELS = { admin: 'President / Admin', officer: 'Officer', member: 'Member', pledge: 'Pledge', alumni: 'Alumni' };
-
-  const save = async () => {
-    setSaving(true); setError('');
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
     try {
-      const res = await client.put(`/members/${user.id}`, form);
-      if (!res.data.success) throw new Error(res.data.error);
-      updateUser?.(res.data.data);
+      setSaveError('');
+      await client.patch(`/members/${user.id}`, form);
       setSaved(true);
-      setEditing(false);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (e) {
-      setError(e.response?.data?.error || 'Failed to save');
+      setEditMode(false);
+      setTimeout(() => setSaved(false), 3000);
+      if (refreshUser) refreshUser();
+    } catch (err) {
+      setSaveError(err.response?.data?.error || 'Failed to save. Please try again.');
     } finally { setSaving(false); }
   };
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const initials = `${form.firstName?.[0] || ''}${form.lastName?.[0] || ''}`.toUpperCase() || '?';
+  const avatarGradient = AVATAR_COLORS[(user?.firstName?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+  const roleCfg = ROLE_CONFIG[user?.role] || ROLE_CONFIG.member;
+
+  if (loading) return (
+    <div className="max-w-lg mx-auto space-y-4">
+      <div className="card h-48 skeleton" />
+      <div className="card h-32 skeleton" />
+    </div>
+  );
 
   return (
-    <div className="max-w-lg mx-auto space-y-4 pb-4">
+    <div className="max-w-lg mx-auto">
 
-      {/* Hero card */}
-      <div className="relative rounded-3xl overflow-hidden -mx-4 lg:mx-0 lg:rounded-3xl"
-        style={{ background: 'linear-gradient(135deg, #0F1C3F 0%, #1a2f6e 100%)' }}>
-        <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full" />
-        <div className="relative p-6 pb-8 flex flex-col items-center text-center">
-          {/* Avatar */}
-          <div className="relative mb-4">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-extrabold shadow-lg"
-              style={{ background: color }}>
+      {/* Hero Card */}
+      <div className="card overflow-hidden mb-4">
+        {/* Navy gradient header */}
+        <div className="gradient-hero h-24 relative" />
+
+        {/* Avatar + info */}
+        <div className="px-5 pb-5">
+          <div className="flex items-end justify-between -mt-10 mb-4">
+            <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${avatarGradient} flex items-center justify-center text-white text-2xl font-extrabold shadow-lg border-4 border-white`}>
               {initials}
             </div>
-          </div>
-          <h1 className="text-white text-xl font-extrabold">{user?.firstName} {user?.lastName}</h1>
-          {user?.position && <p className="text-gold text-sm font-semibold mt-0.5">{user.position}</p>}
-          <p className="text-white/40 text-xs mt-1">{ROLE_LABELS[user?.role] || user?.role} · {user?.org?.name}</p>
-
-          {saved && (
-            <div className="mt-3 flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 text-sm px-3 py-1.5 rounded-full">
-              <Check size={13} /> Saved
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Info card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-          <p className="font-bold text-gray-900 text-sm">My Info</p>
-          {!editing ? (
-            <button onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-navy text-sm font-semibold">
-              <Edit3 size={13} /> Edit
+            <button onClick={() => setEditMode(e => !e)}
+              className={`btn-secondary text-xs h-8 min-h-0 px-3 ${editMode ? 'bg-navy text-white border-navy' : ''}`}>
+              {editMode ? 'Cancel' : 'Edit Profile'}
             </button>
-          ) : (
-            <div className="flex gap-2">
-              <button onClick={() => { setEditing(false); setError(''); }}
-                className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X size={14} /></button>
-              <button onClick={save} disabled={saving}
-                className="flex items-center gap-1 bg-navy text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
-                <Check size={12} /> {saving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          )}
+          </div>
+
+          <h1 className="text-xl font-extrabold text-gray-900">{form.firstName} {form.lastName}</h1>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className={`badge border ${roleCfg.cls} capitalize`}>{roleCfg.label}</span>
+            {form.position && <span className="text-sm text-gray-500">{form.position}</span>}
+            {form.pledgeClass && <span className="text-xs text-gray-400">{form.pledgeClass}</span>}
+          </div>
+          <p className="text-sm text-gray-400 mt-1">{user?.email}</p>
         </div>
 
-        {error && <p className="text-xs text-red-500 px-5 py-2 bg-red-50">{error}</p>}
+        {/* Stats strip */}
+        <div className="grid grid-cols-3 border-t border-gray-50">
+          {[
+            { icon: Trophy, value: user?.points ?? 0, label: 'Points', color: 'text-gold-dark' },
+            { icon: BookOpen, value: user?.gpa?.toFixed(2) ?? '—', label: 'GPA', color: 'text-blue-500' },
+            { icon: ClipboardList, value: user?.studyHours ?? 0, label: 'Study Hrs', color: 'text-emerald-500' },
+          ].map(({ icon: Icon, value, label, color }, i) => (
+            <div key={label} className={`py-4 flex flex-col items-center gap-1 ${i < 2 ? 'border-r border-gray-50' : ''}`}>
+              <Icon size={16} className={color} />
+              <p className="text-lg font-extrabold text-gray-900">{value}</p>
+              <p className="text-xs text-gray-400">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
-        {editing ? (
-          <div className="p-5 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">First Name</label>
-                <input className="input-field" value={form.firstName} onChange={e => setForm(f => ({...f, firstName: e.target.value}))} /></div>
-              <div><label className="label">Last Name</label>
-                <input className="input-field" value={form.lastName} onChange={e => setForm(f => ({...f, lastName: e.target.value}))} /></div>
-            </div>
-            <div><label className="label">Phone</label>
-              <input type="tel" className="input-field w-full" placeholder="(555) 000-0000" value={form.phone} onChange={e => setForm(f => ({...f, phone: e.target.value}))} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Major</label>
-                <input className="input-field" placeholder="Finance" value={form.major} onChange={e => setForm(f => ({...f, major: e.target.value}))} /></div>
-              <div><label className="label">GPA</label>
-                <input type="number" step="0.01" min="0" max="4" className="input-field" placeholder="3.5" value={form.gpa} onChange={e => setForm(f => ({...f, gpa: e.target.value}))} /></div>
-            </div>
-            <div><label className="label">Year / Class Standing</label>
-              <select className="select-field w-full" value={form.year} onChange={e => setForm(f => ({...f, year: e.target.value}))}>
-                <option value="">Select year</option>
-                {['Freshman','Sophomore','Junior','Senior','Graduate'].map(y => <option key={y} value={y}>{y}</option>)}
-              </select></div>
-            <div><label className="label">Hometown</label>
-              <input className="input-field w-full" placeholder="New York, NY" value={form.hometown} onChange={e => setForm(f => ({...f, hometown: e.target.value}))} /></div>
+      {/* Phone nudge */}
+      {!form.phone && !editMode && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 flex items-center gap-3 cursor-pointer active:scale-98 transition-transform" onClick={() => setEditMode(true)}>
+          <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Phone size={18} className="text-amber-600" />
           </div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {[
-              { icon: Mail, label: 'Email', value: user?.email },
-              { icon: Phone, label: 'Phone', value: user?.phone || 'Not set' },
-              { icon: BookOpen, label: 'Major', value: user?.major || 'Not set' },
-              { icon: GraduationCap, label: 'GPA', value: user?.gpa || 'Not set' },
-              { icon: Calendar, label: 'Year', value: user?.year || 'Not set' },
-              { icon: Calendar, label: 'Pledge Class', value: user?.pledgeClass || 'Not set' },
-              { icon: Shield, label: 'Role', value: ROLE_LABELS[user?.role] || user?.role },
-            ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="flex items-center gap-3 px-5 py-3.5">
-                <Icon size={15} className="text-gray-300 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-xs text-gray-400">{label}</p>
-                  <p className="text-sm font-medium text-gray-900 mt-0.5">{value}</p>
-                </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-amber-900">Add your phone number</p>
+            <p className="text-xs text-amber-700 mt-0.5">Get SMS dues reminders from your chapter</p>
+          </div>
+          <ChevronRight size={16} className="text-amber-400" />
+        </div>
+      )}
+
+      {/* Edit Form */}
+      {editMode && (
+        <div className="card p-5 mb-4 animate-slide-up">
+          <h2 className="text-sm font-bold text-gray-900 mb-4">Edit Profile</h2>
+          <form onSubmit={handleSave} className="space-y-4">
+            {saveError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{saveError}</div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">First Name</label>
+                <input className="input-field" value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} required />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div>
+                <label className="label">Last Name</label>
+                <input className="input-field" value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} required />
+              </div>
+            </div>
 
-      {/* Actions */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <button onClick={() => navigate('/change-password')}
-          className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-50">
-          <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Key size={14} className="text-blue-600" />
-          </div>
-          <span className="flex-1 text-sm font-semibold text-gray-900 text-left">Change Password</span>
-          <ChevronRight size={14} className="text-gray-300" />
-        </button>
-        <button onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-5 py-4 hover:bg-red-50 active:bg-red-100 transition-colors">
-          <div className="w-8 h-8 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
-            <LogOut size={14} className="text-red-500" />
-          </div>
-          <span className="flex-1 text-sm font-semibold text-red-500 text-left">Sign Out</span>
-        </button>
-      </div>
+            <div>
+              <label className="label flex items-center gap-1.5">
+                <Phone size={12} className="text-gray-400" /> Phone
+                <span className="font-normal text-emerald-600 text-xs">(SMS reminders)</span>
+              </label>
+              <input className="input-field" type="tel" placeholder="555-867-5309"
+                value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Major</label>
+                <input className="input-field" placeholder="Finance"
+                  value={form.major} onChange={e => setForm(f => ({ ...f, major: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Year</label>
+                <select className="select-field" value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))}>
+                  <option value="">Select…</option>
+                  {['Freshman','Sophomore','Junior','Senior','Graduate','Alumni'].map(y => <option key={y}>{y}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Pledge Class</label>
+                <input className="input-field" placeholder="Fall 2023"
+                  value={form.pledgeClass} onChange={e => setForm(f => ({ ...f, pledgeClass: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Position / Title</label>
+                <input className="input-field" placeholder="Rush Chair"
+                  value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} />
+              </div>
+            </div>
+
+            <button type="submit" disabled={saving} className="btn-navy w-full justify-center">
+              {saved ? <><CheckCircle2 size={15} /> Saved!</> : saving ? 'Saving…' : <><Save size={15} /> Save Changes</>}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Info display when not editing */}
+      {!editMode && (
+        <div className="card divide-y divide-gray-50">
+          {[
+            { label: 'Phone', value: form.phone || 'Not set', muted: !form.phone },
+            { label: 'Major', value: form.major || '—', muted: !form.major },
+            { label: 'Year', value: form.year || '—', muted: !form.year },
+            { label: 'Pledge Class', value: form.pledgeClass || '—', muted: !form.pledgeClass },
+            { label: 'Position', value: form.position || '—', muted: !form.position },
+          ].map(({ label, value, muted }) => (
+            <div key={label} className="flex items-center justify-between px-5 py-3.5">
+              <span className="text-sm text-gray-500">{label}</span>
+              <span className={`text-sm font-medium ${muted ? 'text-gray-300' : 'text-gray-900'}`}>{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

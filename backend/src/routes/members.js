@@ -5,6 +5,7 @@ const { verifyToken } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const { PrismaClient } = require('@prisma/client');
 const { ROLE_DEFAULTS } = require('../middleware/security');
+const { sendMemberInvite } = require('../utils/email');
 
 const prisma = new PrismaClient();
 
@@ -12,23 +13,36 @@ router.use(verifyToken);
 
 router.get('/', getMembers);
 router.get('/stats', getStats);
-router.post('/invite', requireRole('admin', 'officer'), createMember);
-router.get('/:id', getMember);
 
-// GET /api/members/:id/dues
-router.get('/:id/dues', async (req, res) => {
+// POST /members/invite — send invite emails with org's join code
+router.post('/invite', requireRole('admin', 'officer'), async (req, res) => {
   try {
-    const member = await prisma.member.findFirst({ where: { id: req.params.id, orgId: req.user.orgId } });
-    if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
-    const dues = await prisma.duesPayment.findMany({
-      where: { memberId: req.params.id },
-      orderBy: { createdAt: 'desc' },
-    });
-    return res.json({ success: true, data: dues });
+    const { emails } = req.body;
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      return res.status(400).json({ success: false, error: 'Provide at least one email address' });
+    }
+    const org = await prisma.organization.findUnique({ where: { id: req.user.orgId } });
+    if (!org) return res.status(404).json({ success: false, error: 'Organization not found' });
+
+    const results = [];
+    for (const email of emails) {
+      const trimmed = email.trim().toLowerCase();
+      if (!trimmed || !/\S+@\S+\.\S+/.test(trimmed)) {
+        results.push({ email: trimmed, success: false, error: 'Invalid email' });
+        continue;
+      }
+      const result = await sendMemberInvite({ to: trimmed, orgName: org.name, inviteToken: org.inviteCode });
+      results.push({ email: trimmed, ...result });
+    }
+
+    const allOk = results.every(r => r.success);
+    return res.json({ success: allOk, data: { results }, message: `Invite${emails.length > 1 ? 's' : ''} sent` });
   } catch (e) {
-    return res.status(500).json({ success: false, error: 'Failed to get dues' });
+    return res.status(500).json({ success: false, error: 'Failed to send invites' });
   }
 });
+
+router.get('/:id', getMember);
 router.post('/', requireRole('admin', 'officer'), createMember);
 router.put('/:id', updateMember);
 router.patch('/:id', updateMember);
@@ -72,40 +86,6 @@ router.delete('/:id/permissions', requireRole('admin'), async (req, res) => {
     return res.json({ success: true, message: 'Permissions reset to role defaults' });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Failed to reset permissions' });
-  }
-});
-
-// POST /api/members/dedup — admin: remove duplicate members (same email or same full name)
-router.post('/dedup', requireRole('admin'), async (req, res) => {
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
-  try {
-    const members = await prisma.member.findMany({ where: { orgId: req.user.orgId }, orderBy: { createdAt: 'asc' } });
-
-    const seen = new Map(); // key -> first member id
-    const toDelete = [];
-
-    for (const m of members) {
-      const emailKey = m.email?.toLowerCase().trim();
-      const nameKey = `${m.firstName?.toLowerCase().trim()} ${m.lastName?.toLowerCase().trim()}`;
-
-      if (emailKey && seen.has(emailKey)) {
-        toDelete.push(m.id);
-      } else if (nameKey && nameKey !== ' ' && seen.has(nameKey)) {
-        toDelete.push(m.id);
-      } else {
-        if (emailKey) seen.set(emailKey, m.id);
-        if (nameKey !== ' ') seen.set(nameKey, m.id);
-      }
-    }
-
-    if (toDelete.length > 0) {
-      await prisma.member.deleteMany({ where: { id: { in: toDelete }, orgId: req.user.orgId } });
-    }
-
-    return res.json({ success: true, data: { removed: toDelete.length } });
-  } catch (e) {
-    return res.status(500).json({ success: false, error: 'Dedup failed' });
   }
 });
 

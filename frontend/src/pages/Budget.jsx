@@ -28,6 +28,7 @@ export default function Budget() {
   const [filter, setFilter] = useState('all');
   const [form, setForm] = useState({ type: 'income', amount: '', description: '', category: 'dues', date: new Date().toISOString().split('T')[0] });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -38,13 +39,15 @@ export default function Budget() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setSaveError('');
     try {
       await client.post('/budget', form);
       setShowModal(false);
       setForm({ type: 'income', amount: '', description: '', category: 'dues', date: new Date().toISOString().split('T')[0] });
       load();
-    } catch (e) { alert('Failed to save') }
-    finally { setSaving(false); }
+    } catch (err) {
+      setSaveError(err.response?.data?.error || 'Failed to save transaction.');
+    } finally { setSaving(false); }
   };
 
   const deleteT = async (id) => {
@@ -149,8 +152,11 @@ export default function Budget() {
       </div>
 
       {/* Add transaction modal */}
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Transaction">
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setSaveError(''); }} title="Add Transaction">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {saveError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{saveError}</div>
+          )}
           <div className="flex gap-2">
             {['income', 'expense'].map(t => (
               <button key={t} type="button" onClick={() => setForm(f => ({ ...f, type: t, category: CATEGORIES[t][0] }))}

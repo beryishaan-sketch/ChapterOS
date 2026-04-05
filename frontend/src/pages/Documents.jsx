@@ -137,7 +137,7 @@ export default function Documents() {
                         <p className="text-xs text-gray-400">{new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <a href={doc.url.startsWith('/') ? `http://187.124.151.175:3001${doc.url}` : doc.url}
+                        <a href={doc.url.startsWith('/') ? doc.url : doc.url}
                           target="_blank" rel="noopener noreferrer"
                           className="p-2 text-gray-400 hover:text-navy hover:bg-navy/10 rounded-lg transition-colors">
                           {doc.url.startsWith('/') ? <Download size={15} /> : <Link2 size={15} />}

@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Users, DollarSign, CalendarDays, Zap,
-  ChevronRight, UserPlus, MessageSquare,
-  Star, Clock, ArrowUpRight, ShieldAlert,
-  TrendingUp, Bell, BarChart2, FileSpreadsheet
+  Users, DollarSign, CalendarDays, TrendingUp, Zap,
+  Plus, ChevronRight, ArrowRight, UserPlus, BarChart2,
+  Star, CheckCircle2, Clock
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import OnboardingChecklist from '../components/OnboardingChecklist';
 
 const greeting = () => {
   const h = new Date().getHours();
-  if (h < 5)  return 'Up late';
   if (h < 12) return 'Good morning';
   if (h < 17) return 'Good afternoon';
   return 'Good evening';
 };
 
-const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
 const timeAgo = (d) => {
   if (!d) return '';
   const s = Math.floor((Date.now() - new Date(d)) / 1000);
@@ -27,262 +25,247 @@ const timeAgo = (d) => {
   return `${Math.floor(s/86400)}d ago`;
 };
 
-const EVENT_COLORS = {
-  mixer: '#3b82f6', formal: '#C9A84C', meeting: '#6366f1',
-  philanthropy: '#10b981', social: '#8b5cf6', other: '#9ca3af',
+const fmtDate = (d) => {
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
 };
 
+const EVENT_DOT = {
+  mixer: 'bg-blue-400', formal: 'bg-gold', meeting: 'bg-navy/40',
+  philanthropy: 'bg-emerald-400', social: 'bg-purple-400', other: 'bg-gray-300',
+};
+
+const ACTIVITY_CFG = {
+  dues_paid:     { bg: 'bg-emerald-100', color: 'text-emerald-600', icon: DollarSign },
+  member_joined: { bg: 'bg-blue-100',    color: 'text-blue-600',    icon: UserPlus },
+  event_created: { bg: 'bg-purple-100',  color: 'text-purple-600',  icon: CalendarDays },
+  default:       { bg: 'bg-gray-100',    color: 'text-gray-500',    icon: Zap },
+};
+
+function HealthRing({ score }) {
+  const r = 28, circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+  const color = score >= 75 ? '#10b981' : score >= 50 ? '#C9A84C' : '#f87171';
+  const label = score >= 75 ? 'Excellent' : score >= 50 ? 'Good' : 'Needs Work';
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative w-16 h-16 flex-shrink-0">
+        <svg className="-rotate-90" viewBox="0 0 72 72" width="64" height="64">
+          <circle cx="36" cy="36" r={r} fill="none" stroke="#f1f5f9" strokeWidth="6" />
+          <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="6"
+            strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+            style={{ transition: 'stroke-dasharray 1s ease' }} />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-black text-gray-900">{score}</span>
+      </div>
+      <div>
+        <p className="text-sm font-bold text-gray-900">Chapter Health</p>
+        <p className="text-xs font-semibold mt-0.5" style={{ color }}>{label}</p>
+        <p className="text-xs text-gray-400 mt-0.5">Dues · Events · Members · Rush</p>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, color, to, sub }) {
+  return (
+    <Link to={to} className="card p-4 flex items-start gap-3 active:scale-95 transition-all duration-150 hover:shadow-card-hover group">
+      <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
+        <Icon size={18} className="text-white" strokeWidth={2} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xl font-black text-gray-900 leading-tight tabular-nums">{value ?? '—'}</p>
+        <p className="text-xs text-gray-400 mt-0.5 truncate">{label}</p>
+        {sub && <p className="text-xs text-emerald-500 font-medium mt-0.5">{sub}</p>}
+      </div>
+      <ChevronRight size={14} className="text-gray-200 group-hover:text-gray-400 transition-colors mt-1 flex-shrink-0" />
+    </Link>
+  );
+}
+
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, org } = useAuth();
   const [stats, setStats] = useState(null);
   const [events, setEvents] = useState([]);
-  const [members, setMembers] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
+  const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     Promise.all([
-      client.get('/dashboard/stats'),
-      client.get('/events'),
-      client.get('/members'),
-      client.get('/announcements'),
-    ]).then(([s, e, m, a]) => {
-      setStats(s.data.data);
-      setEvents((e.data.data || []).filter(ev => new Date(ev.date) >= new Date()).slice(0, 3));
-      setMembers((m.data.data || []).slice(0, 5));
-      setAnnouncements((a.data.data || []).slice(0, 2));
+      client.get('/dashboard/stats').catch(() => null),
+      client.get('/events?upcoming=true&limit=4').catch(() => null),
+      client.get('/dashboard/activity?limit=6').catch(() => null),
+    ]).then(([s, e, a]) => {
+      if (!s && !e && !a) { setLoadError(true); return; }
+      if (s?.data?.success) setStats(s.data.data);
+      if (e?.data?.success) setEvents(e.data.data || []);
+      if (a?.data?.success) setActivity(a.data.data || []);
     }).finally(() => setLoading(false));
   }, []);
 
-  const firstName = user?.firstName || 'Brother';
-  const org = user?.org;
-  const duesRate = stats?.duesRate ?? 0; // use backend-calculated rate
+  const healthScore = stats ? Math.min(100, Math.round(
+    (stats.duesRate || 0) * 0.35 +
+    (Math.min(stats.totalMembers || 0, 80) / 80) * 100 * 0.25 +
+    (Math.min(stats.upcomingEvents || 0, 5) / 5) * 100 * 0.25 +
+    (Math.min(stats.activePNMs || 0, 20) / 20) * 100 * 0.15
+  )) : 0;
 
   if (loading) return (
-    <div className="flex flex-col gap-4 animate-pulse">
-      <div className="h-40 bg-navy/10 rounded-3xl" />
-      <div className="h-20 bg-gray-100 rounded-2xl" />
-      <div className="h-32 bg-gray-100 rounded-2xl" />
+    <div className="max-w-2xl mx-auto lg:max-w-none space-y-4">
+      <div className="card h-24 skeleton" />
+      <div className="grid grid-cols-2 gap-3">
+        {Array(4).fill(0).map((_,i) => <div key={i} className="card h-20 skeleton" />)}
+      </div>
+      <div className="card h-48 skeleton" />
+    </div>
+  );
+
+  if (loadError) return (
+    <div className="max-w-2xl mx-auto lg:max-w-none">
+      <div className="card p-12 text-center">
+        <p className="text-gray-400 font-medium mb-2">Couldn't load dashboard</p>
+        <p className="text-sm text-gray-300 mb-4">Check your connection and try again</p>
+        <button onClick={() => window.location.reload()} className="btn-primary mx-auto">Retry</button>
+      </div>
     </div>
   );
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="max-w-2xl mx-auto lg:max-w-none">
+      <OnboardingChecklist />
 
-      {/* ── HERO HEADER — bleeds to top of screen on mobile ── */}
-      <div className="relative overflow-hidden lg:rounded-3xl -mx-4 lg:mx-0"
-        style={{ background: 'linear-gradient(135deg, #0F1C3F 0%, #1a2f6e 60%, #0F1C3F 100%)' }}>
-        {/* Decorative circles */}
-        <div className="absolute -top-8 -right-8 w-40 h-40 bg-gold/10 rounded-full" />
-        <div className="absolute -bottom-10 -left-6 w-32 h-32 bg-white/5 rounded-full" />
-
-        <div className="relative px-6 pt-5 pb-5">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <p className="text-white/50 text-xs font-medium tracking-wide uppercase">{greeting()}</p>
-              <h1 className="text-white text-2xl font-extrabold mt-0.5">{firstName} 👋</h1>
-              <p className="text-white/40 text-xs mt-0.5">{org?.name}</p>
-            </div>
-            <Link to="/announcements"
-              className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors relative">
-              <Bell size={17} className="text-white" />
-              {announcements.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-gold rounded-full text-[9px] font-bold text-navy flex items-center justify-center">
-                  {announcements.length}
-                </span>
-              )}
-            </Link>
-          </div>
-
-          {/* Stat pills */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Members', value: stats?.totalMembers ?? '—', icon: Users, to: '/members' },
-              { label: 'Dues Rate', value: `${stats?.duesRate ?? 0}%`, icon: DollarSign, to: '/dues' },
-              { label: 'Events', value: events.length, icon: CalendarDays, to: '/events' },
-            ].map(({ label, value, icon: Icon, to }) => (
-              <Link key={label} to={to}
-                className="bg-white/10 rounded-2xl p-3 flex flex-col gap-1.5 hover:bg-white/15 transition-colors active:scale-95">
-                <Icon size={14} className="text-white/50" />
-                <p className="text-white font-extrabold text-xl leading-none">{value}</p>
-                <p className="text-white/40 text-[10px] font-medium">{label}</p>
-              </Link>
-            ))}
-          </div>
+      {/* ── HEADER ── */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-lg font-black text-gray-900 tracking-tight">
+            {greeting()}, {user?.firstName}
+          </h1>
+          <p className="text-sm text-gray-400 mt-0.5">{org?.name}</p>
         </div>
+        <Link to="/events" className="btn-primary btn-sm gap-1.5">
+          <Plus size={14} /> Event
+        </Link>
       </div>
 
-      {/* ── QUICK ACTIONS ────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-2">
-        {[
-          { icon: MessageSquare, label: 'Chat',     to: '/channels',   bg: 'bg-blue-50',   fg: 'text-blue-600' },
-          { icon: DollarSign,    label: 'Dues',     to: '/dues',       bg: 'bg-emerald-50',fg: 'text-emerald-600' },
-          { icon: Star,          label: 'Rush',     to: '/recruitment',bg: 'bg-amber-50',  fg: 'text-amber-600' },
-          { icon: BarChart2,     label: 'Analytics',to: '/analytics',  bg: 'bg-purple-50', fg: 'text-purple-600' },
-        ].map(({ icon: Icon, label, to, bg, fg }) => (
-          <Link key={to} to={to}
-            className={`${bg} rounded-2xl p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform`}>
-            <div className={`w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm`}>
-              <Icon size={18} className={fg} />
-            </div>
-            <span className="text-xs font-semibold text-gray-700">{label}</span>
+      {/* ── HEALTH + QUICK STATS ── */}
+      <div className="card p-5 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <HealthRing score={healthScore} />
+          <Link to="/analytics" className="text-xs text-navy font-semibold flex items-center gap-1 hover:underline">
+            Full analytics <ArrowRight size={11} />
           </Link>
-        ))}
-      </div>
-
-      {/* ── ANNOUNCEMENTS ────────────────────────────── */}
-      {announcements.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-sm font-bold text-gray-900">Announcements</p>
-            <Link to="/announcements" className="text-xs text-navy font-semibold flex items-center gap-0.5">
-              All <ChevronRight size={12} />
-            </Link>
-          </div>
-          {announcements.map(a => (
-            <div key={a.id} className="bg-navy/5 border border-navy/10 rounded-2xl p-4">
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 bg-navy rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Zap size={11} className="text-gold" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm">{a.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{a.body}</p>
-                </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            { pct: stats?.duesRate || 0, label: 'Dues collected', color: 'bg-emerald-500' },
+            { pct: Math.min(100, ((stats?.upcomingEvents || 0) / 5) * 100), label: 'Events this month', color: 'bg-purple-500' },
+          ].map(({ pct, label, color }) => (
+            <div key={label}>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-gray-500 font-medium">{label}</span>
+                <span className="font-bold text-gray-900">{Math.round(pct)}%</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
               </div>
             </div>
           ))}
         </div>
-      )}
+      </div>
 
-      {/* ── UPCOMING EVENTS ──────────────────────────── */}
-      {events.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-sm font-bold text-gray-900">Upcoming</p>
-            <Link to="/events" className="text-xs text-navy font-semibold flex items-center gap-0.5">
-              All <ChevronRight size={12} />
+      {/* ── STATS GRID ── */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <StatCard label="Total Members" value={stats?.totalMembers} icon={Users} color="bg-navy" to="/members" />
+        <StatCard label="Dues Rate" value={stats?.duesRate != null ? `${stats.duesRate}%` : '—'} icon={DollarSign} color="bg-emerald-500" to="/dues" sub={stats?.duesRate >= 80 ? 'On track' : null} />
+        <StatCard label="Upcoming Events" value={stats?.upcomingEvents} icon={CalendarDays} color="bg-purple-500" to="/events" />
+        <StatCard label="Active PNMs" value={stats?.activePNMs} icon={TrendingUp} color="bg-orange-500" to="/recruitment" />
+      </div>
+
+      {/* ── QUICK ACTIONS ── */}
+      <div className="card p-4 mb-4">
+        <p className="section-title mb-3">Quick Actions</p>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { to: '/members', icon: UserPlus, label: 'Add Member', bg: 'bg-blue-50', fg: 'text-blue-600' },
+            { to: '/events', icon: CalendarDays, label: 'New Event', bg: 'bg-purple-50', fg: 'text-purple-600' },
+            { to: '/recruitment', icon: Star, label: 'Add PNM', bg: 'bg-gold/10', fg: 'text-gold-dark' },
+            { to: '/analytics', icon: BarChart2, label: 'Analytics', bg: 'bg-gray-100', fg: 'text-gray-600' },
+          ].map(({ to, icon: Icon, label, bg, fg }) => (
+            <Link key={to} to={to}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl ${bg} active:scale-95 transition-transform`}>
+              <Icon size={18} className={fg} />
+              <span className={`text-[10px] font-bold ${fg} text-center leading-tight`}>{label}</span>
             </Link>
-          </div>
-          <div className="space-y-2">
-            {events.map(ev => {
-              const color = EVENT_COLORS[ev.type] || EVENT_COLORS.other;
-              const dt = new Date(ev.date);
-              return (
-                <Link key={ev.id} to="/events"
-                  className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3 active:scale-[0.99] transition-transform shadow-sm hover:shadow-md">
-                  {/* Date block */}
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center"
-                    style={{ background: color + '18', border: `1.5px solid ${color}30` }}>
-                    <span className="text-xs font-bold uppercase" style={{ color }}>
-                      {dt.toLocaleDateString('en-US', { month: 'short' })}
-                    </span>
-                    <span className="text-lg font-extrabold leading-none text-gray-900">{dt.getDate()}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{ev.title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">
-                      {dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      {ev.location && ` · ${ev.location}`}
-                    </p>
-                  </div>
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: color + '20' }}>
-                    <span className="w-2 h-2 rounded-full block" style={{ background: color }} />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* ── DUES SNAPSHOT ────────────────────────────── */}
-      {stats && (
-        <Link to="/dues" className="block bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow active:scale-[0.99]">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-bold text-gray-900">Dues Collection</p>
-            <ArrowUpRight size={15} className="text-gray-300" />
-          </div>
-          {/* Progress bar */}
-          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden mb-3">
-            <div className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${stats.duesRate || 0}%`,
-                background: stats.duesRate >= 80 ? '#10b981' : stats.duesRate >= 50 ? '#C9A84C' : '#f87171'
-              }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">{stats.duesRate || 0}% paid</span>
-            <span className="font-semibold text-gray-900">
-              ${((stats.duesCollected || 0) / 100).toFixed(0)} collected
-            </span>
-          </div>
-        </Link>
-      )}
+      {/* ── BOTTOM PANELS ── */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-4 space-y-4 lg:space-y-0">
 
-      {/* ── BROTHERS ─────────────────────────────────── */}
-      {members.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-sm font-bold text-gray-900">Brothers</p>
-            <Link to="/members" className="text-xs text-navy font-semibold flex items-center gap-0.5">
-              All {stats?.totalMembers} <ChevronRight size={12} />
+        {/* Upcoming Events */}
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
+            <p className="text-sm font-bold text-gray-900">Upcoming Events</p>
+            <Link to="/events" className="text-xs font-semibold text-navy hover:underline flex items-center gap-0.5">
+              All <ChevronRight size={11} />
             </Link>
           </div>
-          {/* Avatar row */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              {members.slice(0, 6).map((m, i) => {
-                const colors = ['#0F1C3F','#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444'];
+          {events.length === 0 ? (
+            <div className="py-10 text-center">
+              <CalendarDays size={28} className="text-gray-200 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">No upcoming events</p>
+              <Link to="/events" className="text-xs text-navy font-medium mt-1 inline-block">Create one →</Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {events.map(e => (
+                <div key={e.id} className="flex items-center gap-3 px-5 py-3.5">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${EVENT_DOT[e.type] || EVENT_DOT.other}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{e.title}</p>
+                    <p className="text-xs text-gray-400">{fmtDate(e.date)}</p>
+                  </div>
+                  <span className="text-xs text-gray-300 capitalize flex-shrink-0">{e.type}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Activity Feed */}
+        <div className="card overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-gray-50">
+            <p className="text-sm font-bold text-gray-900">Recent Activity</p>
+          </div>
+          {activity.length === 0 ? (
+            <div className="py-10 text-center">
+              <Clock size={28} className="text-gray-200 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">No activity yet</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {activity.map((item, i) => {
+                const cfg = ACTIVITY_CFG[item.type] || ACTIVITY_CFG.default;
+                const Icon = cfg.icon;
                 return (
-                  <div key={m.id} className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                    style={{ background: colors[i % colors.length] }}>
-                    {m.firstName?.[0]}{m.lastName?.[0]}
+                  <div key={i} className="flex items-start gap-3 px-5 py-3.5">
+                    <div className={`w-7 h-7 ${cfg.bg} rounded-full flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                      <Icon size={13} className={cfg.color} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-800 leading-snug">{item.message}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{timeAgo(item.createdAt)}</p>
+                    </div>
                   </div>
                 );
               })}
-              {stats?.totalMembers > 6 && (
-                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
-                  +{stats.totalMembers - 6}
-                </div>
-              )}
             </div>
-            <Link to="/members" className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">{stats?.totalMembers || 0} active brothers</span>
-              <span className="text-xs text-navy font-semibold flex items-center gap-0.5">View all <ChevronRight size={12} /></span>
-            </Link>
-          </div>
+          )}
         </div>
-      )}
-
-      {/* ── ADMIN QUICK ACTIONS ──────────────────────── */}
-      {(user?.role === 'admin' || user?.role === 'officer') && (
-        <div className="space-y-2">
-          <p className="text-sm font-bold text-gray-900 px-1">Manage</p>
-          <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-50">
-            {[
-              { icon: UserPlus,      label: 'Add a Brother',       sub: 'Invite or import members',    to: '/members',    color: 'text-blue-500',    bg: 'bg-blue-50' },
-              { icon: ShieldAlert,   label: 'Roles & Officers',    sub: 'Assign positions & access',   to: '/roles',      color: 'text-navy',        bg: 'bg-navy/8' },
-              { icon: FileSpreadsheet,label:'Import Spreadsheet',  sub: 'Roster, dues, events',        to: '/import',     color: 'text-emerald-600', bg: 'bg-emerald-50' },
-              { icon: TrendingUp,    label: 'Analytics',           sub: 'Chapter health & stats',      to: '/analytics',  color: 'text-purple-600',  bg: 'bg-purple-50' },
-            ].map(({ icon: Icon, label, sub, to, color, bg }) => (
-              <Link key={to} to={to}
-                className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors">
-                <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                  <Icon size={16} className={color} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{label}</p>
-                  <p className="text-xs text-gray-400">{sub}</p>
-                </div>
-                <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   Vote, Building2, Wallet, ShieldCheck, FileText, User, ChevronDown, Gavel, MessageSquare
 } from 'lucide-react';
 
+// role: undefined = visible to all; 'officer' = admin+officer only; 'admin' = admin only
 const NAV_GROUPS = [
   {
     label: 'Overview',
@@ -21,9 +22,8 @@ const NAV_GROUPS = [
     label: 'Chapter',
     items: [
       { to: '/members', icon: Users, label: 'Members' },
-      { to: '/roles', icon: Shield, label: 'Roles & Officers' },
-      { to: '/recruitment', icon: UserCheck, label: 'Recruitment' },
-      { to: '/bid-voting', icon: Gavel, label: 'Bid Voting', badge: 'NEW' },
+      { to: '/recruitment', icon: UserCheck, label: 'Recruitment', role: 'officer' },
+      { to: '/bid-voting', icon: Gavel, label: 'Bid Voting', badge: 'NEW', role: 'officer' },
       { to: '/events', icon: Calendar, label: 'Events' },
       { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
     ],
@@ -31,10 +31,8 @@ const NAV_GROUPS = [
   {
     label: 'Finance',
     items: [
-      { to: '/dues', icon: CreditCard, label: 'Dues', end: true },
-      { to: '/dues/import', icon: Upload, label: 'Import Dues' },
-      { to: '/budget', icon: Wallet, label: 'Treasury', end: true },
-      { to: '/budget/import', icon: Upload, label: 'Import Transactions' },
+      { to: '/dues', icon: CreditCard, label: 'Dues' },
+      { to: '/budget', icon: Wallet, label: 'Treasury', role: 'officer' },
     ],
   },
   {
@@ -49,22 +47,22 @@ const NAV_GROUPS = [
     label: 'Operations',
     items: [
       { to: '/academics', icon: GraduationCap, label: 'Academics' },
-      { to: '/reports', icon: ReportIcon, label: 'HQ Reports', badge: 'NEW' },
-      { to: '/risk', icon: ShieldCheck, label: 'Risk Management' },
+      { to: '/reports', icon: ReportIcon, label: 'HQ Reports', badge: 'NEW', role: 'officer' },
+      { to: '/risk', icon: ShieldCheck, label: 'Risk Management', role: 'officer' },
       { to: '/documents', icon: FileText, label: 'Documents' },
-      { to: '/import', icon: Upload, label: 'Import Data' },
+      { to: '/import', icon: Upload, label: 'Import Data', role: 'admin' },
     ],
   },
   {
     label: 'Growth',
     items: [
-      { to: '/sponsors', icon: Building2, label: 'Sponsorships', badge: 'NEW' },
+      { to: '/sponsors', icon: Building2, label: 'Sponsorships', badge: 'NEW', role: 'officer' },
     ],
   },
 ];
 
-const NavItem = ({ to, icon: Icon, label, badge, onClick, end: endProp }) => (
-  <NavLink to={to} onClick={onClick} end={endProp}
+const NavItem = ({ to, icon: Icon, label, badge, onClick }) => (
+  <NavLink to={to} onClick={onClick}
     className={({ isActive }) =>
       `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 group ${
         isActive ? 'bg-gold text-navy-dark shadow-sm' : 'text-white/60 hover:text-white hover:bg-white/8'
@@ -81,6 +79,13 @@ const NavItem = ({ to, icon: Icon, label, badge, onClick, end: endProp }) => (
   </NavLink>
 );
 
+const canSee = (itemRole, userRole) => {
+  if (!itemRole) return true;
+  if (itemRole === 'admin') return userRole === 'admin';
+  if (itemRole === 'officer') return userRole === 'admin' || userRole === 'officer';
+  return true;
+};
+
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
   const { user, org, logout } = useAuth();
   const navigate = useNavigate();
@@ -94,7 +99,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
             <Zap size={15} className="text-navy-dark" strokeWidth={2.5} />
           </div>
           <div className="min-w-0">
-            <p className="text-white font-bold text-sm leading-tight">ChapterHQ</p>
+            <p className="text-white font-bold text-sm leading-tight">ChapterOS</p>
             {org && <p className="text-white/40 text-xs truncate">{org.name}</p>}
           </div>
         </div>
@@ -104,22 +109,28 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 
       {/* Nav groups */}
       <nav className="flex-1 px-3 overflow-y-auto py-2 space-y-3">
-        {NAV_GROUPS.map(group => (
-          <div key={group.label}>
-            <p className="text-white/25 text-[10px] font-bold uppercase tracking-widest px-3 pb-1">{group.label}</p>
-            <div className="space-y-0.5">
-              {group.items.map(item => (
-                <NavItem key={item.to} {...item} onClick={() => setMobileOpen?.(false)} />
-              ))}
+        {NAV_GROUPS.map(group => {
+          const visibleItems = group.items.filter(item => canSee(item.role, user?.role));
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={group.label}>
+              <p className="text-white/25 text-[10px] font-bold uppercase tracking-widest px-3 pb-1">{group.label}</p>
+              <div className="space-y-0.5">
+                {visibleItems.map(item => (
+                  <NavItem key={item.to} {...item} onClick={() => setMobileOpen?.(false)} />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Bottom */}
       <div className="px-3 pb-4 border-t border-white/8 pt-3 space-y-0.5">
         <NavItem to="/settings" icon={Settings} label="Settings" onClick={() => setMobileOpen?.(false)} />
-        <NavItem to="/billing" icon={Shield} label="Billing & Plan" onClick={() => setMobileOpen?.(false)} />
+        {(user?.role === 'admin') && (
+          <NavItem to="/billing" icon={Shield} label="Billing & Plan" onClick={() => setMobileOpen?.(false)} />
+        )}
 
         {/* User card */}
         <div className="mt-2 px-3 py-2.5 flex items-center gap-3 rounded-xl hover:bg-white/5 cursor-pointer group transition-colors"
