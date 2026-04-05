@@ -36,8 +36,8 @@ export const AuthProvider = ({ children }) => {
     if (res.data.success) {
       localStorage.setItem('token', res.data.data.token);
       setUser(res.data.data.member);
-      setOrg(res.data.data.member?.org);
-      // Flag imported members to set their own password
+      // Fetch full profile including org immediately after login
+      fetchMe();
       return { success: true, mustChangePassword: res.data.data.mustChangePassword || false };
     }
     return { success: false, error: res.data.error };
@@ -61,12 +61,19 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/login';
   };
 
+  const loginWithToken = (token, member, orgData) => {
+    localStorage.setItem('token', token);
+    setUser(member);
+    setOrg(orgData);
+    fetchMe(); // sync full profile
+  };
+
   const updateUser = (updates) => {
     setUser(prev => ({ ...prev, ...updates }));
   };
 
   return (
-    <AuthContext.Provider value={{ user, org, loading, login, logout, register, updateUser, refreshUser: fetchMe }}>
+    <AuthContext.Provider value={{ user, org, loading, login, loginWithToken, logout, register, updateUser, refreshUser: fetchMe }}>
       {children}
     </AuthContext.Provider>
   );

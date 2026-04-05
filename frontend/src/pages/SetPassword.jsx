@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 export default function SetPassword() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { login: authLogin } = useAuth();
+  const { loginWithToken: authLogin } = useAuth();
   const token = params.get('token');
 
   const [password, setPassword] = useState('');
