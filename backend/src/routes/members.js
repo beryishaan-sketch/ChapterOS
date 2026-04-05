@@ -48,6 +48,49 @@ router.put('/:id', updateMember);
 router.patch('/:id', updateMember);
 router.delete('/:id', requireRole('admin'), deleteMember);
 
+// GET /api/members/:id/dues — member's dues history
+router.get('/:id/dues', async (req, res) => {
+  try {
+    const member = await prisma.member.findFirst({ where: { id: req.params.id, orgId: req.user.orgId } });
+    if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
+    const payments = await prisma.duesPayment.findMany({
+      where: { memberId: req.params.id },
+      include: { duesRecord: { select: { semester: true, dueDate: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    const flat = payments.map(p => ({
+      id: p.id,
+      semester: p.duesRecord?.semester || null,
+      amount: p.amount,
+      paidAmount: p.status === 'paid' ? p.amount : ((p.winterPayment || 0) + (p.springPayment || 0)),
+      status: p.status,
+      dueDate: p.duesRecord?.dueDate || null,
+      paidDate: p.paidAt || null,
+    }));
+    return res.json({ success: true, data: flat });
+  } catch (e) { return res.status(500).json({ success: false, error: 'Failed to fetch dues' }); }
+});
+
+// GET /api/members/:id/attendance — member's attendance history
+router.get('/:id/attendance', async (req, res) => {
+  try {
+    const member = await prisma.member.findFirst({ where: { id: req.params.id, orgId: req.user.orgId } });
+    if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
+    const records = await prisma.attendance.findMany({
+      where: { memberId: req.params.id, event: { orgId: req.user.orgId } },
+      include: { event: { select: { id: true, title: true, date: true } } },
+      orderBy: { event: { date: 'desc' } },
+    });
+    const data = records.map(r => ({
+      eventId: r.eventId,
+      eventTitle: r.event.title,
+      date: r.event.date,
+      attended: r.checkedIn,
+    }));
+    return res.json({ success: true, data });
+  } catch (e) { return res.status(500).json({ success: false, error: 'Failed to fetch attendance' }); }
+});
+
 // GET /api/members/:id/permissions — get effective permissions
 router.get('/:id/permissions', requireRole('admin'), async (req, res) => {
   try {

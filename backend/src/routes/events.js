@@ -12,6 +12,38 @@ router.post('/', requireRole('admin', 'officer'), createEvent);
 router.put('/:id', requireRole('admin', 'officer'), updateEvent);
 router.patch('/:id', requireRole('admin', 'officer'), updateEvent);
 router.delete('/:id', requireRole('admin'), deleteEvent);
+// GET /events/:id/guests — all guests for an event (admin/officer)
+router.get('/:id/guests', requireRole('admin', 'officer'), async (req, res) => {
+  try {
+    const guests = await prismaAtt.guestList.findMany({
+      where: { eventId: req.params.id, event: { orgId: req.user.orgId } },
+      include: { member: { select: { firstName: true, lastName: true } } },
+      orderBy: { id: 'asc' },
+    });
+    return res.json({ success: true, data: guests.map(g => ({
+      ...g,
+      name: g.guestName,
+      contact: g.guestContact,
+      submittedBy: `${g.member?.firstName || ''} ${g.member?.lastName || ''}`.trim(),
+    })) });
+  } catch (e) { return res.status(500).json({ success: false, error: 'Failed to fetch guests' }); }
+});
+
+// GET /events/:id/guests/mine — current member's guests
+router.get('/:id/guests/mine', async (req, res) => {
+  try {
+    const guests = await prismaAtt.guestList.findMany({
+      where: { eventId: req.params.id, memberId: req.user.id },
+      orderBy: { id: 'asc' },
+    });
+    return res.json({ success: true, data: guests.map(g => ({
+      ...g,
+      name: g.guestName,
+      contact: g.guestContact,
+    })) });
+  } catch (e) { return res.status(500).json({ success: false, error: 'Failed to fetch guests' }); }
+});
+
 router.post('/:id/guests', submitGuest);
 router.patch('/:id/guests/:guestId', requireRole('admin', 'officer'), updateGuestStatus);
 
@@ -29,6 +61,37 @@ const saveMinutesHandler = async (req, res) => {
 };
 router.put('/:id/minutes', requireRole('admin', 'officer'), saveMinutesHandler);
 router.patch('/:id/minutes', requireRole('admin', 'officer'), saveMinutesHandler);
+
+// Attendance sub-routes used by Attendance.jsx
+const { PrismaClient: PrismaAtt } = require('@prisma/client');
+const prismaAtt = new PrismaAtt();
+
+// GET /events/:id/attendance — returns [{memberId, attended}] for each recorded member
+router.get('/:id/attendance', async (req, res) => {
+  try {
+    const records = await prismaAtt.attendance.findMany({
+      where: { eventId: req.params.id, event: { orgId: req.user.orgId } },
+      select: { memberId: true, checkedIn: true },
+    });
+    return res.json({ success: true, data: records.map(r => ({ memberId: r.memberId, attended: r.checkedIn })) });
+  } catch (e) { return res.status(500).json({ success: false, error: 'Failed to fetch attendance' }); }
+});
+
+// POST /events/:id/attendance — toggle a member's attendance
+router.post('/:id/attendance', requireRole('admin', 'officer'), async (req, res) => {
+  try {
+    const { memberId, attended } = req.body;
+    if (!memberId) return res.status(400).json({ success: false, error: 'memberId required' });
+    const event = await prismaAtt.event.findFirst({ where: { id: req.params.id, orgId: req.user.orgId } });
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
+    await prismaAtt.attendance.upsert({
+      where: { memberId_eventId: { memberId, eventId: req.params.id } },
+      update: { checkedIn: attended },
+      create: { memberId, eventId: req.params.id, checkedIn: attended },
+    });
+    return res.json({ success: true, data: { memberId, attended } });
+  } catch (e) { return res.status(500).json({ success: false, error: 'Failed to update attendance' }); }
+});
 
 // iCal export
 router.get('/:id/ical', verifyToken, async (req, res) => {

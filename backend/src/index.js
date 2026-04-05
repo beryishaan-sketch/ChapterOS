@@ -62,6 +62,9 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/sponsors', require('./routes/sponsors'));
 app.use('/api/channels', require('./routes/channels'));
+app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/push', require('./routes/push').router);
 app.use('/uploads', require('express').static(require('path').join(__dirname, '../../uploads')));
 
 // Start cron jobs

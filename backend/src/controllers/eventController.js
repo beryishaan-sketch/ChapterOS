@@ -140,7 +140,8 @@ const deleteEvent = async (req, res) => {
 
 const submitGuest = async (req, res) => {
   try {
-    const { guestName, guestContact } = req.body;
+    const guestName = req.body.guestName || req.body.name;
+    const guestContact = req.body.guestContact || req.body.contact;
     if (!guestName) return res.status(400).json({ success: false, error: 'Guest name required' });
 
     const event = await prisma.event.findFirst({ where: { id: req.params.id, orgId: req.user.orgId } });
@@ -164,7 +165,12 @@ const submitGuest = async (req, res) => {
       include: { member: { select: { firstName: true, lastName: true } } },
     });
 
-    return res.status(201).json({ success: true, data: guest });
+    return res.status(201).json({ success: true, data: {
+      ...guest,
+      name: guest.guestName,
+      contact: guest.guestContact,
+      submittedBy: `${guest.member?.firstName || ''} ${guest.member?.lastName || ''}`.trim(),
+    } });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, error: 'Failed to submit guest' });

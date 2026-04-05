@@ -55,9 +55,9 @@ const getDuesRecords = async (req, res) => {
 
 const createDuesRecord = async (req, res) => {
   try {
-    const { semester, amount, dueDate } = req.body;
-    if (!semester || !amount || !dueDate) {
-      return res.status(400).json({ success: false, error: 'Semester, amount, and due date are required' });
+    const { semester, amount, dueDate, description } = req.body;
+    if (!semester || !amount) {
+      return res.status(400).json({ success: false, error: 'Semester and amount are required' });
     }
 
     const record = await prisma.duesRecord.create({
@@ -65,7 +65,7 @@ const createDuesRecord = async (req, res) => {
         orgId: req.user.orgId,
         semester,
         amount: parseFloat(amount),
-        dueDate: new Date(dueDate),
+        ...(dueDate ? { dueDate: new Date(dueDate) } : {}),
       },
     });
 
