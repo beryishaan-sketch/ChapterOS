@@ -96,24 +96,25 @@ const btnSecondary = {
 
 // ─── Native design tokens ─────────────────────────────────────────────────────
 const N = {
-  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
-  sep: 'rgba(255,255,255,0.08)',
-  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
-  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
-  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+  border: 'rgba(255,255,255,0.08)',
+  accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+  text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+  sep: 'rgba(255,255,255,0.06)',
+  font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
 };
 
 const NATIVE_CAT_COLORS = {
-  dues:         '#0A84FF',
-  fundraising:  '#30D158',
-  donations:    '#BF5AF2',
-  sponsorship:  '#FF9F0A',
-  venue:        '#FF453A',
-  food:         '#FF6B35',
-  supplies:     '#8E8E93',
-  apparel:      '#5E5CE6',
-  philanthropy: '#32ADE6',
-  other:        '#8E8E93',
+  dues:         '#3B82F6',
+  fundraising:  '#10B981',
+  donations:    '#8B5CF6',
+  sponsorship:  '#F59E0B',
+  venue:        '#EF4444',
+  food:         '#F97316',
+  supplies:     '#94A3B8',
+  apparel:      '#6366F1',
+  philanthropy: '#06B6D4',
+  other:        '#94A3B8',
 };
 
 export default function Budget() {
@@ -201,63 +202,62 @@ export default function Budget() {
     const nativeTabKey = { All: 'all', Income: 'income', Expense: 'expense' };
     const activeTab = nativeTabs.find(t => nativeTabKey[t] === filter) || 'All';
 
-    return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
-        {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Budget</h1>
+    const totalIncome = income.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    const totalExpenses = expenses.toLocaleString('en-US', { minimumFractionDigits: 2 });
 
-        {/* Balance hero card */}
-        <div style={{ padding: '16px 16px 0' }}>
-          <div style={{ background: N.card, borderRadius: 14, padding: '20px 20px' }}>
-            <div style={{ fontSize: 13, color: N.text2, marginBottom: 6 }}>Balance</div>
-            <div style={{ fontSize: 36, fontWeight: 700, color: balance >= 0 ? N.success : N.danger, letterSpacing: -1 }}>
-              {balance < 0 ? '-' : ''}${Math.abs(balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 40, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: N.text1, margin: 0, padding: '20px 20px 6px', letterSpacing: -0.8 }}>Budget</h1>
+
+        {/* Full-width balance card */}
+        <div style={{ margin: '16px 20px 0', background: balance >= 0 ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid ' + (balance >= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'), borderRadius: 20, padding: '24px 20px' }}>
+          <div style={{ fontSize: 13, color: N.text2, marginBottom: 6 }}>Total Balance</div>
+          <div style={{ fontSize: 40, fontWeight: 800, color: balance >= 0 ? N.success : N.danger, letterSpacing: -1, marginBottom: 16 }}>${Math.abs(balance).toLocaleString()}</div>
+          <div style={{ display: 'flex', gap: 24 }}>
+            <div>
+              <div style={{ fontSize: 12, color: N.text3 }}>Income</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: N.success }}>${totalIncome}</div>
             </div>
-            <div style={{ display: 'flex', gap: 24, marginTop: 14 }}>
-              <div>
-                <div style={{ fontSize: 12, color: N.text3, marginBottom: 2 }}>Income</div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: N.success }}>+${income.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: N.text3, marginBottom: 2 }}>Expenses</div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: N.danger }}>-${expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-              </div>
+            <div>
+              <div style={{ fontSize: 12, color: N.text3 }}>Expenses</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: N.danger }}>${totalExpenses}</div>
             </div>
           </div>
         </div>
 
         {/* Segmented control */}
-        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '14px 16px 0' }}>
+        <div style={{ display: 'flex', background: N.elevated, borderRadius: 10, padding: 3, margin: '16px 20px 0' }}>
           {nativeTabs.map(t => (
-            <button key={t} onClick={() => setFilter(nativeTabKey[t])} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: activeTab === t ? N.elevated : 'transparent', color: activeTab === t ? N.text1 : N.text2 }}>{t}</button>
+            <button key={t} onClick={() => setFilter(nativeTabKey[t])} style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: N.font, background: activeTab === t ? N.card : 'transparent', color: activeTab === t ? N.text1 : N.text2, boxShadow: activeTab === t ? '0 1px 4px rgba(0,0,0,0.4)' : 'none', transition: 'background 0.15s' }}>{t}</button>
           ))}
         </div>
 
         {/* Transaction list grouped by month */}
         {loading ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
         ) : nativeFiltered.length === 0 ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No transactions</div>
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No transactions</div>
         ) : monthGroups.map(([month, txns]) => (
-          <div key={month} style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: N.text2, padding: '0 20px', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{month}</div>
-            <div style={{ background: N.card, borderRadius: 14, margin: '0 16px', overflow: 'hidden' }}>
+          <div key={month} style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: N.text3, padding: '0 20px', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 }}>{month}</div>
+            <div style={{ background: N.card, borderRadius: 16, margin: '0 20px', border: '1px solid ' + N.border, overflow: 'hidden' }}>
               {txns.map((t, idx) => {
                 const isIncome = t.type === 'income';
                 const catColor = NATIVE_CAT_COLORS[t.category] || NATIVE_CAT_COLORS.other;
                 const Icon = isIncome ? TrendingUp : TrendingDown;
                 const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
                 return (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 56, borderBottom: idx < txns.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: catColor + '28', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', padding: '13px 16px', borderBottom: idx < txns.length - 1 ? '1px solid ' + N.sep : 'none' }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 12, background: catColor + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
                       <Icon size={18} style={{ color: catColor }} />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 16, color: N.text1 }}>{t.description}</div>
-                      <div style={{ fontSize: 13, color: N.text2 }}>{t.category} · {dateStr}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.description}</div>
+                      <div style={{ fontSize: 12, color: N.text2, marginTop: 2, textTransform: 'capitalize' }}>{t.category} · {dateStr}</div>
                     </div>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: isIncome ? N.success : N.text1 }}>
-                      {isIncome ? '+' : '-'}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span style={{ fontSize: 15, fontWeight: 700, color: isIncome ? N.success : N.text1, marginLeft: 12, flexShrink: 0 }}>
+                      {isIncome ? '+' : ''}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 );
@@ -267,7 +267,7 @@ export default function Budget() {
         ))}
 
         {/* FAB */}
-        <button onClick={() => setShowModal(true)} style={{ position: 'fixed', bottom: 32, right: 24, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)' }}>
+        <button onClick={() => setShowModal(true)} style={{ position: 'fixed', bottom: 32, right: 24, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(59,130,246,0.45)' }}>
           <Plus size={24} style={{ color: '#fff' }} />
         </button>
 
@@ -275,35 +275,35 @@ export default function Budget() {
         <Modal isOpen={showModal} onClose={() => { setShowModal(false); setSaveError(''); }} title="Add Transaction">
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {saveError && (
-              <div style={{ padding: '10px 14px', background: 'rgba(255,69,58,0.1)', border: '1px solid rgba(255,69,58,0.25)', borderRadius: 8, fontSize: 13, color: N.danger }}>{saveError}</div>
+              <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, fontSize: 13, color: N.danger }}>{saveError}</div>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
               {['income', 'expense'].map(tp => (
-                <button key={tp} type="button" onClick={() => setForm(f => ({ ...f, type: tp, category: CATEGORIES[tp][0] }))} style={{ flex: 1, padding: '9px', borderRadius: 8, fontSize: 13, fontWeight: 700, textTransform: 'capitalize', cursor: 'pointer', transition: 'all 150ms ease', border: form.type === tp ? `2px solid ${tp === 'income' ? N.success : N.danger}` : `2px solid rgba(255,255,255,0.1)`, background: form.type === tp ? (tp === 'income' ? 'rgba(48,209,88,0.1)' : 'rgba(255,69,58,0.1)') : N.elevated, color: form.type === tp ? (tp === 'income' ? N.success : N.danger) : N.text2 }}>{tp}</button>
+                <button key={tp} type="button" onClick={() => setForm(f => ({ ...f, type: tp, category: CATEGORIES[tp][0] }))} style={{ flex: 1, padding: '9px', borderRadius: 8, fontSize: 13, fontWeight: 700, textTransform: 'capitalize', cursor: 'pointer', transition: 'all 150ms ease', border: form.type === tp ? `2px solid ${tp === 'income' ? N.success : N.danger}` : '2px solid ' + N.border, background: form.type === tp ? (tp === 'income' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)') : N.elevated, color: form.type === tp ? (tp === 'income' ? N.success : N.danger) : N.text2 }}>{tp}</button>
               ))}
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: N.text2, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Amount ($)</label>
-              <input style={{ width: '100%', background: N.elevated, border: `1px solid ${N.sep}`, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} type="number" step="0.01" min="0" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required />
+              <input style={{ width: '100%', background: N.elevated, border: '1px solid ' + N.border, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} type="number" step="0.01" min="0" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: N.text2, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Description</label>
-              <input style={{ width: '100%', background: N.elevated, border: `1px solid ${N.sep}`, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} placeholder="e.g. Spring mixer ticket sales" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} required />
+              <input style={{ width: '100%', background: N.elevated, border: '1px solid ' + N.border, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} placeholder="e.g. Spring mixer ticket sales" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} required />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: N.text2, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Category</label>
-                <select style={{ width: '100%', background: N.elevated, border: `1px solid ${N.sep}`, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                <select style={{ width: '100%', background: N.elevated, border: '1px solid ' + N.border, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
                   {CATEGORIES[form.type].map(c => <option key={c} value={c} style={{ textTransform: 'capitalize' }}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: N.text2, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Date</label>
-                <input style={{ width: '100%', background: N.elevated, border: `1px solid ${N.sep}`, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
+                <input style={{ width: '100%', background: N.elevated, border: '1px solid ' + N.border, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
-              <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, justifyContent: 'center', padding: '8px 14px', background: N.elevated, color: N.text2, border: `1px solid ${N.sep}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, justifyContent: 'center', padding: '8px 14px', background: N.elevated, color: N.text2, border: '1px solid ' + N.border, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button type="submit" disabled={saving} style={{ flex: 1, justifyContent: 'center', padding: '8px 16px', background: N.accent, color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Add Transaction'}</button>
             </div>
           </form>

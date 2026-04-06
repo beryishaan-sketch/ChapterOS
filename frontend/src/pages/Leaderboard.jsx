@@ -145,11 +145,12 @@ function PodiumCard({ member, rank, topValue, isCenter }) {
 
 // ─── Native design tokens ─────────────────────────────────────────────────────
 const N = {
-  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
-  sep: 'rgba(255,255,255,0.08)',
-  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
-  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
-  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+  border: 'rgba(255,255,255,0.08)',
+  accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+  text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+  sep: 'rgba(255,255,255,0.06)',
+  font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
 };
 
 // ─── Main Leaderboard ─────────────────────────────────────────────────────────
@@ -225,10 +226,10 @@ export default function Leaderboard() {
 
   if (loading && isNative) return (
     <div style={{ background: N.bg, minHeight: '100vh', fontFamily: N.font }}>
-      <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Leaderboard</h1>
-      <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <h1 style={{ fontSize: 34, fontWeight: 800, color: N.text1, margin: 0, padding: '20px 20px 6px', letterSpacing: -0.8 }}>Leaderboard</h1>
+      <div style={{ padding: '16px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {Array(6).fill(0).map((_, i) => (
-          <div key={i} style={{ height: 56, borderRadius: 14, background: N.card }} />
+          <div key={i} style={{ height: 60, borderRadius: 16, background: N.card, border: '1px solid ' + N.border }} />
         ))}
       </div>
     </div>
@@ -250,27 +251,33 @@ export default function Leaderboard() {
       { value: 'study',  label: 'Study Hrs' },
     ];
 
-    const nativePodiumColors = [N.warning, 'rgb(192,192,192)', 'rgb(205,133,63)'];
+    const nativeRankPillColor = (rank) => {
+      if (rank === 1) return { color: N.gold, bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' };
+      if (rank === 2) return { color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.25)' };
+      if (rank === 3) return { color: '#B4783C', bg: 'rgba(180,120,60,0.12)', border: 'rgba(180,120,60,0.25)' };
+      return { color: N.text2, bg: N.elevated, border: N.border };
+    };
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 40, fontFamily: N.font }}>
         {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: N.text1, margin: 0, padding: '20px 20px 6px', letterSpacing: -0.8 }}>
           Leaderboard
         </h1>
 
         {/* Segmented control */}
-        <div style={{ display: 'flex', margin: '12px 16px', background: N.elevated, borderRadius: 9, padding: 2 }}>
+        <div style={{ display: 'flex', margin: '12px 20px 0', background: N.elevated, borderRadius: 10, padding: 3 }}>
           {TABS.map(t => (
             <button
               key={t.value}
               onClick={() => setTab(t.value)}
               style={{
-                flex: 1, padding: '7px 4px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: 600, fontFamily: N.font,
                 background: tab === t.value ? N.card : 'transparent',
                 color: tab === t.value ? N.text1 : N.text2,
                 transition: 'background 0.15s, color 0.15s',
+                boxShadow: tab === t.value ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
               }}
             >
               {t.label}
@@ -278,92 +285,76 @@ export default function Leaderboard() {
           ))}
         </div>
 
-        {/* 2-col stat grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '4px 16px 0' }}>
-          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-            <div style={{ fontSize: 30, fontWeight: 700, color: N.text1, letterSpacing: -0.5 }}>{totalPoints.toLocaleString()}</div>
-            <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Total Points</div>
-          </div>
-          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-            <div style={{ fontSize: 30, fontWeight: 700, color: N.text1, letterSpacing: -0.5 }}>{avgGpa ? avgGpa.toFixed(2) : '—'}</div>
-            <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Chapter Avg GPA</div>
-          </div>
-        </div>
-
-        {/* Top 3 podium cards */}
+        {/* Top 3 podium */}
         {sorted.length >= 2 && (
-          <div style={{ display: 'flex', gap: 8, padding: '16px 16px 0', alignItems: 'stretch' }}>
-            {podiumOrder.map(({ m, rank }) => {
-              const podiumColor = nativePodiumColors[rank - 1];
-              const bg = getAvatarBg(m.firstName + m.lastName);
-              const podiumBg = rank === 1
-                ? 'rgba(255,159,10,0.12)'
-                : rank === 2
-                ? 'rgba(192,192,192,0.08)'
-                : 'rgba(205,133,63,0.08)';
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '20px 20px 0' }}>
+            {/* 2nd place */}
+            {podiumOrder.find(p => p.rank === 2) && (() => {
+              const { m } = podiumOrder.find(p => p.rank === 2);
+              const avatarColor = getAvatarBg(m.firstName + m.lastName);
               return (
-                <div
-                  key={m.id}
-                  style={{
-                    flex: rank === 1 ? '0 0 auto' : 1,
-                    width: rank === 1 ? 140 : undefined,
-                    background: N.card,
-                    borderRadius: 14,
-                    padding: '14px 10px',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    border: `1px solid ${podiumColor}30`,
-                  }}
-                >
-                  <div style={{
-                    width: rank === 1 ? 52 : 40,
-                    height: rank === 1 ? 52 : 40,
-                    borderRadius: '50%', background: bg,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontWeight: 700, fontSize: rank === 1 ? 18 : 14,
-                    border: `2px solid ${podiumColor}60`,
-                    marginBottom: 8,
-                  }}>
-                    {initials(m.firstName, m.lastName)}
-                  </div>
-                  <div style={{ fontSize: rank === 1 ? 13 : 12, fontWeight: 600, color: N.text1, textAlign: 'center', marginBottom: 2, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {m.firstName} {m.lastName[0]}.
-                  </div>
-                  <div style={{ background: podiumBg, borderRadius: 8, padding: '3px 8px', marginTop: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: podiumColor }}>
-                      #{rank}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 12, color: N.text2, marginTop: 4 }}>{topValue(m)}</div>
+                <div style={{ flex: 1, background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 16, padding: '16px 12px', textAlign: 'center' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 24, background: avatarColor, margin: '0 auto 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff' }}>{initials(m.firstName, m.lastName)}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8' }}>2nd</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: N.text1, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.firstName} {m.lastName[0]}.</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#94A3B8', marginTop: 4 }}>{topValue(m)}</div>
                 </div>
               );
-            })}
+            })()}
+            {/* 1st place */}
+            {podiumOrder.find(p => p.rank === 1) && (() => {
+              const { m } = podiumOrder.find(p => p.rank === 1);
+              const avatarColor = getAvatarBg(m.firstName + m.lastName);
+              return (
+                <div style={{ flex: 1, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 16, padding: '24px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>👑</div>
+                  <div style={{ width: 56, height: 56, borderRadius: 28, background: avatarColor, margin: '0 auto 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: '#fff', boxShadow: '0 0 20px rgba(245,158,11,0.3)' }}>{initials(m.firstName, m.lastName)}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: N.gold }}>1st</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: N.text1, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.firstName} {m.lastName[0]}.</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: N.gold, marginTop: 4 }}>{topValue(m)}</div>
+                </div>
+              );
+            })()}
+            {/* 3rd place */}
+            {sorted.length >= 3 && podiumOrder.find(p => p.rank === 3) && (() => {
+              const { m } = podiumOrder.find(p => p.rank === 3);
+              const avatarColor = getAvatarBg(m.firstName + m.lastName);
+              return (
+                <div style={{ flex: 1, background: 'rgba(180,120,60,0.08)', border: '1px solid rgba(180,120,60,0.2)', borderRadius: 16, padding: '12px', textAlign: 'center' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 22, background: avatarColor, margin: '0 auto 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#fff' }}>{initials(m.firstName, m.lastName)}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#B4783C' }}>3rd</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: N.text1, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.firstName} {m.lastName[0]}.</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#B4783C', marginTop: 4 }}>{topValue(m)}</div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
         {/* Full ranked list */}
-        <div style={{ margin: '16px 16px 0', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${N.sep}` }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: N.text2, textTransform: 'uppercase', letterSpacing: 0.5 }}>Full Rankings</span>
+        <div style={{ margin: '20px 20px 0', background: N.card, borderRadius: 16, border: '1px solid ' + N.border, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid ' + N.sep }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: N.text2, textTransform: 'uppercase', letterSpacing: 0.6 }}>Full Rankings</span>
           </div>
           {sorted.length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No members to rank yet</div>
+            <div style={{ padding: '48px 20px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No members to rank yet</div>
           ) : (
             sorted.map((m, i) => {
               const rank = i + 1;
-              const rankColor = rank === 1 ? N.warning : rank === 2 ? 'rgb(192,192,192)' : rank === 3 ? 'rgb(205,133,63)' : N.text3;
+              const pill = nativeRankPillColor(rank);
               const bg = getAvatarBg(m.firstName + m.lastName);
               return (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', minHeight: 56, borderBottom: `1px solid ${N.sep}` }}>
-                  <span style={{ width: 28, fontSize: 16, fontWeight: 700, color: rankColor, textAlign: 'center' }}>#{rank}</span>
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: i < sorted.length - 1 ? '1px solid ' + N.sep : 'none' }}>
+                  <span style={{ width: 30, fontSize: 15, fontWeight: 700, color: rank <= 3 ? pill.color : N.text3, textAlign: 'center', flexShrink: 0 }}>{rank}</span>
                   <div style={{ width: 40, height: 40, borderRadius: 20, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 }}>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{initials(m.firstName, m.lastName)}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{initials(m.firstName, m.lastName)}</span>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 16, color: N.text1 }}>{m.firstName} {m.lastName}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.firstName} {m.lastName}</div>
                     {m.onProbation && <div style={{ fontSize: 11, color: N.danger, marginTop: 2 }}>Probation</div>}
                   </div>
-                  <div style={{ background: rank === 1 ? 'rgba(255,159,10,0.15)' : N.elevated, borderRadius: 8, padding: '4px 10px' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: rank === 1 ? N.warning : N.text1 }}>{topValue(m)}</span>
+                  <div style={{ background: pill.bg, border: '1px solid ' + pill.border, borderRadius: 20, padding: '4px 12px', flexShrink: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: pill.color }}>{topValue(m)}</span>
                   </div>
                 </div>
               );

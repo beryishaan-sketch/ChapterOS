@@ -277,14 +277,15 @@ const btnSecondary = {
 
 // ─── Native design tokens ─────────────────────────────────────────────────────
 const N = {
-  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
-  sep: 'rgba(255,255,255,0.08)',
-  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
-  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
-  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+  border: 'rgba(255,255,255,0.08)',
+  accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+  text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+  sep: 'rgba(255,255,255,0.06)',
+  font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
 };
 
-const NATIVE_AVATAR_PALETTE = ['#0A84FF', '#30D158', '#FF9F0A', '#FF453A', '#BF5AF2', '#32ADE6', '#FF375F'];
+const NATIVE_AVATAR_PALETTE = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F43F5E'];
 const nativeAvatarColor = (name) => NATIVE_AVATAR_PALETTE[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % NATIVE_AVATAR_PALETTE.length];
 
 // ─── Main Dues Page ───────────────────────────────────────────────────────────
@@ -414,87 +415,89 @@ export default function Dues() {
       return matchSearch && matchStatus;
     });
 
-    const nativeStatusColor = { paid: N.success, unpaid: N.danger, partial: N.warning, waived: N.text3 };
-    const nativeStatusBg = { paid: 'rgba(48,209,88,0.18)', unpaid: 'rgba(255,69,58,0.18)', partial: 'rgba(255,159,10,0.18)', waived: 'rgba(235,235,245,0.1)' };
+    const nativeStatusStyles = {
+      paid:    { color: N.success, bg: 'rgba(16,185,129,0.15)' },
+      unpaid:  { color: N.danger,  bg: 'rgba(239,68,68,0.15)' },
+      partial: { color: N.gold,    bg: 'rgba(245,158,11,0.15)' },
+      waived:  { color: N.text3,   bg: 'rgba(255,255,255,0.06)' },
+    };
     const nativeStatusLabel = { paid: 'PAID', unpaid: 'UNPAID', partial: 'PARTIAL', waived: 'WAIVED' };
 
-    return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
-        {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Dues</h1>
+    const collected = loading ? '—' : formatCurrency(totalPaid);
+    const outstanding = loading ? '—' : formatCurrency(totalOutstanding);
 
-        {/* Hero stats */}
-        <div style={{ padding: '16px 16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: N.success, letterSpacing: -0.5 }}>
-              {loading ? '—' : formatCurrency(totalPaid)}
-            </div>
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 40, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: N.text1, margin: 0, padding: '20px 20px 6px', letterSpacing: -0.8 }}>Dues</h1>
+
+        {/* Hero stats side by side */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 20px 0' }}>
+          <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 16, padding: '20px 16px' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: N.success, letterSpacing: -0.5 }}>{collected}</div>
             <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Collected</div>
           </div>
-          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: N.danger, letterSpacing: -0.5 }}>
-              {loading ? '—' : formatCurrency(totalOutstanding)}
-            </div>
+          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '20px 16px' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: N.danger, letterSpacing: -0.5 }}>{outstanding}</div>
             <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Outstanding</div>
           </div>
         </div>
 
         {/* Collection rate progress bar */}
         {!loading && totalAmount > 0 && (
-          <div style={{ padding: '14px 16px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ padding: '16px 20px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: N.text2 }}>Collection Rate</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: collectionRate >= 80 ? N.success : collectionRate >= 50 ? N.warning : N.danger }}>{collectionRate}%</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: collectionRate >= 80 ? N.success : collectionRate >= 50 ? N.gold : N.danger }}>{collectionRate}%</span>
             </div>
-            <div style={{ height: 6, background: N.elevated, borderRadius: 99, overflow: 'hidden' }}>
-              <div style={{ height: '100%', borderRadius: 99, width: `${collectionRate}%`, background: collectionRate >= 80 ? N.success : collectionRate >= 50 ? N.warning : N.danger, transition: 'width 0.5s ease' }} />
+            <div style={{ height: 6, background: N.elevated, borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: 3, width: `${collectionRate}%`, background: collectionRate >= 80 ? N.success : collectionRate >= 50 ? N.gold : N.danger, transition: 'width 0.5s ease' }} />
             </div>
           </div>
         )}
 
-        {/* Segmented control */}
-        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '14px 16px 0' }}>
+        {/* Segmented filter */}
+        <div style={{ display: 'flex', background: N.elevated, borderRadius: 10, padding: 3, margin: '16px 20px 0' }}>
           {nativeTabs.map(t => (
-            <button key={t} onClick={() => setStatusFilter(nativeTabKey[t])} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: activeTabLabel === t ? N.elevated : 'transparent', color: activeTabLabel === t ? N.text1 : N.text2 }}>{t}</button>
+            <button key={t} onClick={() => setStatusFilter(nativeTabKey[t])} style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: N.font, background: activeTabLabel === t ? N.card : 'transparent', color: activeTabLabel === t ? N.text1 : N.text2, boxShadow: activeTabLabel === t ? '0 1px 4px rgba(0,0,0,0.4)' : 'none', transition: 'background 0.15s' }}>{t}</button>
           ))}
         </div>
 
         {/* Search */}
-        <div style={{ padding: '10px 16px 0' }}>
-          <div style={{ background: N.card, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ padding: '12px 20px 0' }}>
+          <div style={{ background: N.card, borderRadius: 12, border: '1px solid ' + N.border, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Search size={16} style={{ color: N.text3, flexShrink: 0 }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search" style={{ background: 'none', border: 'none', color: N.text1, fontSize: 16, flex: 1, outline: 'none' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search members…" style={{ background: 'none', border: 'none', color: N.text1, fontSize: 16, flex: 1, outline: 'none', fontFamily: N.font }} />
           </div>
         </div>
 
         {/* Member list */}
-        <div style={{ margin: '14px 16px 0', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ margin: '16px 20px 0', background: N.card, borderRadius: 16, border: '1px solid ' + N.border, overflow: 'hidden' }}>
           {loading ? (
             <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
           ) : nativeFiltered.length === 0 ? (
             <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No dues records found</div>
           ) : nativeFiltered.map((due, idx) => {
-            const initials = due.memberName?.split(' ').map(n => n[0]).join('') || '?';
+            const memberInitials = due.memberName?.split(' ').map(n => n[0]).join('') || '?';
             const aColor = nativeAvatarColor(due.memberName || '');
             const status = due.status || 'unpaid';
-            const sColor = nativeStatusColor[status] || N.text3;
-            const sBg = nativeStatusBg[status] || 'rgba(235,235,245,0.1)';
+            const sStyle = nativeStatusStyles[status] || nativeStatusStyles.unpaid;
             const sLabel = nativeStatusLabel[status] || status.toUpperCase();
             const dueStr = due.dueDate ? `Due ${new Date(due.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : formatCurrency(due.amount);
             return (
               <div
                 key={due.id}
                 onClick={() => isAdmin && setPayModal(due)}
-                style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 56, borderBottom: idx < nativeFiltered.length - 1 ? `1px solid ${N.sep}` : 'none', cursor: isAdmin ? 'pointer' : 'default' }}
+                style={{ display: 'flex', alignItems: 'center', padding: '13px 16px', borderBottom: idx < nativeFiltered.length - 1 ? '1px solid ' + N.sep : 'none', cursor: isAdmin ? 'pointer' : 'default' }}
               >
-                <div style={{ width: 40, height: 40, borderRadius: 20, background: aColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{initials}</span>
+                <div style={{ width: 42, height: 42, borderRadius: 21, background: aColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14, fontSize: 15, fontWeight: 700, color: '#fff' }}>
+                  {memberInitials}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, color: N.text1 }}>{due.memberName || '—'}</div>
-                  <div style={{ fontSize: 13, color: N.text2 }}>{dueStr}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{due.memberName || '—'}</div>
+                  <div style={{ fontSize: 12, color: N.text2, marginTop: 2 }}>{dueStr}</div>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: sColor, background: sBg, padding: '3px 8px', borderRadius: 6 }}>{sLabel}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: sStyle.color, background: sStyle.bg, padding: '4px 10px', borderRadius: 20, letterSpacing: 0.3 }}>{sLabel}</span>
               </div>
             );
           })}
@@ -502,7 +505,7 @@ export default function Dues() {
 
         {/* Admin FAB */}
         {isAdmin && (
-          <button onClick={() => setShowCreate(true)} style={{ position: 'fixed', bottom: 32, right: 24, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)' }}>
+          <button onClick={() => setShowCreate(true)} style={{ position: 'fixed', bottom: 32, right: 24, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(59,130,246,0.45)' }}>
             <Plus size={24} style={{ color: '#fff' }} />
           </button>
         )}

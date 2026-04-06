@@ -159,19 +159,29 @@ export default function Academics() {
 
   // ─── Native iOS layout ──────────────────────────────────────────────────────
   if (isNative) {
+    const NAC = {
+      bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+      border: 'rgba(255,255,255,0.08)',
+      accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+      text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+      sep: 'rgba(255,255,255,0.06)',
+      font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
+    };
+
+    const nacGpaColor = (gpa) => !gpa ? NAC.text3 : gpa >= 3.0 ? NAC.success : gpa >= 2.5 ? NAC.gold : NAC.danger;
+
     const nativeTabs = [['all', 'All'], ['probation', 'Probation'], ['honors', 'Honors'], ['missing', 'No GPA']];
 
-    const nativeFiltered = members
-      .filter(m => {
-        const q = search.toLowerCase();
-        const matchSearch = !q || `${m.firstName} ${m.lastName}`.toLowerCase().includes(q) || (m.major || '').toLowerCase().includes(q);
-        const matchFilter = filter === 'all' ? true
-          : filter === 'probation' ? m.onProbation
-          : filter === 'honors' ? (m.gpa >= 3.5)
-          : filter === 'missing' ? !m.gpa
-          : true;
-        return matchSearch && matchFilter;
-      });
+    const nativeFiltered = members.filter(m => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || `${m.firstName} ${m.lastName}`.toLowerCase().includes(q) || (m.major || '').toLowerCase().includes(q);
+      const matchFilter = filter === 'all' ? true
+        : filter === 'probation' ? m.onProbation
+        : filter === 'honors' ? (m.gpa >= 3.5)
+        : filter === 'missing' ? !m.gpa
+        : true;
+      return matchSearch && matchFilter;
+    });
 
     const nativeWithGpa = members.filter(m => m.gpa != null);
     const nativeAvgGpa = nativeWithGpa.length ? (nativeWithGpa.reduce((s, m) => s + m.gpa, 0) / nativeWithGpa.length).toFixed(2) : '—';
@@ -180,79 +190,84 @@ export default function Academics() {
     const nativeMissingCount = members.filter(m => !m.gpa).length;
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+      <div style={{ background: NAC.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: NAC.font }}>
         {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Academics</h1>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: NAC.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Academics</h1>
 
-        {/* 2x2 stats grid */}
-        <div style={{ padding: '16px 16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: N.accent, letterSpacing: -0.5 }}>{nativeAvgGpa}</div>
-            <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Avg GPA</div>
+        {/* 2×2 stats grid */}
+        <div style={{ padding: '16px 20px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ background: NAC.card, borderRadius: 16, border: '1px solid ' + NAC.border, padding: '18px 16px' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: NAC.accent, letterSpacing: -0.5 }}>{nativeAvgGpa}</div>
+            <div style={{ fontSize: 13, color: NAC.text2, marginTop: 4 }}>Avg GPA</div>
           </div>
-          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: nativeProbationCount > 0 ? N.danger : N.success, letterSpacing: -0.5 }}>{nativeProbationCount}</div>
-            <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>On Probation</div>
+          <div style={{ background: NAC.card, borderRadius: 16, border: '1px solid ' + NAC.border, padding: '18px 16px' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: nativeProbationCount > 0 ? NAC.danger : NAC.success, letterSpacing: -0.5 }}>{nativeProbationCount}</div>
+            <div style={{ fontSize: 13, color: NAC.text2, marginTop: 4 }}>On Probation</div>
           </div>
-          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: N.warning, letterSpacing: -0.5 }}>{nativeHonorsCount}</div>
-            <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Honors (3.5+)</div>
+          <div style={{ background: NAC.card, borderRadius: 16, border: '1px solid ' + NAC.border, padding: '18px 16px' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: NAC.gold, letterSpacing: -0.5 }}>{nativeHonorsCount}</div>
+            <div style={{ fontSize: 13, color: NAC.text2, marginTop: 4 }}>Honors (3.5+)</div>
           </div>
-          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: N.text2, letterSpacing: -0.5 }}>{nativeMissingCount}</div>
-            <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Missing GPA</div>
+          <div style={{ background: NAC.card, borderRadius: 16, border: '1px solid ' + NAC.border, padding: '18px 16px' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: NAC.text3, letterSpacing: -0.5 }}>{nativeMissingCount}</div>
+            <div style={{ fontSize: 13, color: NAC.text2, marginTop: 4 }}>Missing GPA</div>
           </div>
         </div>
 
         {/* Segmented filter */}
-        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '14px 16px 0' }}>
+        <div style={{ display: 'flex', background: NAC.card, borderRadius: 10, padding: 3, margin: '14px 20px 0', border: '1px solid ' + NAC.border }}>
           {nativeTabs.map(([val, label]) => (
-            <button key={val} onClick={() => setFilter(val)} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: filter === val ? N.elevated : 'transparent', color: filter === val ? N.text1 : N.text2 }}>{label}</button>
+            <button key={val} onClick={() => setFilter(val)} style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: filter === val ? NAC.elevated : 'transparent', color: filter === val ? NAC.text1 : NAC.text2, transition: 'all 0.15s' }}>{label}</button>
           ))}
         </div>
 
         {/* Search */}
-        <div style={{ padding: '10px 16px 0' }}>
-          <div style={{ background: N.card, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Search size={16} style={{ color: N.text3, flexShrink: 0 }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search" style={{ background: 'none', border: 'none', color: N.text1, fontSize: 16, flex: 1, outline: 'none' }} />
+        <div style={{ margin: '10px 20px 0' }}>
+          <div style={{ background: NAC.card, borderRadius: 12, border: '1px solid ' + NAC.border, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Search size={16} color={NAC.text3} style={{ flexShrink: 0 }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search" style={{ background: 'none', border: 'none', color: NAC.text1, fontSize: 16, flex: 1, outline: 'none' }} />
           </div>
         </div>
 
         {/* Member list */}
-        <div style={{ margin: '14px 16px 0', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ margin: '14px 20px 0', background: NAC.card, borderRadius: 16, border: '1px solid ' + NAC.border, overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
+            <div style={{ padding: '40px 16px', textAlign: 'center', color: NAC.text3, fontSize: 14 }}>Loading…</div>
           ) : nativeFiltered.length === 0 ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No members found</div>
+            <div style={{ padding: '40px 16px', textAlign: 'center', color: NAC.text3, fontSize: 14 }}>No members found</div>
           ) : nativeFiltered.map((m, idx) => {
             const aColor = nativeAvatarColorAca(`${m.firstName}${m.lastName}`);
             const init = `${(m.firstName || '?')[0]}${(m.lastName || '?')[0]}`.toUpperCase();
             const gpaVal = m.gpa != null ? m.gpa.toFixed(2) : null;
-            const gColor = nativeGpaColor(m.gpa);
-            const standingLabel = m.onProbation ? 'PROBATION' : m.gpa >= 3.5 ? 'HONORS' : m.gpa >= 3.0 ? 'GOOD' : m.gpa >= 2.5 ? 'SAT' : m.gpa != null ? 'AT RISK' : null;
-            const standingColor = m.onProbation ? N.danger : m.gpa >= 3.5 ? N.warning : m.gpa >= 3.0 ? N.success : m.gpa >= 2.5 ? N.text2 : m.gpa != null ? N.danger : N.text3;
-            const standingBg = m.onProbation ? 'rgba(255,69,58,0.18)' : m.gpa >= 3.5 ? 'rgba(255,159,10,0.18)' : m.gpa >= 3.0 ? 'rgba(48,209,88,0.18)' : m.gpa >= 2.5 ? 'rgba(235,235,245,0.1)' : m.gpa != null ? 'rgba(255,69,58,0.18)' : 'transparent';
+            const gColor = nacGpaColor(m.gpa);
+            const isProbation = m.onProbation;
+            const isHonors = !isProbation && m.gpa >= 3.5;
             return (
-              <div key={m.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 56, borderBottom: idx < nativeFiltered.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 64, borderBottom: idx < nativeFiltered.length - 1 ? '1px solid ' + NAC.sep : 'none' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 20, background: aColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{init}</span>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{init}</span>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, color: N.text1 }}>{m.firstName} {m.lastName}</div>
-                  <div style={{ fontSize: 13, color: N.text2, display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                    <Clock size={11} style={{ color: N.text3 }} />{m.studyHours || 0}h study
-                    {m.major && <span style={{ color: N.text3 }}>· {m.major}</span>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <span style={{ fontSize: 16, color: NAC.text1, fontWeight: 600 }}>{m.firstName} {m.lastName}</span>
+                    {isProbation && <span style={{ fontSize: 10, fontWeight: 700, color: NAC.danger, background: 'rgba(239,68,68,0.15)', padding: '2px 7px', borderRadius: 99 }}>PROBATION</span>}
+                    {isHonors && <span style={{ fontSize: 10, fontWeight: 700, color: NAC.gold, background: 'rgba(245,158,11,0.15)', padding: '2px 7px', borderRadius: 99 }}>HONORS</span>}
                   </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  {gpaVal ? (
-                    <span style={{ fontSize: 17, fontWeight: 700, color: gColor }}>{gpaVal}</span>
-                  ) : (
-                    <span style={{ fontSize: 14, color: N.text3 }}>—</span>
+                  <div style={{ fontSize: 12, color: NAC.text3, marginBottom: 5 }}>
+                    {m.major || 'Undeclared'}{m.studyHours ? ` · ${m.studyHours}h study` : ''}
+                  </div>
+                  {/* GPA bar */}
+                  {m.gpa != null && (
+                    <div style={{ height: 3, width: '100%', background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                      <div style={{ height: 3, width: (m.gpa / 4 * 100) + '%', background: gColor, borderRadius: 2 }} />
+                    </div>
                   )}
-                  {standingLabel && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: standingColor, background: standingBg, padding: '2px 6px', borderRadius: 5 }}>{standingLabel}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: 12 }}>
+                  {gpaVal ? (
+                    <span style={{ fontSize: 16, fontWeight: 700, color: gColor }}>{gpaVal}</span>
+                  ) : (
+                    <span style={{ fontSize: 14, color: NAC.text3 }}>—</span>
                   )}
                 </div>
               </div>

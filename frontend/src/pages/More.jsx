@@ -216,60 +216,88 @@ export default function More() {
     </div>
   );
 
+  const NV = {
+    bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+    border: 'rgba(255,255,255,0.08)',
+    accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+    text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+    sep: 'rgba(255,255,255,0.06)',
+    font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
+  };
+
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || '?';
+  const roleLabel = user?.position || (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '');
+
+  const NVRow = ({ icon: Icon, iconBg, label, to, onClick: rowClick }) => (
+    <div
+      onClick={() => { if (rowClick) { rowClick(); return; } if (to) { impact('light'); navigate(to); } }}
+      style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid ' + NV.sep, cursor: 'pointer' }}
+    >
+      <div style={{ width: 34, height: 34, borderRadius: 10, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
+        <Icon size={17} color="#fff" />
+      </div>
+      <span style={{ flex: 1, fontSize: 16, color: NV.text1 }}>{label}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  );
+
+  const NVSection = ({ title, children }) => (
+    <div style={{ margin: '24px 20px 0' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: NV.text3, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px 10px' }}>{title}</div>
+      <div style={{ background: NV.card, borderRadius: 16, border: '1px solid ' + NV.border, overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>
+  );
+
   if (isNative) return (
-    <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
-      {/* Profile hero */}
-      <div style={{ margin: '16px 16px 0', background: N.card, borderRadius: 16, padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-        <div style={{ width: 80, height: 80, borderRadius: 40, background: 'linear-gradient(135deg, #0A84FF, #BF5AF2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 30, fontWeight: 700, color: '#fff' }}>
-          {user?.firstName?.[0]}{user?.lastName?.[0]}
+    <div style={{ background: NV.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: NV.font }}>
+      {/* Profile hero card */}
+      <div
+        onClick={() => { impact('light'); navigate('/profile'); }}
+        style={{ margin: '20px 20px 0', background: 'linear-gradient(135deg, #111827 0%, #1E2A3A 100%)', borderRadius: 20, border: '1px solid rgba(59,130,246,0.2)', padding: '24px 20px', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}
+      >
+        <div style={{ width: 72, height: 72, borderRadius: 36, background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 26, fontWeight: 800, color: '#fff', boxShadow: '0 0 24px rgba(59,130,246,0.3)' }}>
+          {initials}
         </div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: N.text1 }}>{user?.firstName} {user?.lastName}</div>
-        <div style={{ fontSize: 15, color: N.text2, marginTop: 4, textTransform: 'capitalize' }}>
-          {user?.position || user?.role}{org?.name ? ` · ${org.name}` : ''}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: NV.text1, marginBottom: 3 }}>{user?.firstName} {user?.lastName}</div>
+          <div style={{ fontSize: 14, color: NV.text2 }}>{roleLabel} · {user?.chapterName || org?.name || 'Chapter'}</div>
         </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
       </div>
 
       {/* CHAPTER section */}
-      <NSection title="CHAPTER">
-        <NRow icon={Megaphone}     iconBg="#EF4444" label="Recruitment"   to="/recruitment" />
-        <NRow icon={Calendar}      iconBg="#9333EA" label="Events"         to="/events" />
-        <NRow icon={Users}         iconBg="#1E3A5F" label="Members"        to="/roles" />
-        <NRow icon={DollarSign}    iconBg="#10B981" label="Dues"           to="/dues" />
-      </NSection>
+      <NVSection title="CHAPTER">
+        <NVRow icon={Megaphone}     iconBg="#3B82F6" label="Recruitment"  to="/recruitment" />
+        <NVRow icon={Calendar}      iconBg="#8B5CF6" label="Events"        to="/events" />
+        <NVRow icon={Users}         iconBg="#10B981" label="Members"       to="/roles" />
+        <NVRow icon={DollarSign}    iconBg="#F59E0B" label="Dues"          to="/dues" />
+      </NVSection>
 
       {/* TOOLS section */}
-      <NSection title="TOOLS">
-        <NRow icon={BarChart2}     iconBg="#3B82F6" label="Analytics"      to="/analytics" />
-        <NRow icon={Trophy}        iconBg="#F97316" label="Leaderboard"    to="/leaderboard" />
-        <NRow icon={Wallet}        iconBg="#0EA5E9" label="Budget"         to="/budget" />
-        <NRow icon={ClipboardList} iconBg="#0EA5E9" label="Attendance"     to="/attendance" />
-        <NRow icon={BookOpen}      iconBg="#10B981" label="Academics"      to="/academics" />
-        <NRow icon={FileText}      iconBg="#64748B" label="Documents"      to="/documents" />
-      </NSection>
+      <NVSection title="TOOLS">
+        <NVRow icon={BarChart2}     iconBg="#06B6D4" label="Analytics"     to="/analytics" />
+        <NVRow icon={Trophy}        iconBg="#F59E0B" label="Leaderboard"   to="/leaderboard" />
+        <NVRow icon={Wallet}        iconBg="#10B981" label="Budget"        to="/budget" />
+        <NVRow icon={ClipboardList} iconBg="#8B5CF6" label="Attendance"    to="/attendance" />
+        <NVRow icon={BookOpen}      iconBg="#3B82F6" label="Academics"     to="/academics" />
+        <NVRow icon={FileText}      iconBg="#64748B" label="Documents"     to="/documents" />
+      </NVSection>
 
-      {/* ACCOUNT section */}
-      <NSection title="ACCOUNT">
-        <NRow icon={Star}          iconBg="#3B82F6" label="Profile"        to="/profile" />
-        <NRow icon={Settings}      iconBg="#64748B" label="Settings"       to="/settings" />
-        <NRow icon={CreditCard}    iconBg="#475569" label="Billing"        to="/billing" />
-      </NSection>
+      {/* SETTINGS section */}
+      <NVSection title="SETTINGS">
+        <NVRow icon={CreditCard}    iconBg="#F59E0B" label="Billing"       to="/billing" />
+        <NVRow icon={Settings}      iconBg="#64748B" label="Settings"      to="/settings" />
+      </NVSection>
 
       {/* Sign Out */}
-      <div style={{ padding: '28px 16px 0' }}>
-        <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-          <NRow
-            icon={LogOut}
-            iconBg="#7F1D1D"
-            label="Sign Out"
-            destructive
-            onClick={() => { notification('warning'); if (window.confirm('Sign out of ChapterOS?')) logout(); }}
-          />
-        </div>
-      </div>
-
-      <p style={{ textAlign: 'center', fontSize: 12, color: N.text3, marginTop: 24 }}>
-        ChapterOS · {org?.plan === 'trial' ? 'Trial' : 'Pro'}
-      </p>
+      <button
+        onClick={() => { notification('warning'); if (window.confirm('Sign out of ChapterOS?')) logout(); }}
+        style={{ display: 'block', width: 'calc(100% - 40px)', margin: '24px 20px 8px', padding: '16px', background: 'transparent', border: 'none', color: '#EF4444', fontSize: 17, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}
+      >
+        Sign Out
+      </button>
     </div>
   );
 

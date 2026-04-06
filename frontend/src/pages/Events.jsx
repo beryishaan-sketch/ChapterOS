@@ -444,11 +444,12 @@ const EventRow = ({ event, onClick, isFirst, isLast }) => {
 
 // ─── Native design tokens ─────────────────────────────────────
 const N = {
-  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
-  sep: 'rgba(255,255,255,0.08)',
-  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
-  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
-  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+  border: 'rgba(255,255,255,0.08)',
+  accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+  text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+  sep: 'rgba(255,255,255,0.06)',
+  font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
 };
 
 // ─── Main Events Page ─────────────────────────────────────────
@@ -494,9 +495,7 @@ export default function Events() {
 
   // ─── Native iOS layout ──────────────────────────────────────
   if (isNative) {
-    const nativeTabs = ['Upcoming', 'Past', 'All'];
-    const nativeTabMap = { Upcoming: 'upcoming', Past: 'past', All: 'all' };
-    // nativeTab state is driven by existing `tab`; map display tab to existing tab values
+    const TYPE_COLORS = { Mixer: N.accent, Social: N.purple, Meeting: N.success, Formal: N.gold, Other: '#64748B' };
     const [nativeTab, setNativeTab] = useState('Upcoming');
 
     const nativeFiltered = events.filter(e => {
@@ -511,22 +510,16 @@ export default function Events() {
     const nativeGrouped = groupEventsByDate(nativeFiltered);
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
-        {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
-          Events
-        </h1>
+      <div style={{ background: N.bg, minHeight: '100vh', fontFamily: N.font, paddingBottom: 80 }}>
+        {/* Header */}
+        <div style={{ padding: '24px 20px 0', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, color: N.text1, margin: 0, letterSpacing: -0.5 }}>Events</h1>
+        </div>
 
         {/* Segmented control */}
-        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '8px 16px' }}>
-          {nativeTabs.map(t => (
-            <button key={t} onClick={() => setNativeTab(t)} style={{
-              flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600,
-              background: nativeTab === t ? N.elevated : 'transparent',
-              color: nativeTab === t ? N.text1 : N.text2,
-              fontFamily: N.font,
-            }}>{t}</button>
+        <div style={{ display: 'flex', background: N.card, borderRadius: 12, padding: 3, margin: '16px 20px', border: '1px solid ' + N.border }}>
+          {['Upcoming', 'Past', 'All'].map(t => (
+            <button key={t} onClick={() => setNativeTab(t)} style={{ flex: 1, padding: '8px 0', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, background: nativeTab === t ? N.elevated : 'transparent', color: nativeTab === t ? N.text1 : N.text2, transition: 'all 0.15s' }}>{t}</button>
           ))}
         </div>
 
@@ -534,68 +527,45 @@ export default function Events() {
         {loading ? (
           <div style={{ padding: '24px 20px', color: N.text2, fontSize: 15 }}>Loading…</div>
         ) : nativeFiltered.length === 0 ? (
-          <div style={{ padding: '48px 20px', textAlign: 'center', color: N.text2, fontSize: 15 }}>
-            {nativeTab === 'Upcoming' ? 'No upcoming events' : nativeTab === 'Past' ? 'No past events' : 'No events'}
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
+            <p style={{ fontSize: 17, fontWeight: 600, color: N.text1, margin: '0 0 8px' }}>No events</p>
+            <p style={{ fontSize: 14, color: N.text2 }}>Create one with the + button below</p>
           </div>
         ) : (
-          nativeGrouped.map(([dateLabel, dayEvents]) => {
-            const d = new Date(dayEvents[0].date);
-            const headerLabel = dateLabel.toUpperCase();
-            return (
-              <div key={dateLabel}>
-                {/* Date section header */}
-                <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '24px 20px 8px' }}>
-                  {headerLabel}
-                </div>
-                {/* Grouped card */}
-                <div style={{ margin: '0 16px', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-                  {dayEvents.map((event, i) => {
-                    const cfg = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
-                    const timeStr = formatTime(event.date);
-                    const loc = event.location;
-                    const isLast = i === dayEvents.length - 1;
-                    return (
-                      <div
-                        key={event.id}
-                        onClick={() => setDetailEvent(event)}
-                        style={{
-                          display: 'flex', alignItems: 'center', padding: '12px 16px',
-                          borderBottom: isLast ? 'none' : `1px solid ${N.sep}`,
-                          minHeight: 60, cursor: 'pointer',
-                        }}
-                      >
-                        {/* Color dot bar */}
-                        <div style={{ width: 4, height: 44, borderRadius: 2, background: cfg.bar, marginRight: 14, flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 17, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {event.title}
-                          </div>
-                          <div style={{ fontSize: 14, color: N.text2, marginTop: 2 }}>
-                            {timeStr}{loc ? ` · ${loc}` : ''}
-                          </div>
-                        </div>
-                        <ChevronRight size={17} style={{ color: N.text3, flexShrink: 0 }} />
-                      </div>
-                    );
-                  })}
-                </div>
+          nativeGrouped.map(([dateLabel, dayEvents]) => (
+            <div key={dateLabel}>
+              {/* Date header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 20px 10px' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>{dateLabel.toUpperCase()}</span>
+                <div style={{ flex: 1, height: '1px', background: N.sep }} />
               </div>
-            );
-          })
+
+              {/* Events in this date group */}
+              <div style={{ margin: '0 20px', background: N.card, borderRadius: 16, border: '1px solid ' + N.border, overflow: 'hidden' }}>
+                {dayEvents.map((ev, i, arr) => {
+                  const cfg = TYPE_CONFIG[ev.type] || TYPE_CONFIG.other;
+                  const color = TYPE_COLORS[cfg.label] || N.accent;
+                  return (
+                    <div key={ev.id} onClick={() => setDetailEvent(ev)} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: i < arr.length - 1 ? '1px solid ' + N.sep : 'none', cursor: 'pointer' }}>
+                      <div style={{ width: 4, height: 52, borderRadius: 2, background: color, marginRight: 14, flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: N.text1, marginBottom: 3 }}>{ev.title}</div>
+                        <div style={{ fontSize: 13, color: N.text2 }}>{new Date(ev.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}{ev.location ? ' · ' + ev.location : ''}</div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: color, background: color + '20', padding: '4px 10px', borderRadius: 99, flexShrink: 0, marginLeft: 8 }}>{cfg.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
 
         {/* FAB — create event (officers only) */}
         {isOfficer && (
-          <button
-            onClick={() => setShowCreate(true)}
-            style={{
-              position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20,
-              width: 56, height: 56, borderRadius: 28, background: N.accent,
-              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)', zIndex: 50,
-            }}
-          >
-            <Plus size={24} style={{ color: '#fff' }} />
+          <button onClick={() => setShowCreate(true)} style={{ position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, boxShadow: '0 4px 24px rgba(59,130,246,0.4)' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
           </button>
         )}
 

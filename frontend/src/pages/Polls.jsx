@@ -70,11 +70,12 @@ const timeAgo = (d) => {
 
 // ─── Native design tokens ─────────────────────────────────────
 const N = {
-  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
-  sep: 'rgba(255,255,255,0.08)',
-  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
-  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
-  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+  border: 'rgba(255,255,255,0.08)',
+  accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+  text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+  sep: 'rgba(255,255,255,0.06)',
+  font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
 };
 
 export default function Polls() {
@@ -136,109 +137,79 @@ export default function Polls() {
   // ─── Native iOS layout ────────────────────────────────────────────────────
   if (isNative) {
     const [nativeTab, setNativeTab] = useState('Active');
-    const nativeTabs = ['Active', 'Closed'];
+
+    const timeRemaining = (expiresAt) => {
+      if (!expiresAt) return 'No expiry';
+      const diffMs = new Date(expiresAt) - Date.now();
+      if (diffMs <= 0) return 'Ended';
+      const diffHrs = Math.floor(diffMs / 3600000);
+      if (diffHrs < 24) return `${diffHrs}h left`;
+      return `${Math.floor(diffHrs / 24)}d left`;
+    };
 
     const nativePolls = polls.filter(p => {
       const expired = p.expiresAt && new Date(p.expiresAt) < new Date();
-      return nativeTab === 'Active' ? !expired : expired;
-    });
+      const isActive = !expired;
+      return nativeTab === 'Active' ? isActive : !isActive;
+    }).map(p => ({ ...p, isActive: !(p.expiresAt && new Date(p.expiresAt) < new Date()) }));
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
-        {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
-          Polls
-        </h1>
+      <div style={{ background: N.bg, minHeight: '100vh', fontFamily: N.font, paddingBottom: 80 }}>
+        {/* Header */}
+        <div style={{ padding: '24px 20px 0', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, color: N.text1, margin: 0, letterSpacing: -0.5 }}>Polls</h1>
+        </div>
 
         {/* Segmented control */}
-        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '8px 16px' }}>
-          {nativeTabs.map(t => (
-            <button key={t} onClick={() => setNativeTab(t)} style={{
-              flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600,
-              background: nativeTab === t ? N.elevated : 'transparent',
-              color: nativeTab === t ? N.text1 : N.text2,
-              fontFamily: N.font,
-            }}>{t}</button>
+        <div style={{ display: 'flex', background: N.card, borderRadius: 12, padding: 3, margin: '16px 20px', border: '1px solid ' + N.border }}>
+          {['Active', 'Closed'].map(t => (
+            <button key={t} onClick={() => setNativeTab(t)} style={{ flex: 1, padding: '8px 0', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, background: nativeTab === t ? N.elevated : 'transparent', color: nativeTab === t ? N.text1 : N.text2, transition: 'all 0.15s' }}>{t}</button>
           ))}
         </div>
 
         {/* Poll cards */}
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 4 }}>
           {loading ? (
             <div style={{ padding: '24px 20px', color: N.text2, fontSize: 15 }}>Loading…</div>
           ) : nativePolls.length === 0 ? (
-            <div style={{ padding: '48px 20px', textAlign: 'center', color: N.text2, fontSize: 15 }}>
-              No {nativeTab.toLowerCase()} polls
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🗳️</div>
+              <p style={{ fontSize: 17, fontWeight: 600, color: N.text1, margin: '0 0 8px' }}>No {nativeTab.toLowerCase()} polls</p>
+              <p style={{ fontSize: 14, color: N.text2 }}>{nativeTab === 'Active' ? 'Create one with the + button below' : 'Closed polls will appear here'}</p>
             </div>
           ) : (
             nativePolls.map(poll => {
-              const totalVotes = (poll.options || []).reduce((s, o) => s + (o.votes || 0), 0);
-              const myVote = voted[poll.id];
-              const expired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
-              const hasVoted = myVote !== undefined;
-
-              // Time remaining label
-              let timeLabel = 'Open';
-              if (expired) {
-                timeLabel = 'Closed';
-              } else if (poll.expiresAt) {
-                const diffMs = new Date(poll.expiresAt) - Date.now();
-                const diffHrs = Math.floor(diffMs / 3600000);
-                if (diffHrs < 24) timeLabel = `${diffHrs}h left`;
-                else timeLabel = `${Math.floor(diffHrs / 24)}d left`;
-              }
-
+              const total = (poll.options || []).reduce((s, o) => s + (o.votes || 0), 0);
               return (
-                <div key={poll.id} style={{ margin: '0 16px 16px', background: N.card, borderRadius: 14, padding: '16px' }}>
-                  {/* Question + meta */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <div style={{ fontSize: 17, fontWeight: 600, color: N.text1, flex: 1, marginRight: 8, lineHeight: 1.4 }}>
-                      {poll.question}
-                    </div>
+                <div key={poll.id} style={{ margin: '0 20px 16px', background: N.card, borderRadius: 16, border: '1px solid ' + N.border, padding: '20px' }}>
+                  {/* Status + time */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: poll.isActive ? N.success : N.text3, background: poll.isActive ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.06)', padding: '4px 10px', borderRadius: 99 }}>{poll.isActive ? 'ACTIVE' : 'CLOSED'}</span>
+                    <span style={{ fontSize: 12, color: N.text3 }}>{poll.isActive ? timeRemaining(poll.expiresAt) : 'Ended'}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: N.text3, marginBottom: 14 }}>
-                    {totalVotes} vote{totalVotes !== 1 ? 's' : ''} · {timeLabel}
-                  </div>
+
+                  {/* Question */}
+                  <div style={{ fontSize: 18, fontWeight: 700, color: N.text1, marginBottom: 16, lineHeight: 1.35 }}>{poll.question}</div>
 
                   {/* Options */}
                   {(poll.options || []).map((opt, i) => {
-                    const pct = totalVotes > 0 ? Math.round(((opt.votes || 0) / totalVotes) * 100) : 0;
-                    const isMyVote = myVote === i;
-                    const canVote = !hasVoted && !expired;
+                    const pct = total > 0 ? Math.round(((opt.votes || 0) / total) * 100) : 0;
+                    const isVoted = voted[poll.id] === i;
                     return (
-                      <button
-                        key={i}
-                        onClick={() => canVote && handleVote(poll.id, i)}
-                        style={{
-                          width: '100%',
-                          background: hasVoted
-                            ? (isMyVote ? 'rgba(10,132,255,0.15)' : N.elevated)
-                            : N.elevated,
-                          border: hasVoted && isMyVote
-                            ? '1px solid rgba(10,132,255,0.4)'
-                            : '1px solid transparent',
-                          borderRadius: 10,
-                          padding: '12px 14px',
-                          marginBottom: 8,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          cursor: canVote ? 'pointer' : 'default',
-                          fontFamily: N.font,
-                        }}
-                      >
-                        <span style={{ fontSize: 15, color: N.text1 }}>
-                          {opt.label || opt.text || `Option ${i + 1}`}
-                        </span>
-                        {hasVoted && (
-                          <span style={{ fontSize: 14, color: isMyVote ? N.accent : N.text2, fontWeight: 600 }}>
-                            {pct}%
-                          </span>
-                        )}
+                      <button key={i} onClick={() => !voted[poll.id] && poll.isActive && handleVote(poll.id, i)} style={{ width: '100%', display: 'block', background: 'transparent', border: 'none', padding: '0 0 10px', cursor: !voted[poll.id] && poll.isActive ? 'pointer' : 'default' }}>
+                        <div style={{ position: 'relative', background: isVoted ? 'rgba(59,130,246,0.12)' : N.elevated, border: isVoted ? '1px solid rgba(59,130,246,0.35)' : '1px solid ' + N.border, borderRadius: 12, overflow: 'hidden', padding: '13px 14px' }}>
+                          {/* Progress fill */}
+                          {voted[poll.id] !== undefined && <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: pct + '%', background: isVoted ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.04)', transition: 'width 0.4s ease' }} />}
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 15, color: isVoted ? N.accent : N.text1, fontWeight: isVoted ? 700 : 400 }}>{opt.text || opt.label || `Option ${i + 1}`}</span>
+                            {voted[poll.id] !== undefined && <span style={{ fontSize: 14, fontWeight: 700, color: isVoted ? N.accent : N.text2 }}>{pct}%</span>}
+                          </div>
+                        </div>
                       </button>
                     );
                   })}
+
+                  <div style={{ fontSize: 12, color: N.text3, marginTop: 4 }}>{total} vote{total !== 1 ? 's' : ''}</div>
                 </div>
               );
             })
@@ -247,16 +218,8 @@ export default function Polls() {
 
         {/* FAB — create poll (admin only) */}
         {isAdmin && (
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20,
-              width: 56, height: 56, borderRadius: 28, background: N.accent,
-              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)', zIndex: 50,
-            }}
-          >
-            <Plus size={24} style={{ color: '#fff' }} />
+          <button onClick={() => setShowModal(true)} style={{ position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 24px rgba(59,130,246,0.4)', zIndex: 50 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
           </button>
         )}
 

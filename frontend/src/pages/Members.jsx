@@ -710,146 +710,99 @@ export default function Members() {
 
   // ── NATIVE BRANCH ──────────────────────────────────────────────
   if (isNative) {
-    const nativeTabs = ['All', ...ROLES.map(r => ROLE_CONFIG[r]?.label || r)];
-    const activeTabLabel = roleFilter === 'all' ? 'All' : (ROLE_CONFIG[roleFilter]?.label || roleFilter);
-
-    const handleNativeTabSelect = (tabLabel) => {
-      impact?.('light');
-      if (tabLabel === 'All') {
-        setRoleFilter('all');
-      } else {
-        const role = ROLES.find(r => ROLE_CONFIG[r]?.label === tabLabel) || tabLabel.toLowerCase();
-        setRoleFilter(role);
-      }
+    const NN = {
+      bg: '#080C14',
+      card: '#111827',
+      elevated: '#1E2A3A',
+      border: 'rgba(255,255,255,0.08)',
+      accent: '#3B82F6',
+      gold: '#F59E0B',
+      success: '#10B981',
+      danger: '#EF4444',
+      purple: '#8B5CF6',
+      text1: '#FFFFFF',
+      text2: 'rgba(255,255,255,0.55)',
+      text3: 'rgba(255,255,255,0.28)',
+      sep: 'rgba(255,255,255,0.06)',
+      font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
     };
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 32, fontFamily: N.font }}>
+      <div style={{ background: NN.bg, minHeight: '100vh', fontFamily: NN.font, paddingBottom: 80 }}>
 
-        {/* Large title + count */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 2px', letterSpacing: -0.5, fontFamily: N.font }}>
-          Members
-        </h1>
-        <p style={{ fontSize: 14, color: N.text2, margin: 0, padding: '0 20px 12px', fontFamily: N.font }}>
-          {members.length} {members.length === 1 ? 'member' : 'members'}
-        </p>
+        {/* Header */}
+        <div style={{ padding: '24px 20px 0', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: 34, fontWeight: 800, color: NN.text1, margin: 0, letterSpacing: -0.5 }}>Members</h1>
+            <p style={{ fontSize: 14, color: NN.text2, margin: '4px 0 0' }}>{members.length} total</p>
+          </div>
+        </div>
 
-        {/* iOS search bar */}
-        <div style={{ padding: '8px 16px' }}>
-          <div style={{ background: N.card, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Search size={16} style={{ color: N.text3, flexShrink: 0 }} />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search"
-              style={{ background: 'none', border: 'none', color: N.text1, fontSize: 16, flex: 1, outline: 'none', fontFamily: N.font }}
-            />
-            {search ? (
-              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
-                <X size={14} style={{ color: N.text3 }} />
+        {/* Search bar */}
+        <div style={{ padding: '16px 20px 8px' }}>
+          <div style={{ background: NN.card, borderRadius: 12, padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 10, border: '1px solid ' + NN.border }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search members…" style={{ background: 'none', border: 'none', color: NN.text1, fontSize: 16, flex: 1, outline: 'none' }} />
+          </div>
+        </div>
+
+        {/* Filter pills */}
+        <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {['All', 'Admin', 'Officer', 'Member', 'Pledge', 'Alumni'].map(f => {
+            const filterVal = f === 'All' ? 'all' : f.toLowerCase();
+            const active = roleFilter === filterVal;
+            return (
+              <button key={f} onClick={() => { impact?.('light'); setRoleFilter(filterVal); }} style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 99, border: active ? 'none' : '1px solid ' + NN.border, background: active ? NN.accent : 'transparent', color: active ? '#fff' : NN.text2, fontSize: 14, fontWeight: active ? 700 : 400, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {f}
               </button>
-            ) : null}
-          </div>
+            );
+          })}
         </div>
-
-        {/* iOS segmented control */}
-        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '8px 16px 0' }}>
-          {nativeTabs.map(t => (
-            <button
-              key={t}
-              onClick={() => handleNativeTabSelect(t)}
-              style={{
-                flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: 600,
-                background: activeTabLabel === t ? N.elevated : 'transparent',
-                color: activeTabLabel === t ? N.text1 : N.text2,
-                fontFamily: N.font,
-              }}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        {/* Add Member button (admin only) */}
-        {isAdmin && (
-          <div style={{ padding: '16px 16px 0' }}>
-            <button
-              onClick={() => { impact?.('medium'); setShowAdd(true); }}
-              style={{ background: N.accent, color: '#fff', border: 'none', borderRadius: 14, padding: '16px 20px', fontSize: 17, fontWeight: 600, width: '100%', cursor: 'pointer', fontFamily: N.font }}
-            >
-              Add Member
-            </button>
-          </div>
-        )}
 
         {/* Member list */}
-        <div style={{ padding: '20px 16px 0' }}>
-          {loading ? (
-            <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-              {Array(6).fill(0).map((_, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', minHeight: 60, borderBottom: i < 5 ? `1px solid ${N.sep}` : 'none', gap: 14 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 21, background: N.elevated, flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ height: 14, width: 130, background: N.elevated, borderRadius: 4, marginBottom: 8 }} />
-                    <div style={{ height: 12, width: 90, background: N.elevated, borderRadius: 4 }} />
+        <div style={{ padding: '0 20px' }}>
+          <div style={{ background: NN.card, borderRadius: 16, border: '1px solid ' + NN.border, overflow: 'hidden' }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: '48px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+                <p style={{ fontSize: 16, color: NN.text1, fontWeight: 600, margin: '0 0 6px' }}>No members found</p>
+                <p style={{ fontSize: 14, color: NN.text2, margin: 0 }}>Try a different search or filter</p>
+              </div>
+            ) : filtered.map((m, i, arr) => {
+              const AVATAR_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'];
+              const ac = AVATAR_COLORS[(m.firstName + m.lastName).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
+              const ROLE_BADGES = {
+                admin:   { color: NN.accent,   bg: 'rgba(59,130,246,0.15)',  label: 'Admin'   },
+                officer: { color: NN.purple,   bg: 'rgba(139,92,246,0.15)', label: 'Officer' },
+                member:  { color: '#64748B',   bg: 'rgba(100,116,139,0.15)', label: 'Member'  },
+                pledge:  { color: NN.success,  bg: 'rgba(16,185,129,0.15)', label: 'Pledge'  },
+                alumni:  { color: NN.gold,     bg: 'rgba(245,158,11,0.15)', label: 'Alumni'  },
+              };
+              const rb = ROLE_BADGES[m.role] || ROLE_BADGES.member;
+              return (
+                <div key={m.id} onClick={() => { impact?.('light'); setSelectedMember(m); }} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: i < arr.length - 1 ? '1px solid ' + NN.sep : 'none', cursor: 'pointer' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 24, background: ac, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14, fontWeight: 700, fontSize: 17, color: '#fff' }}>
+                    {(m.firstName?.[0] || '') + (m.lastName?.[0] || '')}
                   </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: NN.text1, marginBottom: 2 }}>{m.firstName} {m.lastName}</div>
+                    <div style={{ fontSize: 13, color: NN.text2 }}>{[m.major, m.year].filter(Boolean).join(' · ') || m.email}</div>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: rb.color, background: rb.bg, padding: '4px 10px', borderRadius: 99, marginLeft: 8, flexShrink: 0 }}>{rb.label}</span>
                 </div>
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div style={{ background: N.card, borderRadius: 14, padding: '40px 24px', textAlign: 'center' }}>
-              <Users size={36} style={{ color: N.text3, margin: '0 auto 12px', display: 'block' }} />
-              <p style={{ fontSize: 16, fontWeight: 600, color: N.text2, margin: '0 0 4px', fontFamily: N.font }}>
-                {search || roleFilter !== 'all' ? 'No matches' : 'No members yet'}
-              </p>
-              <p style={{ fontSize: 14, color: N.text3, margin: 0, fontFamily: N.font }}>
-                {search || roleFilter !== 'all' ? 'Try adjusting your search or filter' : 'Add your first member to get started'}
-              </p>
-            </div>
-          ) : (
-            <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-              {filtered.map((m, i) => {
-                const avatarColor = getNativeAvatarColor(m.firstName + m.lastName);
-                const init = initials(m.firstName, m.lastName);
-                const subtitle = [
-                  ROLE_CONFIG[m.role]?.label || m.role,
-                  m.major || m.position || m.pledgeClass,
-                ].filter(Boolean).join(' · ');
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => { impact?.('light'); setSelectedMember(m); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', padding: '10px 16px', minHeight: 60,
-                      borderBottom: i < filtered.length - 1 ? `1px solid ${N.sep}` : 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {m.avatarUrl ? (
-                      <img src={m.avatarUrl} alt="" style={{ width: 42, height: 42, borderRadius: 21, objectFit: 'cover', flexShrink: 0, marginRight: 14 }} />
-                    ) : (
-                      <div style={{ width: 42, height: 42, borderRadius: 21, background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
-                        <span style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>{init}</span>
-                      </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 17, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: N.font }}>
-                        {m.firstName} {m.lastName}
-                      </div>
-                      <div style={{ fontSize: 14, color: N.text2, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: N.font }}>
-                        {subtitle}
-                      </div>
-                    </div>
-                    <ChevronRight size={17} style={{ color: N.text3, flexShrink: 0 }} />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
 
-        {/* Modals render normally — full-screen overlays work on native */}
+        {/* FAB (admin only) */}
+        {isAdmin && (
+          <button onClick={() => { impact?.('medium'); setShowAdd(true); }} style={{ position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20, width: 56, height: 56, borderRadius: 28, background: NN.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, boxShadow: '0 4px 20px rgba(59,130,246,0.45)' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        )}
+
+        {/* Modals */}
         <AddMemberModal isOpen={showAdd} onClose={() => setShowAdd(false)} onSave={(m) => setMembers(prev => [m, ...prev])} />
         <MemberProfileModal
           member={selectedMember}

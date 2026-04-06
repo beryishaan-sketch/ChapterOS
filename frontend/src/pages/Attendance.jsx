@@ -183,77 +183,86 @@ export default function Attendance() {
 
   // ─── Native iOS layout ──────────────────────────────────────────────────────
   if (isNative) {
+    const NA = {
+      bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+      border: 'rgba(255,255,255,0.08)',
+      accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+      text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+      sep: 'rgba(255,255,255,0.06)',
+      font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
+    };
+
     const nativeFilteredMembers = members.filter(m =>
       !search || `${m.firstName} ${m.lastName}`.toLowerCase().includes(search.toLowerCase())
     );
     const nativeAttendedCount = Object.values(attendance).filter(Boolean).length;
     const nativeRate = members.length > 0 ? Math.round((nativeAttendedCount / members.length) * 100) : 0;
-    const rateColor = nativeRate >= 80 ? N.success : nativeRate >= 60 ? N.warning : N.danger;
+    const nativeRateColor = nativeRate >= 80 ? NA.success : nativeRate >= 60 ? NA.gold : NA.danger;
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+      <div style={{ background: NA.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: NA.font }}>
         {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Attendance</h1>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: NA.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Attendance</h1>
 
         {/* Segmented control: Checklist / History */}
-        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '10px 16px 0' }}>
-          {['checklist', 'history'].map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: tab === t ? N.elevated : 'transparent', color: tab === t ? N.text1 : N.text2, textTransform: 'capitalize' }}>{t === 'checklist' ? 'Checklist' : 'History'}</button>
+        <div style={{ display: 'flex', background: NA.card, borderRadius: 10, padding: 3, margin: '10px 20px 0', border: '1px solid ' + NA.border }}>
+          {[['checklist', 'Checklist'], ['history', 'History']].map(([t, label]) => (
+            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, background: tab === t ? NA.elevated : 'transparent', color: tab === t ? NA.text1 : NA.text2, transition: 'all 0.15s' }}>{label}</button>
           ))}
         </div>
 
         {tab === 'checklist' && (
           <>
-            {/* iOS-style event picker */}
-            <div style={{ padding: '14px 16px 0' }}>
-              <div style={{ background: N.card, borderRadius: 10, padding: '2px 12px', display: 'flex', alignItems: 'center' }}>
+            {/* Dark event picker */}
+            <div style={{ margin: '14px 20px 0' }}>
+              <div style={{ background: NA.card, borderRadius: 12, border: '1px solid ' + NA.border, padding: '2px 14px', display: 'flex', alignItems: 'center' }}>
                 <select
                   value={selectedEvent}
                   onChange={e => setSelectedEvent(e.target.value)}
                   disabled={eventsLoading}
-                  style={{ background: 'none', border: 'none', color: selectedEvent ? N.text1 : N.text3, fontSize: 16, flex: 1, outline: 'none', padding: '12px 0', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                  style={{ background: 'none', border: 'none', color: selectedEvent ? NA.text1 : NA.text3, fontSize: 16, flex: 1, outline: 'none', padding: '12px 0', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
                 >
                   <option value="">Choose an event…</option>
                   {events.map(ev => (
-                    <option key={ev.id} value={ev.id} style={{ background: N.card, color: N.text1 }}>
+                    <option key={ev.id} value={ev.id} style={{ background: NA.card, color: NA.text1 }}>
                       {ev.title} — {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </option>
                   ))}
                 </select>
-                <ChevronDown size={16} style={{ color: N.text3, flexShrink: 0, pointerEvents: 'none' }} />
+                <ChevronDown size={16} color={NA.text3} style={{ flexShrink: 0, pointerEvents: 'none' }} />
               </div>
             </div>
 
             {selectedEvent && (
               <>
-                {/* Stats row */}
-                <div style={{ padding: '14px 16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                {/* 3-col stats */}
+                <div style={{ padding: '14px 20px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   {[
-                    { label: 'Present', value: nativeAttendedCount, color: N.success },
-                    { label: 'Absent', value: members.length - nativeAttendedCount, color: N.danger },
-                    { label: 'Rate', value: `${nativeRate}%`, color: rateColor },
+                    { label: 'Present', value: nativeAttendedCount, color: NA.success },
+                    { label: 'Absent',  value: members.length - nativeAttendedCount, color: NA.danger },
+                    { label: 'Rate',    value: `${nativeRate}%`, color: nativeRateColor },
                   ].map(({ label, value, color }) => (
-                    <div key={label} style={{ background: N.card, borderRadius: 14, padding: '14px 12px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 24, fontWeight: 700, color, letterSpacing: -0.5 }}>{value}</div>
-                      <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>{label}</div>
+                    <div key={label} style={{ background: NA.card, borderRadius: 14, border: '1px solid ' + NA.border, padding: '14px 10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color, letterSpacing: -0.5 }}>{value}</div>
+                      <div style={{ fontSize: 12, color: NA.text2, marginTop: 4 }}>{label}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Search */}
-                <div style={{ padding: '10px 16px 0' }}>
-                  <div style={{ background: N.card, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Search size={16} style={{ color: N.text3, flexShrink: 0 }} />
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search" style={{ background: 'none', border: 'none', color: N.text1, fontSize: 16, flex: 1, outline: 'none' }} />
+                <div style={{ margin: '10px 20px 0' }}>
+                  <div style={{ background: NA.card, borderRadius: 12, border: '1px solid ' + NA.border, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Search size={16} color={NA.text3} style={{ flexShrink: 0 }} />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search" style={{ background: 'none', border: 'none', color: NA.text1, fontSize: 16, flex: 1, outline: 'none' }} />
                   </div>
                 </div>
 
                 {/* Member toggle list */}
-                <div style={{ margin: '14px 16px 0', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ margin: '14px 20px 0', background: NA.card, borderRadius: 16, border: '1px solid ' + NA.border, overflow: 'hidden' }}>
                   {loading ? (
-                    <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
+                    <div style={{ padding: '40px 16px', textAlign: 'center', color: NA.text3, fontSize: 14 }}>Loading…</div>
                   ) : nativeFilteredMembers.length === 0 ? (
-                    <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No members found</div>
+                    <div style={{ padding: '40px 16px', textAlign: 'center', color: NA.text3, fontSize: 14 }}>No members found</div>
                   ) : nativeFilteredMembers.map((m, idx) => {
                     const isPresent = attendance[m.id] || false;
                     const aColor = avatarColor((m.firstName || '') + (m.lastName || ''));
@@ -261,17 +270,17 @@ export default function Attendance() {
                     return (
                       <div
                         key={m.id}
-                        style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', minHeight: 56, borderBottom: idx < nativeFilteredMembers.length - 1 ? `1px solid ${N.sep}` : 'none', background: isPresent ? 'rgba(48,209,88,0.06)' : 'transparent' }}
+                        style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', minHeight: 58, borderBottom: idx < nativeFilteredMembers.length - 1 ? '1px solid ' + NA.sep : 'none', background: isPresent ? 'rgba(16,185,129,0.06)' : NA.card }}
                       >
                         <div style={{ width: 40, height: 40, borderRadius: 20, background: aColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
-                          <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{init}</span>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{init}</span>
                         </div>
-                        <span style={{ flex: 1, fontSize: 16, color: N.text1 }}>{m.firstName} {m.lastName}</span>
+                        <span style={{ flex: 1, fontSize: 16, color: NA.text1 }}>{m.firstName} {m.lastName}</span>
                         {saving === m.id ? (
-                          <div style={{ width: 36, height: 36, borderRadius: 18, border: `2px solid ${N.elevated}`, borderTopColor: N.accent, animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                          <div style={{ width: 36, height: 36, borderRadius: 18, border: '2px solid ' + NA.elevated, borderTopColor: NA.accent, animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
                         ) : (
-                          <button onClick={() => toggleAttendance(m.id)} style={{ width: 36, height: 36, borderRadius: 18, background: isPresent ? N.success : N.elevated, border: 'none', cursor: isAdmin ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {isPresent ? <Check size={18} style={{ color: '#fff' }} /> : <span style={{ width: 2 }} />}
+                          <button onClick={() => toggleAttendance(m.id)} style={{ width: 36, height: 36, borderRadius: 18, background: isPresent ? NA.success : NA.elevated, border: 'none', cursor: isAdmin ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s' }}>
+                            {isPresent && <Check size={18} color="#fff" />}
                           </button>
                         )}
                       </div>
@@ -283,8 +292,8 @@ export default function Attendance() {
 
             {!selectedEvent && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', textAlign: 'center' }}>
-                <CalendarDays size={48} style={{ color: N.text3, marginBottom: 12 }} />
-                <p style={{ fontSize: 14, color: N.text3 }}>Select an event to take attendance</p>
+                <CalendarDays size={48} color={NA.text3} style={{ marginBottom: 12 }} />
+                <p style={{ fontSize: 14, color: NA.text3, margin: 0 }}>Select an event to take attendance</p>
               </div>
             )}
           </>
@@ -293,23 +302,23 @@ export default function Attendance() {
         {tab === 'history' && (
           <div style={{ marginTop: 14 }}>
             {historyLoading ? (
-              <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
+              <div style={{ padding: '40px 16px', textAlign: 'center', color: NA.text3, fontSize: 14 }}>Loading…</div>
             ) : history.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0', textAlign: 'center' }}>
-                <History size={48} style={{ color: N.text3, marginBottom: 12 }} />
-                <p style={{ fontSize: 14, color: N.text3 }}>No attendance history yet</p>
+                <History size={48} color={NA.text3} style={{ marginBottom: 12 }} />
+                <p style={{ fontSize: 14, color: NA.text3, margin: 0 }}>No attendance history yet</p>
               </div>
             ) : (
-              <div style={{ background: N.card, borderRadius: 14, margin: '0 16px', overflow: 'hidden' }}>
+              <div style={{ background: NA.card, borderRadius: 16, border: '1px solid ' + NA.border, margin: '0 20px', overflow: 'hidden' }}>
                 {history.map((row, idx) => {
                   const rate = row.total > 0 ? Math.round((row.attended / row.total) * 100) : 0;
-                  const rColor = rate >= 80 ? N.success : rate >= 60 ? N.warning : N.danger;
+                  const rColor = rate >= 80 ? NA.success : rate >= 60 ? NA.gold : NA.danger;
                   const dateStr = row.date ? new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
                   return (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: idx < history.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: idx < history.length - 1 ? '1px solid ' + NA.sep : 'none' }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 16, color: N.text1, fontWeight: 600 }}>{row.eventTitle}</div>
-                        <div style={{ fontSize: 13, color: N.text2, marginTop: 2 }}>{dateStr} · {row.attended}/{row.total} attended</div>
+                        <div style={{ fontSize: 16, color: NA.text1, fontWeight: 600 }}>{row.eventTitle}</div>
+                        <div style={{ fontSize: 13, color: NA.text2, marginTop: 2 }}>{dateStr} · {row.attended}/{row.total} attended</div>
                       </div>
                       <span style={{ fontSize: 15, fontWeight: 700, color: rColor }}>{rate}%</span>
                     </div>

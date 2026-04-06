@@ -109,11 +109,12 @@ const avatarPalette = (name) => AVATAR_PALETTES[(name?.charCodeAt(0) || 0) % AVA
 
 // ─── Native design tokens ─────────────────────────────────────────────────────
 const N = {
-  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
-  sep: 'rgba(255,255,255,0.08)',
-  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
-  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
-  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+  border: 'rgba(255,255,255,0.08)',
+  accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+  text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+  sep: 'rgba(255,255,255,0.06)',
+  font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -190,46 +191,41 @@ export default function Announcements() {
     });
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
-        {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
-          Announcements
-        </h1>
+      <div style={{ background: N.bg, minHeight: '100vh', fontFamily: N.font, paddingBottom: 80 }}>
+        {/* Header */}
+        <div style={{ padding: '24px 20px 0', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, color: N.text1, margin: 0, letterSpacing: -0.5 }}>Announcements</h1>
+        </div>
 
         {/* Announcement cards */}
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 16 }}>
           {sorted.length === 0 ? (
-            <div style={{ padding: '48px 20px', textAlign: 'center', color: N.text2, fontSize: 15 }}>
-              No announcements yet
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📣</div>
+              <p style={{ fontSize: 17, fontWeight: 600, color: N.text1, margin: '0 0 8px' }}>No announcements</p>
+              <p style={{ fontSize: 14, color: N.text2 }}>Post one with the + button below</p>
             </div>
           ) : (
             sorted.map(ann => {
               const palette = avatarPalette(ann.author?.firstName);
               const inits = initials(ann.author?.firstName, ann.author?.lastName);
+              const author = `${ann.author?.firstName || ''} ${ann.author?.lastName || ''}`.trim() || 'Unknown';
+              const ago = timeAgo(ann.createdAt);
               return (
-                <div key={ann.id} style={{ margin: '0 16px 12px', background: N.card, borderRadius: 14, padding: '16px' }}>
-                  {/* Author row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 18, background: palette.bg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: palette.color }}>{inits}</span>
+                <div key={ann.id} style={{ margin: '0 20px 12px', borderRadius: 16, border: ann.pinned ? '1px solid rgba(245,158,11,0.3)' : '1px solid ' + N.border, padding: '16px', background: ann.pinned ? 'rgba(245,158,11,0.05)' : N.card }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                    {/* Avatar */}
+                    <div style={{ width: 38, height: 38, borderRadius: 19, background: palette.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 700, fontSize: 14, color: palette.color }}>
+                      {inits}
                     </div>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: N.text1 }}>
-                        {ann.author?.firstName} {ann.author?.lastName}
-                      </div>
-                      <div style={{ fontSize: 12, color: N.text3 }}>{timeAgo(ann.createdAt)}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: N.text1 }}>{author}</div>
+                      <div style={{ fontSize: 12, color: N.text3 }}>{ago}</div>
                     </div>
-                    {ann.pinned && (
-                      <span style={{ marginLeft: 'auto', fontSize: 11, color: N.warning, fontWeight: 600 }}>PINNED</span>
-                    )}
+                    {ann.pinned && <span style={{ fontSize: 11, fontWeight: 700, color: N.gold }}>PINNED</span>}
                   </div>
-                  {/* Title */}
-                  <div style={{ fontSize: 17, fontWeight: 600, color: N.text1, marginBottom: 6 }}>{ann.title}</div>
-                  {/* Body */}
-                  <div style={{ fontSize: 15, color: N.text2, lineHeight: 1.5 }}>{ann.body}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: N.text1, marginBottom: 6 }}>{ann.title}</div>
+                  <div style={{ fontSize: 14, color: N.text2, lineHeight: 1.5 }}>{ann.body || ann.content}</div>
                 </div>
               );
             })
@@ -238,16 +234,8 @@ export default function Announcements() {
 
         {/* FAB — post announcement (admin only) */}
         {isAdmin && (
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20,
-              width: 56, height: 56, borderRadius: 28, background: N.accent,
-              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)', zIndex: 50,
-            }}
-          >
-            <Plus size={24} style={{ color: '#fff' }} />
+          <button onClick={() => setShowModal(true)} style={{ position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 24px rgba(59,130,246,0.4)', zIndex: 50 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
           </button>
         )}
 

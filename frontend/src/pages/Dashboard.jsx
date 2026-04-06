@@ -189,128 +189,95 @@ export default function Dashboard() {
 
   // ── NATIVE BRANCH ────────────────────────────────────────────
   if (isNative) {
-    const greetingTitle = user?.firstName
-      ? `${greeting()}, ${user.firstName}`
-      : 'Home';
+    const NN = {
+      bg: '#080C14',
+      card: '#111827',
+      elevated: '#1E2A3A',
+      border: 'rgba(255,255,255,0.08)',
+      accent: '#3B82F6',
+      gold: '#F59E0B',
+      success: '#10B981',
+      danger: '#EF4444',
+      purple: '#8B5CF6',
+      text1: '#FFFFFF',
+      text2: 'rgba(255,255,255,0.55)',
+      text3: 'rgba(255,255,255,0.28)',
+      sep: 'rgba(255,255,255,0.06)',
+      font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
+    };
 
-    const upcomingEvents = events.slice(0, 3);
+    const getTimeOfDay = () => {
+      const h = new Date().getHours();
+      return h < 12 ? 'Good morning,' : h < 17 ? 'Good afternoon,' : 'Good evening,';
+    };
+
+    const upcomingEvents = events.slice(0, 4);
     const recentActivity = activity.slice(0, 2);
 
-    const nativeQuickActions = [
-      { label: 'Add Event',     icon: CalendarDays, color: N.accent,   to: '/events'    },
-      { label: 'Message',       icon: MessageSquare, color: N.success,  to: '/channels'  },
-      { label: 'Invite Member', icon: UserPlus,     color: N.warning,  to: '/members'   },
-      { label: 'View Dues',     icon: DollarSign,   color: N.danger,   to: '/dues'      },
-    ];
-
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+      <div style={{ background: NN.bg, minHeight: '100vh', fontFamily: NN.font, paddingBottom: 20 }}>
 
-        {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5, fontFamily: N.font }}>
-          {greetingTitle}
-        </h1>
-        {org?.name && (
-          <p style={{ fontSize: 14, color: N.text2, margin: 0, padding: '0 20px 8px', fontFamily: N.font }}>
-            {org.name}
-          </p>
-        )}
+        {/* Greeting header */}
+        <div style={{ padding: '24px 20px 8px' }}>
+          <p style={{ fontSize: 15, color: NN.text2, margin: '0 0 4px', fontWeight: 500 }}>{getTimeOfDay()}</p>
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: NN.text1, margin: 0, letterSpacing: -0.5 }}>
+            {user?.firstName || 'Welcome'} <span style={{ background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>👋</span>
+          </h1>
+        </div>
 
         {/* 2×2 stat grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 20px 0' }}>
           {[
-            { label: 'Members',       value: loading ? '—' : (stats?.totalMembers ?? '—'),          to: '/members'    },
-            { label: 'Events This Mo', value: loading ? '—' : (stats?.upcomingEvents ?? '—'),        to: '/events'     },
-            { label: 'Active PNMs',   value: loading ? '—' : (stats?.activePNMs ?? '—'),            to: '/recruitment' },
-            { label: 'Dues Rate',     value: loading ? '—' : `${stats?.duesRate ?? 0}%`,            to: '/dues'       },
-          ].map(({ label, value, to }) => (
-            <div
-              key={label}
-              onClick={() => { impact?.('light'); navigate(to); }}
-              style={{ background: N.card, borderRadius: 14, padding: '16px 16px 14px', cursor: 'pointer' }}
-            >
-              <div style={{ fontSize: 30, fontWeight: 700, color: N.text1, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
-              <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>{label}</div>
+            { label: 'Members',  value: stats?.totalMembers ?? '—',                      color: NN.accent,  icon: '👥' },
+            { label: 'Events',   value: stats?.eventsThisMonth ?? '—',                   color: NN.purple,  icon: '📅' },
+            { label: 'PNMs',     value: stats?.activePNMs ?? '—',                        color: NN.gold,    icon: '⭐' },
+            { label: 'Dues Rate', value: stats?.duesRate ? stats.duesRate + '%' : '—',   color: NN.success, icon: '💚' },
+          ].map(s => (
+            <div key={s.label} style={{ background: NN.card, borderRadius: 16, border: '1px solid ' + NN.border, padding: '18px 16px' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: s.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, marginBottom: 12 }}>{s.icon}</div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: NN.text1, letterSpacing: -0.5, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 13, color: NN.text2, marginTop: 5 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* UPCOMING section */}
-        <div style={{ padding: '28px 16px 0' }}>
-          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>UPCOMING</div>
-          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+        {/* Upcoming Events */}
+        <div style={{ padding: '28px 20px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: NN.text3, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Upcoming</span>
+            <span style={{ fontSize: 13, color: NN.accent }}>See all →</span>
+          </div>
+          <div style={{ background: NN.card, borderRadius: 16, border: '1px solid ' + NN.border, overflow: 'hidden' }}>
             {upcomingEvents.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', minHeight: 50, padding: '10px 16px' }}>
-                <span style={{ fontSize: 15, color: N.text2 }}>No upcoming events</span>
-              </div>
-            ) : upcomingEvents.map((e, i) => (
-              <div
-                key={e.id}
-                onClick={() => { impact?.('light'); navigate('/events'); }}
-                style={{
-                  display: 'flex', alignItems: 'center', minHeight: 50, padding: '12px 16px',
-                  borderBottom: i < upcomingEvents.length - 1 ? `1px solid ${N.sep}` : 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 17, color: N.text1 }}>{e.title}</div>
-                  <div style={{ fontSize: 13, color: N.text2, marginTop: 2 }}>{fmtDate(e.date)}</div>
+              <div style={{ padding: '24px', textAlign: 'center', color: NN.text3, fontSize: 14 }}>No upcoming events</div>
+            ) : upcomingEvents.map((ev, i, arr) => {
+              const typeColors = { Mixer: NN.accent, Social: NN.purple, Meeting: NN.success, Formal: NN.gold, Other: '#64748B' };
+              const color = typeColors[ev.type] || NN.accent;
+              return (
+                <div key={ev.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: i < arr.length - 1 ? '1px solid ' + NN.sep : 'none' }}>
+                  <div style={{ width: 4, height: 44, borderRadius: 2, background: color, marginRight: 14, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: NN.text1 }}>{ev.title || ev.name}</div>
+                    <div style={{ fontSize: 13, color: NN.text2, marginTop: 2 }}>{new Date(ev.startDate || ev.date).toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: color, background: color + '20', padding: '3px 10px', borderRadius: 99 }}>{ev.type || 'Event'}</span>
                 </div>
-                <ChevronRight size={17} style={{ color: N.text3 }} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* ANNOUNCEMENTS section — using recent activity as announcements */}
-        <div style={{ padding: '28px 16px 0' }}>
-          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>ANNOUNCEMENTS</div>
-          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-            {recentActivity.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', minHeight: 50, padding: '10px 16px' }}>
-                <span style={{ fontSize: 15, color: N.text2 }}>No recent activity</span>
-              </div>
-            ) : recentActivity.map((item, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex', alignItems: 'center', minHeight: 50, padding: '12px 16px',
-                  borderBottom: i < recentActivity.length - 1 ? `1px solid ${N.sep}` : 'none',
-                  cursor: 'default',
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 17, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.message}</div>
-                  <div style={{ fontSize: 13, color: N.text2, marginTop: 2 }}>{timeAgo(item.createdAt)}</div>
-                </div>
-                <ChevronRight size={17} style={{ color: N.text3 }} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* QUICK ACTIONS section — 2×2 grid */}
-        <div style={{ padding: '28px 16px 0' }}>
-          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>QUICK ACTIONS</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {nativeQuickActions.map(({ label, icon: Icon, color, to }) => (
-              <div
-                key={label}
-                onClick={() => { impact?.('light'); navigate(to); }}
-                style={{
-                  background: N.card, borderRadius: 14, padding: '18px 16px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  gap: 10, cursor: 'pointer', minHeight: 90,
-                }}
-              >
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={20} color={color} strokeWidth={2} />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: N.text1, textAlign: 'center', fontFamily: N.font }}>{label}</span>
-              </div>
-            ))}
-          </div>
+        {/* Recent Announcements */}
+        <div style={{ padding: '24px 20px 0' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: NN.text3, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 14 }}>Announcements</span>
+          {recentActivity.length === 0 ? (
+            <div style={{ background: NN.card, borderRadius: 16, border: '1px solid ' + NN.border, padding: '24px', textAlign: 'center', color: NN.text3, fontSize: 14 }}>No recent announcements</div>
+          ) : recentActivity.map((item, i) => (
+            <div key={i} style={{ background: NN.card, borderRadius: 16, border: '1px solid ' + NN.border, padding: '16px', marginBottom: 10 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: NN.text1, marginBottom: 4 }}>{item.title || item.action || item.message}</div>
+              <div style={{ fontSize: 13, color: NN.text2 }}>{item.description || item.detail || timeAgo(item.createdAt)}</div>
+            </div>
+          ))}
         </div>
 
       </div>

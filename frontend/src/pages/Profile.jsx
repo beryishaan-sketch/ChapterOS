@@ -88,74 +88,70 @@ export default function Profile() {
     fontSize: 15, boxSizing: 'border-box',
   };
 
+  const NP = {
+    bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+    border: 'rgba(255,255,255,0.08)',
+    accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+    text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+    sep: 'rgba(255,255,255,0.06)',
+    font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
+  };
+
   if (isNative) {
     if (loading) return (
-      <div style={{ background: N.bg, minHeight: '100vh', fontFamily: N.font }}>
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Profile</h1>
-        <div style={{ margin: '16px', background: N.card, borderRadius: 16, height: 200 }} />
+      <div style={{ background: NP.bg, minHeight: '100vh', fontFamily: NP.font }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: NP.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Profile</h1>
+        <div style={{ margin: '20px', background: NP.card, borderRadius: 20, height: 260 }} />
       </div>
     );
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Profile</h1>
+      <div style={{ background: NP.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: NP.font }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: NP.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Profile</h1>
 
-        {/* Hero card */}
-        <div style={{ margin: '16px 16px 0', background: N.card, borderRadius: 16, padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <div style={{ width: 80, height: 80, borderRadius: 40, background: 'linear-gradient(135deg, #0A84FF, #BF5AF2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 30, fontWeight: 700, color: '#fff' }}>
-            {initials}
+        {/* Profile hero */}
+        <div style={{ margin: '20px 20px 0', background: 'linear-gradient(135deg, #111827, #1E2A3A)', borderRadius: 20, border: '1px solid rgba(59,130,246,0.15)', overflow: 'hidden' }}>
+          {/* Blue gradient header strip */}
+          <div style={{ height: 80, background: 'linear-gradient(135deg, rgba(59,130,246,0.3), rgba(139,92,246,0.3))', position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: N.text1 }}>{form.firstName} {form.lastName}</div>
-          <div style={{ fontSize: 15, color: N.text2, marginTop: 4 }}>
-            <span style={{ textTransform: 'capitalize' }}>{roleCfg.label}</span>
-            {form.position ? ` · ${form.position}` : ''}
+          <div style={{ padding: '0 20px 20px', marginTop: -36 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ width: 72, height: 72, borderRadius: 36, background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 800, color: '#fff', border: '3px solid #111827', boxShadow: '0 0 20px rgba(59,130,246,0.3)' }}>{initials}</div>
+              <button onClick={() => setEditMode(e => !e)} style={{ background: editMode ? NP.accent : 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{editMode ? 'Cancel' : 'Edit'}</button>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: NP.text1, marginBottom: 4 }}>{form.firstName} {form.lastName}</div>
+            <div style={{ fontSize: 14, color: NP.text2 }}>{roleCfg.label}{form.position ? ' · ' + form.position : ''}</div>
           </div>
-          <div style={{ fontSize: 13, color: N.text3, marginTop: 4 }}>{user?.email}</div>
-
-          {/* Stats strip */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, width: '100%', marginTop: 20, borderTop: `1px solid ${N.sep}`, paddingTop: 16 }}>
-            {[
-              { icon: Trophy,        value: user?.points ?? 0,             label: 'Points',    color: '#FF9F0A' },
-              { icon: BookOpen,      value: user?.gpa?.toFixed(2) ?? '—',  label: 'GPA',       color: '#0A84FF' },
-              { icon: ClipboardList, value: user?.studyHours ?? 0,         label: 'Study Hrs', color: '#30D158' },
-            ].map(({ icon: Icon, value, label, color }, i) => (
-              <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderRight: i < 2 ? `1px solid ${N.sep}` : 'none' }}>
-                <Icon size={16} style={{ color }} />
-                <span style={{ fontSize: 20, fontWeight: 700, color: N.text1 }}>{value}</span>
-                <span style={{ fontSize: 11, color: N.text3 }}>{label}</span>
+          {/* 3-col stats strip */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderTop: '1px solid ' + NP.border }}>
+            {[{ label: 'Points', value: user?.points ?? 0, color: NP.gold }, { label: 'GPA', value: user?.gpa?.toFixed(2) ?? '—', color: NP.accent }, { label: 'Study Hrs', value: user?.studyHours ?? 0, color: NP.success }].map((s, i) => (
+              <div key={s.label} style={{ padding: '16px 8px', textAlign: 'center', borderRight: i < 2 ? '1px solid ' + NP.border : 'none' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: NP.text3, marginTop: 3 }}>{s.label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Edit toggle button */}
-        <div style={{ padding: '16px 16px 0' }}>
-          <button
-            onClick={() => setEditMode(e => !e)}
-            style={{ width: '100%', padding: '13px', borderRadius: 12, background: editMode ? N.elevated : N.accent, color: editMode ? N.text2 : '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}
-          >
-            {editMode ? 'Cancel' : 'Edit Profile'}
-          </button>
-        </div>
-
         {/* Edit form */}
         {editMode && (
-          <div style={{ margin: '16px 16px 0', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ margin: '16px 20px 0', background: NP.card, borderRadius: 16, border: '1px solid ' + NP.border, overflow: 'hidden' }}>
             {saveError && (
-              <div style={{ padding: '12px 16px', background: 'rgba(255,69,58,0.12)', borderBottom: `1px solid ${N.sep}`, fontSize: 14, color: N.danger }}>{saveError}</div>
+              <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.12)', borderBottom: '1px solid ' + NP.sep, fontSize: 14, color: NP.danger }}>{saveError}</div>
             )}
             {[
               { key: 'firstName', label: 'First Name', type: 'text' },
-              { key: 'lastName', label: 'Last Name', type: 'text' },
-              { key: 'phone', label: 'Phone', type: 'tel', placeholder: '555-867-5309' },
-              { key: 'major', label: 'Major', type: 'text', placeholder: 'Finance' },
+              { key: 'lastName',  label: 'Last Name',  type: 'text' },
+              { key: 'phone',     label: 'Phone',      type: 'tel',  placeholder: '555-867-5309' },
+              { key: 'major',     label: 'Major',      type: 'text', placeholder: 'Finance' },
               { key: 'pledgeClass', label: 'Pledge Class', type: 'text', placeholder: 'Fall 2023' },
-              { key: 'position', label: 'Position / Title', type: 'text', placeholder: 'Rush Chair' },
-            ].map(({ key, label, type, placeholder }, idx) => (
-              <div key={key} style={{ padding: '12px 16px', borderBottom: `1px solid ${N.sep}` }}>
-                <div style={{ fontSize: 12, color: N.text3, marginBottom: 6 }}>{label}</div>
+              { key: 'position',  label: 'Position / Title', type: 'text', placeholder: 'Rush Chair' },
+            ].map(({ key, label, type, placeholder }) => (
+              <div key={key} style={{ padding: '12px 16px', borderBottom: '1px solid ' + NP.sep }}>
+                <div style={{ fontSize: 12, color: NP.text3, marginBottom: 6 }}>{label}</div>
                 <input
-                  style={{ ...nInputStyle, padding: 0, background: 'transparent', border: 'none', fontSize: 16 }}
+                  style={{ background: 'transparent', border: 'none', color: NP.text1, fontSize: 16, outline: 'none', width: '100%', padding: 0 }}
                   type={type}
                   placeholder={placeholder || label}
                   value={form[key]}
@@ -163,10 +159,10 @@ export default function Profile() {
                 />
               </div>
             ))}
-            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${N.sep}` }}>
-              <div style={{ fontSize: 12, color: N.text3, marginBottom: 6 }}>Year</div>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid ' + NP.sep }}>
+              <div style={{ fontSize: 12, color: NP.text3, marginBottom: 6 }}>Year</div>
               <select
-                style={{ background: 'transparent', border: 'none', color: N.text1, fontSize: 16, outline: 'none', width: '100%' }}
+                style={{ background: 'transparent', border: 'none', color: NP.text1, fontSize: 16, outline: 'none', width: '100%' }}
                 value={form.year}
                 onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
               >
@@ -178,7 +174,7 @@ export default function Profile() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                style={{ width: '100%', padding: '13px', borderRadius: 12, background: saved ? 'rgba(48,209,88,0.2)' : N.accent, color: saved ? N.success : '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}
+                style={{ width: '100%', padding: '14px', borderRadius: 12, background: saved ? 'rgba(16,185,129,0.2)' : NP.accent, color: saved ? NP.success : '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}
               >
                 {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
               </button>
@@ -188,7 +184,7 @@ export default function Profile() {
 
         {/* Info display (view mode) */}
         {!editMode && (
-          <div style={{ margin: '16px 16px 0', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ margin: '16px 20px 0', background: NP.card, borderRadius: 16, border: '1px solid ' + NP.border, overflow: 'hidden' }}>
             {[
               { label: 'Phone',        value: form.phone || 'Not set',  muted: !form.phone },
               { label: 'Major',        value: form.major || '—',        muted: !form.major },
@@ -196,9 +192,9 @@ export default function Profile() {
               { label: 'Pledge Class', value: form.pledgeClass || '—',  muted: !form.pledgeClass },
               { label: 'Position',     value: form.position || '—',     muted: !form.position },
             ].map(({ label, value, muted }, idx, arr) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: idx < arr.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
-                <span style={{ fontSize: 16, color: N.text1 }}>{label}</span>
-                <span style={{ fontSize: 16, color: muted ? N.text3 : N.text2 }}>{value}</span>
+              <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: idx < arr.length - 1 ? '1px solid ' + NP.sep : 'none' }}>
+                <span style={{ fontSize: 16, color: NP.text1 }}>{label}</span>
+                <span style={{ fontSize: 16, color: muted ? NP.text3 : NP.text2 }}>{value}</span>
               </div>
             ))}
           </div>

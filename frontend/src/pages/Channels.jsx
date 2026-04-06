@@ -3,6 +3,7 @@ import { Plus, Send, Trash2, Settings, Lock, ChevronLeft, Eye, EyeOff, ShieldAle
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
+import { getIsNative } from '../hooks/useNative';
 
 /* ─── constants ─── */
 const ROLE_OPTIONS = [
@@ -16,6 +17,15 @@ const EMOJI_OPTIONS = ['💬','⭐','📅','🤝','💰','🏆','📢','🎉','�
 const AVATAR_COLORS = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4','#C9A84C'];
 const avatarBg = (s = '') => AVATAR_COLORS[s.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
 const initials = (f = '', l = '') => `${f[0] || ''}${l[0] || ''}`.toUpperCase();
+
+const N = {
+  bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+  border: 'rgba(255,255,255,0.08)',
+  accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444',
+  text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+  sep: 'rgba(255,255,255,0.06)',
+  font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
+};
 
 function Avatar({ firstName, lastName, size = 32 }) {
   return (
@@ -217,6 +227,7 @@ function ChannelSettings({ channel, onUpdate, onDelete, onClose }) {
 /* ─── Main Component ─── */
 export default function Channels() {
   const { user } = useAuth();
+  const isNative = getIsNative();
   const [channels, setChannels] = useState([]);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -226,6 +237,8 @@ export default function Channels() {
   const [showCreate, setShowCreate] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [mobileView, setMobileView] = useState('list');
+  const [nativeScreen, setNativeScreen] = useState('list'); // 'list' | 'chat'
+  const [nativeSearch, setNativeSearch] = useState('');
   const [newCh, setNewCh] = useState({ name: '', description: '', emoji: '💬', allowedRoles: 'all', pin: '', pinHint: '' });
   const [unlocked, setUnlocked] = useState(() => { try { return new Set(JSON.parse(localStorage.getItem('unlockedChannels') || '[]')); } catch { return new Set(); } });
   const [pinEntry, setPinEntry] = useState(null);
@@ -287,12 +300,21 @@ export default function Channels() {
     else { setActive(ch); setMobileView('chat'); }
   };
 
+  const selectNativeChannel = (ch) => {
+    if (ch.isLocked && !unlocked.has(ch.id)) {
+      setPinEntry(ch); setPinInput(''); setPinErr('');
+    } else {
+      setActive(ch);
+      setNativeScreen('chat');
+    }
+  };
+
   const submitPin = async () => {
     if (!pinInput) return;
     try {
       await client.post(`/channels/${pinEntry.id}/verify-pin`, { pin: pinInput });
       setUnlocked(prev => { const n = new Set([...prev, pinEntry.id]); localStorage.setItem('unlockedChannels', JSON.stringify([...n])); return n; });
-      setActive(pinEntry); setMobileView('chat'); setPinEntry(null); setPinInput('');
+      setActive(pinEntry); setMobileView('chat'); setNativeScreen('chat'); setPinEntry(null); setPinInput('');
     } catch { setPinErr('Wrong passcode — try again'); setPinInput(''); }
   };
 
@@ -375,6 +397,165 @@ export default function Channels() {
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin w-6 h-6 border-2 border-navy border-t-transparent rounded-full" />
     </div>
+  );
+
+  /* ─── Native iOS Layout ─── */
+  if (isNative) return (
+    <>
+      {nativeScreen === 'list' && (
+        <div style={{ position:'fixed', top:'calc(44px + env(safe-area-inset-top))', bottom:'calc(49px + env(safe-area-inset-bottom))', left:0, right:0, background: N.bg, display:'flex', flexDirection:'column', fontFamily: N.font }}>
+          {/* Header */}
+          <div style={{ padding: '20px 20px 12px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+            <h1 style={{ fontSize:34, fontWeight:700, color:N.text1, margin:0, letterSpacing:-0.5 }}>Chat</h1>
+            {isOfficer && <button onClick={() => setShowCreate(true)} style={{ width:36, height:36, borderRadius:18, background:N.accent, border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Plus size={18} color="#fff" /></button>}
+          </div>
+
+          {/* Search bar */}
+          <div style={{ padding:'0 20px 12px', flexShrink:0 }}>
+            <div style={{ background:N.card, borderRadius:12, padding:'10px 14px', display:'flex', alignItems:'center', gap:10, border:`1px solid ${N.border}` }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input value={nativeSearch} onChange={e => setNativeSearch(e.target.value)} placeholder="Search channels" style={{ background:'none', border:'none', color:N.text1, fontSize:16, flex:1, outline:'none', fontFamily:N.font }} />
+            </div>
+          </div>
+
+          {/* Channel list */}
+          <div style={{ flex:1, overflowY:'auto', padding:'0 20px' }}>
+            <div style={{ background:N.card, borderRadius:16, overflow:'hidden', border:`1px solid ${N.border}` }}>
+              {channels.filter(ch => ch.name.toLowerCase().includes(nativeSearch.toLowerCase())).map((ch, idx, arr) => {
+                const lastMsg = ch.messages?.[0];
+                const isLast = idx === arr.length - 1;
+                return (
+                  <button key={ch.id} onClick={() => selectNativeChannel(ch)} style={{ width:'100%', display:'flex', alignItems:'center', padding:'14px 16px', background:'transparent', border:'none', cursor:'pointer', borderBottom: isLast ? 'none' : `1px solid ${N.sep}`, textAlign:'left' }}>
+                    <div style={{ width:48, height:48, borderRadius:14, background: N.elevated, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0, marginRight:14, border:`1px solid ${N.border}` }}>
+                      {ch.emoji || '💬'}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
+                        <span style={{ fontSize:16, fontWeight:600, color:N.text1 }}>{ch.name}</span>
+                        {ch.isLocked && <Lock size={11} style={{ color:N.text3 }} />}
+                      </div>
+                      <p style={{ fontSize:13, color:N.text2, margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {lastMsg ? `${lastMsg.author?.firstName}: ${lastMsg.content}` : ch.description || 'No messages yet'}
+                      </p>
+                    </div>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                  </button>
+                );
+              })}
+            </div>
+            {channels.length === 0 && (
+              <div style={{ textAlign:'center', padding:'60px 20px' }}>
+                <div style={{ fontSize:48, marginBottom:16 }}>💬</div>
+                <p style={{ fontSize:17, fontWeight:600, color:N.text1, margin:'0 0 8px' }}>No channels yet</p>
+                <p style={{ fontSize:14, color:N.text2 }}>{isOfficer ? 'Create one to get started' : 'Your officers will create channels'}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {nativeScreen === 'chat' && (
+        <div style={{ position:'fixed', top:'calc(44px + env(safe-area-inset-top))', bottom:'calc(49px + env(safe-area-inset-bottom))', left:0, right:0, background:'#0A0F1A', display:'flex', flexDirection:'column', fontFamily: N.font }}>
+          {/* Chat header */}
+          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'rgba(8,12,20,0.95)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', borderBottom:`1px solid ${N.border}`, flexShrink:0 }}>
+            <button onClick={() => setNativeScreen('list')} style={{ width:36, height:36, borderRadius:10, background:N.card, border:`1px solid ${N.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div style={{ width:40, height:40, borderRadius:12, background:N.elevated, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>{active?.emoji || '💬'}</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:17, fontWeight:700, color:N.text1 }}>{active?.name}</div>
+              {active?.description && <div style={{ fontSize:12, color:N.text3 }}>{active.description}</div>}
+            </div>
+            {isOfficer && <button onClick={() => setShowSettings(true)} style={{ width:36, height:36, borderRadius:10, background:N.card, border:`1px solid ${N.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Settings size={16} color={N.text2} /></button>}
+          </div>
+
+          {/* Messages */}
+          <div style={{ flex:1, overflowY:'auto' }}>
+            {renderMessages()}
+            <div ref={bottomRef} style={{ height:8 }} />
+          </div>
+
+          {/* Input */}
+          {active && (
+            <div style={{ padding:'10px 16px', paddingBottom:'max(14px, env(safe-area-inset-bottom))', background:'rgba(8,12,20,0.95)', borderTop:`1px solid ${N.border}`, flexShrink:0 }}>
+              <form onSubmit={send} style={{ display:'flex', alignItems:'center', gap:10, background:N.card, borderRadius:24, padding:'8px 8px 8px 16px', border:`1px solid ${N.border}` }}>
+                <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} placeholder={`Message ${active?.name||''}…`} style={{ flex:1, background:'transparent', border:'none', color:N.text1, fontSize:16, outline:'none', fontFamily:N.font }} />
+                <button type="submit" disabled={!input.trim()||sending} style={{ width:36, height:36, borderRadius:18, background:input.trim() ? N.accent : N.elevated, border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, transition:'background 0.15s' }}>
+                  <Send size={15} color="#fff" />
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Native Modals */}
+      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="New Channel">
+        <div className="space-y-4">
+          <div>
+            <p className="label">Icon</p>
+            <div className="flex flex-wrap gap-2">
+              {EMOJI_OPTIONS.map(e => (
+                <button key={e} onClick={() => setNewCh(p => ({ ...p, emoji: e }))}
+                  className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${newCh.emoji === e ? 'bg-navy text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="label">Name</p>
+            <input className="input-field w-full" placeholder="Officers, General, Rush 2026…"
+              value={newCh.name} onChange={e => setNewCh(p => ({ ...p, name: e.target.value }))} autoFocus />
+          </div>
+          <div>
+            <p className="label">Description <span className="text-gray-400 font-normal text-xs">— optional</span></p>
+            <input className="input-field w-full text-sm" placeholder="What's this channel for?"
+              value={newCh.description} onChange={e => setNewCh(p => ({ ...p, description: e.target.value }))} />
+          </div>
+          <div>
+            <p className="label">Who can access</p>
+            <select className="select-field w-full" value={newCh.allowedRoles} onChange={e => setNewCh(p => ({ ...p, allowedRoles: e.target.value }))}>
+              {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <p className="label">Passcode <span className="text-gray-400 font-normal text-xs">— optional, locks the channel</span></p>
+            <input type="password" className="input-field w-full font-mono" placeholder="Leave blank for open access"
+              value={newCh.pin} onChange={e => setNewCh(p => ({ ...p, pin: e.target.value }))} />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button className="btn-secondary flex-1" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button className="btn-primary flex-1" onClick={createChannel} disabled={!newCh.name.trim()}>
+              {newCh.pin ? '🔒 Create Locked' : 'Create Channel'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {pinEntry && (
+        <Modal isOpen={!!pinEntry} onClose={() => setPinEntry(null)} title="">
+          <div className="text-center py-4">
+            <div className="w-14 h-14 bg-navy/8 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">{pinEntry.emoji || '🔒'}</div>
+            <h3 className="font-extrabold text-gray-900 text-lg mb-1">{pinEntry.name}</h3>
+            <p className="text-sm text-gray-400 mb-5">{pinEntry.pinHint ? `Hint: ${pinEntry.pinHint}` : 'Enter passcode to unlock'}</p>
+            {pinErr && <p className="text-xs text-red-500 bg-red-50 rounded-xl px-3 py-2 mb-3">{pinErr}</p>}
+            <input type="password" className="input-field w-full text-center text-xl font-mono tracking-widest mb-3"
+              placeholder="••••" value={pinInput} onChange={e => setPinInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && submitPin()} autoFocus />
+            <button onClick={submitPin} disabled={!pinInput} className="btn-primary w-full justify-center">
+              <KeyRound size={14} /> Unlock
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {active && (
+        <Modal isOpen={showSettings} onClose={() => setShowSettings(false)} title={`${active.emoji} ${active.name}`}>
+          <ChannelSettings channel={active} onUpdate={updateChannel} onDelete={deleteChannel} onClose={() => setShowSettings(false)} />
+        </Modal>
+      )}
+    </>
   );
 
   /* ─── Container style: fixed on mobile, static on desktop ─── */
@@ -606,12 +787,17 @@ export default function Channels() {
         {/* Sidebar */}
         <div
           className={`flex-shrink-0 flex-col ${mobileView === 'chat' ? 'hidden md:flex' : 'flex'}`}
-          style={{ width: 240, borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{
+            width: isMobile && mobileView === 'list' ? '100%' : 240,
+            borderRight: '1px solid rgba(255,255,255,0.06)',
+          }}>
           {sidebar}
         </div>
 
         {/* Chat */}
-        <div className={`flex-1 flex flex-col min-w-0 ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}>
+        <div
+          className={`flex-col min-w-0 ${mobileView === 'list' ? 'hidden md:flex' : 'flex'}`}
+          style={{ width: isMobile && mobileView === 'chat' ? '100%' : undefined, flex: isMobile && mobileView === 'chat' ? 'none' : 1 }}>
           {chatArea}
         </div>
       </div>

@@ -432,153 +432,169 @@ export default function Settings() {
     outline: 'none', width: '100%', padding: 0,
   };
 
+  const NS = {
+    bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+    border: 'rgba(255,255,255,0.08)',
+    accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+    text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+    sep: 'rgba(255,255,255,0.06)',
+    font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
+  };
+
+  const nsInput = { background: 'transparent', border: 'none', color: NS.text2, fontSize: 16, outline: 'none', textAlign: 'right', flex: 1, padding: 0 };
+
+  const NSSection = ({ title, children, action }) => (
+    <div style={{ margin: '24px 20px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '0 4px 10px' }}>
+        <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: NS.text3, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
+        {action}
+      </div>
+      <div style={{ background: NS.card, borderRadius: 16, border: '1px solid ' + NS.border, overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>
+  );
+
+  const NSRow = ({ icon: Icon, iconColor, label, children, last }) => (
+    <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: last ? 'none' : '1px solid ' + NS.sep }}>
+      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
+        <Icon size={16} color={iconColor || NS.accent} />
+      </div>
+      <span style={{ flex: 1, fontSize: 16, color: NS.text1 }}>{label}</span>
+      {children}
+    </div>
+  );
+
   if (isNative) return (
-    <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 40, fontFamily: N.font }}>
-      <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Settings</h1>
+    <div style={{ background: NS.bg, minHeight: '100vh', paddingBottom: 40, fontFamily: NS.font }}>
+      <h1 style={{ fontSize: 34, fontWeight: 800, color: NS.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Settings</h1>
 
       {/* Chapter Info */}
       {isAdmin && (
-        <div style={{ padding: '28px 16px 0' }}>
-          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>CHAPTER INFO</div>
-          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-            {[
-              { label: 'Name', key: 'name' },
-              { label: 'School', key: 'school' },
-              { label: 'Greek Letters', key: 'greekLetters' },
-              { label: 'Designation', key: 'chapterDesignation', placeholder: 'Gamma Chapter' },
-            ].map(({ label, key, placeholder }, idx, arr) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 50, borderBottom: idx < arr.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
-                <span style={{ fontSize: 16, color: N.text1, width: 120, flexShrink: 0 }}>{label}</span>
-                <input
-                  style={{ ...nInput, textAlign: 'right', color: N.text2 }}
-                  value={profile[key]}
-                  placeholder={placeholder || label}
-                  onChange={e => updateProfile(key, e.target.value)}
-                />
-              </div>
-            ))}
-            <div style={{ padding: '12px 16px', borderTop: `1px solid ${N.sep}` }}>
-              <button
-                onClick={saveProfile}
-                disabled={profileSaving}
-                style={{ width: '100%', padding: '12px', borderRadius: 12, background: profileSaved ? 'rgba(48,209,88,0.2)' : N.accent, color: profileSaved ? N.success : '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: 'pointer', opacity: profileSaving ? 0.7 : 1 }}
-              >
-                {profileSaved ? 'Saved!' : profileSaving ? 'Saving…' : 'Save Chapter Info'}
-              </button>
-            </div>
+        <NSSection title="CHAPTER INFO">
+          {[
+            { label: 'Name',        key: 'name' },
+            { label: 'School',      key: 'school' },
+            { label: 'Greek Letters', key: 'greekLetters' },
+            { label: 'Designation', key: 'chapterDesignation', placeholder: 'Gamma Chapter' },
+          ].map(({ label, key, placeholder }, idx, arr) => (
+            <NSRow key={key} icon={Building2} label={label} last={idx === arr.length - 1}>
+              <input
+                style={nsInput}
+                value={profile[key]}
+                placeholder={placeholder || label}
+                onChange={e => updateProfile(key, e.target.value)}
+              />
+            </NSRow>
+          ))}
+          <div style={{ padding: '12px 16px', borderTop: '1px solid ' + NS.sep }}>
+            <button
+              onClick={saveProfile}
+              disabled={profileSaving}
+              style={{ width: '100%', padding: '13px', borderRadius: 12, background: profileSaved ? 'rgba(16,185,129,0.2)' : NS.accent, color: profileSaved ? NS.success : '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: 'pointer', opacity: profileSaving ? 0.7 : 1 }}
+            >
+              {profileSaved ? 'Saved!' : profileSaving ? 'Saving…' : 'Save Chapter Info'}
+            </button>
           </div>
-        </div>
+        </NSSection>
       )}
 
       {/* Notifications */}
-      <div style={{ padding: '28px 16px 0' }}>
-        <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>NOTIFICATIONS</div>
-        <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-          {Object.entries(NOTIF_LABELS).map(([key, label], idx, arr) => {
-            const isOn = notifications[key];
-            return (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 50, borderBottom: idx < arr.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
-                <span style={{ flex: 1, fontSize: 17, color: N.text1 }}>{label}</span>
-                <button
-                  onClick={() => saveNotifications(key, !isOn)}
-                  style={{ width: 51, height: 31, borderRadius: 16, background: isOn ? N.success : N.elevated, border: 'none', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}
-                >
-                  <span style={{ position: 'absolute', top: 2, left: isOn ? 22 : 2, width: 27, height: 27, borderRadius: 14, background: '#fff', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <NSSection title="NOTIFICATIONS">
+        {Object.entries(NOTIF_LABELS).map(([key, label], idx, arr) => {
+          const isOn = notifications[key];
+          return (
+            <NSRow key={key} icon={Bell} label={label} last={idx === arr.length - 1}>
+              <button
+                onClick={() => saveNotifications(key, !isOn)}
+                style={{ width: 51, height: 31, borderRadius: 16, background: isOn ? NS.success : NS.elevated, border: 'none', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}
+              >
+                <span style={{ position: 'absolute', top: 2, left: isOn ? 22 : 2, width: 27, height: 27, borderRadius: 14, background: '#fff', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }} />
+              </button>
+            </NSRow>
+          );
+        })}
+      </NSSection>
 
       {/* Officers */}
       {isAdmin && (
-        <div style={{ padding: '28px 16px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', padding: '0 4px 8px' }}>
-            <span style={{ flex: 1, fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>OFFICERS</span>
-            <button onClick={() => setShowAddOfficer(v => !v)} style={{ background: N.accent, color: '#fff', border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-              + Add
-            </button>
-          </div>
+        <NSSection
+          title="OFFICERS"
+          action={
+            <button onClick={() => setShowAddOfficer(v => !v)} style={{ background: NS.accent, color: '#fff', border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>+ Add</button>
+          }
+        >
           {showAddOfficer && (
-            <div style={{ background: N.card, borderRadius: 14, padding: '12px 16px', marginBottom: 8 }}>
-              <select style={{ ...nInput, background: N.elevated, borderRadius: 8, padding: '10px', marginBottom: 8, color: N.text1 }} value={newOfficer.memberId} onChange={e => setNewOfficer(f => ({ ...f, memberId: e.target.value }))}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid ' + NS.sep }}>
+              <select style={{ background: NS.elevated, border: 'none', borderRadius: 10, color: NS.text1, fontSize: 15, padding: '10px 12px', width: '100%', marginBottom: 8, outline: 'none' }} value={newOfficer.memberId} onChange={e => setNewOfficer(f => ({ ...f, memberId: e.target.value }))}>
                 <option value="">Select member…</option>
                 {members.map(m => <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>)}
               </select>
-              <select style={{ ...nInput, background: N.elevated, borderRadius: 8, padding: '10px', marginBottom: 8, color: N.text1 }} value={newOfficer.role} onChange={e => setNewOfficer(f => ({ ...f, role: e.target.value }))}>
+              <select style={{ background: NS.elevated, border: 'none', borderRadius: 10, color: NS.text1, fontSize: 15, padding: '10px 12px', width: '100%', marginBottom: 8, outline: 'none' }} value={newOfficer.role} onChange={e => setNewOfficer(f => ({ ...f, role: e.target.value }))}>
                 <option value="">Select role…</option>
                 {OFFICER_ROLES.map(r => <option key={r}>{r}</option>)}
               </select>
-              <button onClick={addOfficer} style={{ width: '100%', padding: '11px', borderRadius: 12, background: N.accent, color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Add Officer</button>
+              <button onClick={addOfficer} style={{ width: '100%', padding: '11px', borderRadius: 12, background: NS.accent, color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Add Officer</button>
             </div>
           )}
-          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-            {officers.length === 0 ? (
-              <div style={{ padding: '20px 16px', fontSize: 15, color: N.text3, textAlign: 'center' }}>No officers assigned yet</div>
-            ) : officers.map((o, idx) => (
-              <div key={o.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 50, borderBottom: idx < officers.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
-                <div style={{ width: 36, height: 36, borderRadius: 18, background: 'linear-gradient(135deg, #0A84FF, #BF5AF2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, marginRight: 12, flexShrink: 0 }}>
-                  {(o.firstName?.[0] || '').toUpperCase()}{(o.lastName?.[0] || '').toUpperCase()}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, color: N.text1, fontWeight: 600 }}>{o.firstName} {o.lastName}</div>
-                  <div style={{ fontSize: 13, color: N.text3 }}>{o.role}</div>
-                </div>
-                <button onClick={() => removeOfficer(o.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}>
-                  <X size={16} style={{ color: N.danger }} />
-                </button>
+          {officers.length === 0 ? (
+            <div style={{ padding: '20px 16px', fontSize: 15, color: NS.text3, textAlign: 'center' }}>No officers assigned yet</div>
+          ) : officers.map((o, idx) => (
+            <div key={o.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: idx < officers.length - 1 ? '1px solid ' + NS.sep : 'none' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 18, background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, marginRight: 12, flexShrink: 0 }}>
+                {(o.firstName?.[0] || '').toUpperCase()}{(o.lastName?.[0] || '').toUpperCase()}
               </div>
-            ))}
-          </div>
-        </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, color: NS.text1, fontWeight: 600 }}>{o.firstName} {o.lastName}</div>
+                <div style={{ fontSize: 13, color: NS.text3 }}>{o.role}</div>
+              </div>
+              <button onClick={() => removeOfficer(o.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}>
+                <X size={16} style={{ color: NS.danger }} />
+              </button>
+            </div>
+          ))}
+        </NSSection>
       )}
 
       {/* Invite Code */}
       {isAdmin && (
-        <div style={{ padding: '28px 16px 0' }}>
-          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>INVITE CODE</div>
-          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-            <div style={{ padding: '20px 16px', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${N.sep}` }}>
-              <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 26, fontWeight: 800, letterSpacing: '0.3em', color: N.text1 }}>
-                {nativeInviteCode || '········'}
-              </span>
-              <button
-                onClick={() => {
-                  if (!nativeInviteCode) return;
-                  navigator.clipboard.writeText(nativeInviteCode);
-                  setNativeCodeCopied(true);
-                  setTimeout(() => setNativeCodeCopied(false), 2000);
-                }}
-                style={{ background: nativeCodeCopied ? 'rgba(48,209,88,0.2)' : N.elevated, border: 'none', borderRadius: 10, padding: '8px 14px', color: nativeCodeCopied ? N.success : N.text1, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-              >
-                {nativeCodeCopied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-            <div style={{ padding: '14px 16px', fontSize: 13, color: N.text3 }}>
-              Members enter this code at registration to join your chapter.
-            </div>
+        <NSSection title="INVITE CODE">
+          <div style={{ padding: '20px 16px', display: 'flex', alignItems: 'center', borderBottom: '1px solid ' + NS.sep }}>
+            <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 26, fontWeight: 800, letterSpacing: '0.3em', color: NS.text1 }}>
+              {nativeInviteCode || '········'}
+            </span>
+            <button
+              onClick={() => {
+                if (!nativeInviteCode) return;
+                navigator.clipboard.writeText(nativeInviteCode);
+                setNativeCodeCopied(true);
+                setTimeout(() => setNativeCodeCopied(false), 2000);
+              }}
+              style={{ background: nativeCodeCopied ? 'rgba(16,185,129,0.2)' : NS.elevated, border: 'none', borderRadius: 10, padding: '8px 14px', color: nativeCodeCopied ? NS.success : NS.text1, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            >
+              {nativeCodeCopied ? 'Copied!' : 'Copy'}
+            </button>
           </div>
-        </div>
+          <div style={{ padding: '14px 16px', fontSize: 13, color: NS.text3 }}>
+            Members enter this code at registration to join your chapter.
+          </div>
+        </NSSection>
       )}
 
       {/* Danger Zone */}
       {isAdmin && (
-        <div style={{ padding: '28px 16px 0' }}>
-          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>DANGER ZONE</div>
-          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-            <div
-              onClick={() => setShowDelete(true)}
-              style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}
-            >
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,69,58,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
-                <Trash2 size={17} style={{ color: N.danger }} />
-              </div>
-              <span style={{ flex: 1, fontSize: 17, color: N.danger }}>Delete Chapter</span>
-              <ChevronRight size={17} style={{ color: N.text3 }} />
+        <NSSection title="DANGER ZONE">
+          <div
+            onClick={() => setShowDelete(true)}
+            style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}
+          >
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
+              <Trash2 size={17} color={NS.danger} />
             </div>
+            <span style={{ flex: 1, fontSize: 16, color: NS.danger }}>Delete Chapter</span>
+            <ChevronRight size={16} color="rgba(255,255,255,0.25)" />
           </div>
-        </div>
+        </NSSection>
       )}
 
       <DeleteChapterModal isOpen={showDelete} onClose={() => setShowDelete(false)} />

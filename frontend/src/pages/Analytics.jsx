@@ -265,15 +265,16 @@ const EVENT_TYPE_COLORS = {
 
 // ── Native design tokens ───────────────────────────────────────
 const N = {
-  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
-  sep: 'rgba(255,255,255,0.08)',
-  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
-  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
-  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  bg: '#080C14', card: '#111827', elevated: '#1E2A3A',
+  border: 'rgba(255,255,255,0.08)',
+  accent: '#3B82F6', gold: '#F59E0B', success: '#10B981', danger: '#EF4444', purple: '#8B5CF6',
+  text1: '#FFFFFF', text2: 'rgba(255,255,255,0.55)', text3: 'rgba(255,255,255,0.28)',
+  sep: 'rgba(255,255,255,0.06)',
+  font: "-apple-system, 'SF Pro Display', system-ui, sans-serif",
 };
 
-const NATIVE_FUNNEL_COLORS = ['#8E8E93', '#0A84FF', '#BF5AF2', '#FF9F0A', '#30D158'];
-const NATIVE_ROLE_COLORS = { Admins: '#FF9F0A', Officers: '#0A84FF', Members: '#BF5AF2', Alumni: '#636366' };
+const NATIVE_FUNNEL_COLORS = ['rgba(255,255,255,0.28)', '#3B82F6', '#8B5CF6', '#F59E0B', '#10B981'];
+const NATIVE_ROLE_COLORS = { Admins: '#F59E0B', Officers: '#3B82F6', Members: '#8B5CF6', Alumni: 'rgba(255,255,255,0.28)' };
 
 // ── Main component ─────────────────────────────────────────────
 export default function Analytics() {
@@ -345,54 +346,61 @@ export default function Analytics() {
   // ── Native layout ─────────────────────────────────────────────
   if (isNative) {
     const activeMembers = members.filter(m => m.role !== 'alumni').length;
-    const retentionRate = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 0;
+
+    const statItems = [
+      { value: totalMembers, label: 'Members', color: N.accent },
+      { value: activeMembers, label: 'Active', color: N.success },
+      { value: upcoming, label: 'Events', color: N.gold },
+      { value: avgGpa || '—', label: 'Avg GPA', color: N.purple },
+    ];
 
     const roleBarItems = roleBreakdown.map(({ label, value }) => ({
       label,
-      value: String(value),
+      value,
       pct: totalMembers > 0 ? Math.round((value / totalMembers) * 100) : 0,
       color: NATIVE_ROLE_COLORS[label],
     }));
 
     const funnelItems = stageCounts.map(({ stage, count }, i) => ({
       label: { invited: 'Prospecting', met: 'Met', liked: 'Liked', bid: 'Bid', pledged: 'Pledged' }[stage],
-      value: String(count),
+      value: count,
       pct: totalPnms > 0 ? Math.round((count / totalPnms) * 100) : 0,
       color: NATIVE_FUNNEL_COLORS[i],
     }));
 
     return (
-      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 40, fontFamily: N.font }}>
         {/* Large title */}
-        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: N.text1, margin: 0, padding: '20px 20px 6px', letterSpacing: -0.8 }}>
           Analytics
         </h1>
 
         {/* 2×2 stat grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
-          {[
-            { value: totalMembers, label: 'Total Members' },
-            { value: activeMembers, label: 'Active Members' },
-            { value: `${retentionRate}%`, label: 'Retention Rate' },
-            { value: avgGpa || '—', label: 'Avg GPA' },
-          ].map(({ value, label }) => (
-            <div key={label} style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
-              <div style={{ fontSize: 30, fontWeight: 700, color: N.text1, letterSpacing: -0.5 }}>{value}</div>
-              <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>{label}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 20px 0' }}>
+          {statItems.map(({ value, label, color }) => (
+            <div key={label} style={{ background: N.card, borderRadius: 16, border: '1px solid ' + N.border, padding: '18px 16px' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                <div style={{ width: 12, height: 12, borderRadius: 3, background: color }} />
+              </div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: N.text1, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+              <div style={{ fontSize: 13, color: N.text2, marginTop: 6 }}>{label}</div>
             </div>
           ))}
         </div>
 
         {/* Member Breakdown bar chart */}
-        <div style={{ margin: '16px 16px 12px', background: N.card, borderRadius: 14, padding: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, marginBottom: 14 }}>Member Breakdown</div>
+        <div style={{ margin: '16px 20px 0', background: N.card, borderRadius: 16, border: '1px solid ' + N.border, padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: N.text1 }}>Member Breakdown</span>
+            <span style={{ fontSize: 13, color: N.text2 }}>{totalMembers} total</span>
+          </div>
           {totalMembers === 0 ? (
-            <div style={{ fontSize: 14, color: N.text3, textAlign: 'center', paddingBottom: 4 }}>No members yet</div>
+            <div style={{ fontSize: 14, color: N.text3, textAlign: 'center', padding: '12px 0' }}>No members yet</div>
           ) : roleBarItems.map(item => (
-            <div key={item.label} style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 14, color: N.text1 }}>{item.label}</span>
-                <span style={{ fontSize: 14, color: N.text2 }}>{item.value}</span>
+            <div key={item.label} style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 14, color: N.text1, fontWeight: 500 }}>{item.label}</span>
+                <span style={{ fontSize: 13, color: N.text2 }}>{item.value}</span>
               </div>
               <div style={{ height: 6, background: N.elevated, borderRadius: 3 }}>
                 <div style={{ height: 6, width: `${item.pct}%`, background: item.color, borderRadius: 3 }} />
@@ -402,15 +410,18 @@ export default function Analytics() {
         </div>
 
         {/* Recruitment Funnel bar chart */}
-        <div style={{ margin: '0 16px 12px', background: N.card, borderRadius: 14, padding: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, marginBottom: 14 }}>Recruitment Funnel</div>
+        <div style={{ margin: '16px 20px 0', background: N.card, borderRadius: 16, border: '1px solid ' + N.border, padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: N.text1 }}>Recruitment Funnel</span>
+            <span style={{ fontSize: 13, color: N.text2 }}>{totalPnms} PNMs</span>
+          </div>
           {totalPnms === 0 ? (
-            <div style={{ fontSize: 14, color: N.text3, textAlign: 'center', paddingBottom: 4 }}>No PNMs yet</div>
+            <div style={{ fontSize: 14, color: N.text3, textAlign: 'center', padding: '12px 0' }}>No PNMs yet</div>
           ) : funnelItems.map(item => (
-            <div key={item.label} style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 14, color: N.text1 }}>{item.label}</span>
-                <span style={{ fontSize: 14, color: N.text2 }}>{item.value}</span>
+            <div key={item.label} style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 14, color: N.text1, fontWeight: 500 }}>{item.label}</span>
+                <span style={{ fontSize: 13, color: N.text2 }}>{item.value}</span>
               </div>
               <div style={{ height: 6, background: N.elevated, borderRadius: 3 }}>
                 <div style={{ height: 6, width: `${item.pct}%`, background: item.color, borderRadius: 3 }} />
@@ -420,39 +431,23 @@ export default function Analytics() {
         </div>
 
         {/* Academic Standing */}
-        <div style={{ margin: '0 16px 12px', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, padding: '16px 16px 12px' }}>Academic Standing</div>
+        <div style={{ margin: '16px 20px 0', background: N.card, borderRadius: 16, border: '1px solid ' + N.border, padding: '20px' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: N.text1, marginBottom: 16 }}>Academic Standing</div>
           {[
-            { label: 'Chapter GPA', value: avgGpa || '—' },
-            { label: 'Total Study Hours', value: `${totalStudyHours}h` },
-            { label: 'On Academic Probation', value: String(onProbation), highlight: onProbation > 0 },
-          ].map(({ label, value, highlight }, i, arr) => (
+            { label: 'Chapter GPA', value: avgGpa || '—', color: N.text1 },
+            { label: 'Total Study Hours', value: `${totalStudyHours}h`, color: N.text1 },
+            { label: 'On Probation', value: String(onProbation), color: onProbation > 0 ? N.danger : N.success },
+          ].map(({ label, value, color }, i, arr) => (
             <div key={label} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '12px 16px',
-              borderTop: `1px solid ${N.sep}`,
+              paddingTop: 12, marginTop: i > 0 ? 12 : 0,
+              borderTop: i > 0 ? '1px solid ' + N.sep : 'none',
             }}>
-              <span style={{ fontSize: 15, color: N.text1 }}>{label}</span>
-              <span style={{ fontSize: 15, fontWeight: 600, color: highlight ? N.danger : N.text2 }}>{value}</span>
+              <span style={{ fontSize: 14, color: N.text2 }}>{label}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color }}>{value}</span>
             </div>
           ))}
         </div>
-
-        {/* Events Overview */}
-        {eventTypeRows.length > 0 && (
-          <div style={{ margin: '0 16px 12px', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, padding: '16px 16px 12px' }}>Events Overview</div>
-            {eventTypeRows.map(({ type, count }) => (
-              <div key={type} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '12px 16px', borderTop: `1px solid ${N.sep}`,
-              }}>
-                <span style={{ fontSize: 15, color: N.text1, textTransform: 'capitalize' }}>{type}</span>
-                <span style={{ fontSize: 15, fontWeight: 600, color: N.text2 }}>{count}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     );
   }
