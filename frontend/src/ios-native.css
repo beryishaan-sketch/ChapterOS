@@ -1,0 +1,176 @@
+/*
+  ╔══════════════════════════════════════════════════════════╗
+  ║  iOS NATIVE OVERRIDES                                     ║
+  ║  Applied only when body.ios-native is set (Capacitor app) ║
+  ║  This file has zero effect on the website.                ║
+  ╚══════════════════════════════════════════════════════════╝
+*/
+
+/* ── 1. Design token overrides for native ─────────────────── */
+body.ios-native {
+  --bg-primary:  #000000;
+  --bg-card:     #1C1C1E;
+  --bg-elevated: #2C2C2E;
+  --bg-sidebar:  #000000;
+  --accent:      #0A84FF;
+  --success:     #30D158;
+  --warning:     #FF9F0A;
+  --danger:      #FF453A;
+  --gold:        #FF9F0A;
+  --text-1:      #FFFFFF;
+  --text-2:      rgba(235,235,245,0.6);
+  --text-3:      rgba(235,235,245,0.3);
+  --border:      rgba(255,255,255,0.08);
+  --border-hover: rgba(255,255,255,0.15);
+  --r-card:      12px;
+  --r-btn:       10px;
+
+  background:    #000000 !important;
+  /* SF Pro — the actual iOS system typeface */
+  font-family:   -apple-system, 'SF Pro Text', 'SF Pro Display',
+                 system-ui, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+body.ios-native #root {
+  background: #000000;
+}
+
+/* ── 2. Prevent iOS auto-zoom on input focus (must be ≥16px) ─ */
+body.ios-native input,
+body.ios-native textarea,
+body.ios-native select {
+  font-size: 16px !important;
+  font-family: -apple-system, system-ui, sans-serif !important;
+}
+
+/* ── 3. Native tap feedback ───────────────────────────────── */
+body.ios-native button,
+body.ios-native a,
+body.ios-native [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  cursor: default;
+}
+
+body.ios-native button:active,
+body.ios-native a:active,
+body.ios-native [role="button"]:active {
+  opacity: 0.65 !important;
+  transition: opacity 60ms ease !important;
+}
+
+/* ── 4. Card class overrides ──────────────────────────────── */
+body.ios-native .card {
+  background:    #1C1C1E !important;
+  border:        1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 12px !important;
+  box-shadow:    none !important;
+}
+
+/* ── 5. Input class overrides ─────────────────────────────── */
+body.ios-native .input-field,
+body.ios-native .select-field {
+  background:    #2C2C2E !important;
+  border:        1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 10px !important;
+  color:         #FFFFFF !important;
+}
+
+body.ios-native .input-field:focus,
+body.ios-native .select-field:focus {
+  border-color:  rgba(10,132,255,0.6) !important;
+  box-shadow:    0 0 0 3px rgba(10,132,255,0.15) !important;
+}
+
+/* ── 6. Remove all box shadows (iOS uses blur, not elevation) */
+body.ios-native * {
+  box-shadow: none !important;
+}
+
+/* ── 7. Native button accent color ───────────────────────── */
+body.ios-native .btn-primary {
+  background:    #0A84FF !important;
+  border-radius: 12px !important;
+  box-shadow:    none !important;
+}
+
+/* ── 8. Scrolling behavior ────────────────────────────────── */
+body.ios-native #ios-main-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* ── 9. Momentum scroll bounce at edges ──────────────────── */
+body.ios-native {
+  overflow: hidden;
+}
+
+/* ── 10. Native section header label (uppercased, small) ──── */
+body.ios-native .ios-section-label {
+  font-size:      13px !important;
+  font-weight:    400 !important;
+  color:          rgba(235,235,245,0.3) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding:        8px 20px 6px;
+}
+
+/* ── 11. Native list cell ─────────────────────────────────── */
+body.ios-native .ios-cell {
+  display:         flex;
+  align-items:     center;
+  min-height:      44px;
+  padding:         10px 16px;
+  background:      #1C1C1E;
+  border-bottom:   1px solid rgba(255,255,255,0.08);
+  -webkit-tap-highlight-color: rgba(255,255,255,0.05);
+}
+
+body.ios-native .ios-cell:active {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+body.ios-native .ios-cell:last-child {
+  border-bottom: none;
+}
+
+/* ── 12. Native page background wrapper ───────────────────── */
+body.ios-native .native-page {
+  background:  #000000;
+  min-height:  100%;
+  padding-top: calc(44px + env(safe-area-inset-top));
+}
+
+/* ── 13. Large title (iOS 11 style) ───────────────────────── */
+body.ios-native .native-large-title {
+  font-size:      34px;
+  font-weight:    700;
+  letter-spacing: -0.5px;
+  color:          #FFFFFF;
+  padding:        16px 20px 4px;
+  font-family:    -apple-system, 'SF Pro Display', system-ui, sans-serif;
+}
+
+/* ── 14. No text selection ────────────────────────────────── */
+body.ios-native * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body.ios-native input,
+body.ios-native textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ── 15. Hide desktop scrollbars on native ────────────────── */
+body.ios-native *::-webkit-scrollbar {
+  display: none;
+}
+
+body.ios-native * {
+  scrollbar-width: none;
+}
