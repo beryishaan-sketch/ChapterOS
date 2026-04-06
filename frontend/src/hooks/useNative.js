@@ -1,27 +1,17 @@
-import { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 
-let _isNative = null;
-
-export function useNative() {
-  const [isNative, setIsNative] = useState(() => {
-    if (_isNative !== null) return _isNative;
-    try {
-      const { Capacitor } = require('@capacitor/core');
-      _isNative = Capacitor.isNativePlatform();
-      return _isNative;
-    } catch {
-      _isNative = false;
-      return false;
-    }
-  });
-  return isNative;
-}
+let _cached = null;
 
 export function getIsNative() {
+  if (_cached !== null) return _cached;
   try {
-    const { Capacitor } = require('@capacitor/core');
-    return Capacitor.isNativePlatform();
+    _cached = Capacitor.isNativePlatform();
   } catch {
-    return false;
+    _cached = false;
   }
+  return _cached;
+}
+
+export function useNative() {
+  return getIsNative();
 }
