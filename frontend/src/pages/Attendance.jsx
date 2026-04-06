@@ -7,26 +7,84 @@ import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
-const avatarColors = ['bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-orange-500', 'bg-rose-500', 'bg-cyan-500'];
-const avatarColor = (name) => avatarColors[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % avatarColors.length];
+const T = {
+  bg: '#070B14', card: '#0D1424', elevated: '#131D2E', sidebar: '#0A0F1C',
+  accent: '#4F8EF7', gold: '#F0B429', success: '#34D399', warning: '#FBBF24', danger: '#F87171',
+  text1: '#F8FAFC', text2: '#94A3B8', text3: '#475569',
+  border: 'rgba(255,255,255,0.07)', borderStrong: 'rgba(255,255,255,0.12)',
+};
+
+const AVATAR_PALETTE = ['#4F8EF7', '#A78BFA', '#34D399', '#FB923C', '#F87171', '#22D3EE', '#F0B429'];
+const avatarColor = (name) => AVATAR_PALETTE[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_PALETTE.length];
+
+const cardStyle = {
+  background: T.card,
+  border: '1px solid ' + T.border,
+  borderRadius: 12,
+  boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+};
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 8,
+  color: T.text1,
+  padding: '10px 14px',
+  outline: 'none',
+  width: '100%',
+  fontSize: 14,
+};
+
+const primaryBtnStyle = {
+  background: T.accent,
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  padding: '8px 16px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  boxShadow: '0 0 20px rgba(79,142,247,0.2)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 14,
+};
+
+const secondaryBtnStyle = {
+  background: 'rgba(255,255,255,0.06)',
+  color: T.text1,
+  border: '1px solid ' + T.borderStrong,
+  borderRadius: 8,
+  padding: '8px 16px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 14,
+};
 
 const QRScanModal = ({ isOpen, onClose, eventId }) => {
   const checkInUrl = eventId ? `${window.location.origin}/checkin?event=${eventId}` : '';
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="QR Check-in" size="sm">
-      <div className="text-center space-y-4">
-        <p className="text-sm text-gray-600">Share this link or QR code with members to record attendance:</p>
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-          <div className="w-40 h-40 bg-white mx-auto mb-3 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-xl">
-            <QrCode size={64} className="text-gray-300" />
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ fontSize: 14, color: T.text2, marginBottom: 16 }}>
+          Share this link or QR code with members to record attendance:
+        </p>
+        <div style={{ background: T.elevated, border: '1px solid ' + T.border, borderRadius: 12, padding: 20, marginBottom: 16 }}>
+          <div style={{
+            width: 160, height: 160, background: 'rgba(255,255,255,0.04)', margin: '0 auto 12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px dashed rgba(255,255,255,0.12)', borderRadius: 12,
+          }}>
+            <QrCode size={64} color={T.text3} />
             <span className="sr-only">QR placeholder — integrate a QR library in production</span>
           </div>
-          <p className="text-xs text-gray-400 font-mono break-all">{checkInUrl}</p>
+          <p style={{ fontSize: 11, color: T.text3, fontFamily: 'monospace', wordBreak: 'break-all' }}>{checkInUrl}</p>
         </div>
-        <button
-          className="btn-secondary w-full justify-center"
-          onClick={() => { navigator.clipboard.writeText(checkInUrl); }}
-        >
+        <button style={{ ...secondaryBtnStyle, width: '100%', justifyContent: 'center' }}
+          onClick={() => { navigator.clipboard.writeText(checkInUrl); }}>
           Copy link
         </button>
       </div>
@@ -110,137 +168,169 @@ export default function Attendance() {
   const attendedCount = Object.values(attendance).filter(Boolean).length;
   const attendanceRate = members.length > 0 ? Math.round((attendedCount / members.length) * 100) : 0;
 
-  const event = events.find(e => e.id === selectedEvent);
+  const rateColor = attendanceRate >= 80 ? T.success : attendanceRate >= 60 ? T.warning : T.danger;
 
   return (
-    <div>
+    <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>
       {/* Header */}
-      <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 28 }}>
         <div>
-          <h1 className="page-title">Attendance</h1>
-          <p className="page-subtitle">Track member attendance at chapter events</p>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text1, margin: 0 }}>Attendance</h1>
+          <p style={{ fontSize: 14, color: T.text2, margin: '4px 0 0' }}>Track member attendance at chapter events</p>
         </div>
         {selectedEvent && (
-          <button className="btn-secondary self-start sm:self-auto" onClick={() => setShowQR(true)}>
+          <button style={secondaryBtnStyle} onClick={() => setShowQR(true)}>
             <QrCode size={15} /> QR Check-in
           </button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-gray-100 rounded-xl p-1 w-fit mb-6">
-        <button onClick={() => setTab('checklist')}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'checklist' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-          <ClipboardCheck size={14} className="inline mr-1.5" />Checklist
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        <button
+          onClick={() => setTab('checklist')}
+          style={tab === 'checklist'
+            ? { background: T.accent, color: '#fff', borderRadius: 20, padding: '6px 16px', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }
+            : { background: 'transparent', color: T.text2, borderRadius: 20, padding: '6px 16px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }
+          }
+        >
+          <ClipboardCheck size={14} /> Checklist
         </button>
-        <button onClick={() => setTab('history')}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-          <History size={14} className="inline mr-1.5" />History
+        <button
+          onClick={() => setTab('history')}
+          style={tab === 'history'
+            ? { background: T.accent, color: '#fff', borderRadius: 20, padding: '6px 16px', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }
+            : { background: 'transparent', color: T.text2, borderRadius: 20, padding: '6px 16px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }
+          }
+        >
+          <History size={14} /> History
         </button>
       </div>
 
       {tab === 'checklist' && (
         <>
           {/* Event selector */}
-          <div className="flex flex-wrap items-end gap-4 mb-5">
-            <div className="flex-1 min-w-64">
-              <label className="label">Select event</label>
-              <select
-                className="select-field"
-                value={selectedEvent}
-                onChange={e => setSelectedEvent(e.target.value)}
-                disabled={eventsLoading}
-              >
-                <option value="">Choose an event…</option>
-                {events.map(ev => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.title} — {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Select Event
+            </label>
+            <select
+              style={{ ...inputStyle, cursor: 'pointer', appearance: 'none', backgroundImage: 'none' }}
+              value={selectedEvent}
+              onChange={e => setSelectedEvent(e.target.value)}
+              disabled={eventsLoading}
+            >
+              <option value="">Choose an event…</option>
+              {events.map(ev => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} — {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </option>
+              ))}
+            </select>
           </div>
 
           {selectedEvent && (
             <>
               {/* Stats row */}
-              <div className="grid grid-cols-3 gap-4 mb-5">
-                <div className="card p-4 text-center">
-                  <p className="text-2xl font-bold text-gray-900">{attendedCount}</p>
-                  <p className="text-xs text-gray-500">Present</p>
-                </div>
-                <div className="card p-4 text-center">
-                  <p className="text-2xl font-bold text-gray-900">{members.length - attendedCount}</p>
-                  <p className="text-xs text-gray-500">Absent</p>
-                </div>
-                <div className="card p-4 text-center">
-                  <p className={`text-2xl font-bold ${attendanceRate >= 80 ? 'text-emerald-600' : attendanceRate >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
-                    {attendanceRate}%
-                  </p>
-                  <p className="text-xs text-gray-500">Rate</p>
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+                {[
+                  { label: 'Present', value: attendedCount, color: T.success },
+                  { label: 'Absent', value: members.length - attendedCount, color: T.danger },
+                  { label: 'Rate', value: `${attendanceRate}%`, color: rateColor },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ ...cardStyle, padding: 20, textAlign: 'center' }}>
+                    <p style={{ fontSize: 28, fontWeight: 700, color, margin: '0 0 4px' }}>{value}</p>
+                    <p style={{ fontSize: 12, color: T.text3, margin: 0, fontWeight: 500 }}>{label}</p>
+                  </div>
+                ))}
               </div>
 
               {/* Rate bar */}
-              <div className="mb-5">
-                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${attendanceRate >= 80 ? 'bg-emerald-500' : attendanceRate >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
-                    style={{ width: `${attendanceRate}%` }}
-                  />
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 99, width: `${attendanceRate}%`,
+                    background: rateColor, transition: 'width 0.5s ease',
+                  }} />
                 </div>
               </div>
 
               {/* Search */}
-              <div className="relative mb-4">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input className="input-field pl-10 py-2" placeholder="Search members…" value={search} onChange={e => setSearch(e.target.value)} />
+              <div style={{ position: 'relative', marginBottom: 16 }}>
+                <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T.text3, pointerEvents: 'none' }} />
+                <input
+                  style={{ ...inputStyle, paddingLeft: 38 }}
+                  placeholder="Search members…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
               </div>
 
               {/* Member checklist */}
               {loading ? (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {Array(8).fill(0).map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3.5 bg-white rounded-xl border border-gray-100">
-                      <div className="skeleton w-9 h-9 rounded-full" />
-                      <div className="skeleton h-4 flex-1 rounded" />
-                      <div className="skeleton w-8 h-8 rounded-xl" />
+                    <div key={i} style={{ ...cardStyle, padding: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />
+                      <div style={{ flex: 1, height: 14, borderRadius: 6, background: 'rgba(255,255,255,0.06)' }} />
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)' }} />
                     </div>
                   ))}
                 </div>
               ) : filteredMembers.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <Users size={32} className="mx-auto mb-2 text-gray-200" />
+                <div style={{ textAlign: 'center', padding: '64px 0', color: T.text3 }}>
+                  <Users size={32} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.4 }} />
                   No members found
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {filteredMembers.map(m => {
                     const present = attendance[m.id] || false;
-                    const color = avatarColor(m.firstName + m.lastName);
+                    const color = avatarColor((m.firstName || '') + (m.lastName || ''));
                     const init = `${m.firstName?.[0] || ''}${m.lastName?.[0] || ''}`.toUpperCase();
                     return (
                       <div
                         key={m.id}
                         onClick={() => toggleAttendance(m.id)}
-                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none
-                          ${present
-                            ? 'bg-emerald-50 border-emerald-200'
-                            : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                          } ${!isAdmin ? 'cursor-default' : ''}`}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                          borderRadius: 10, cursor: isAdmin ? 'pointer' : 'default', userSelect: 'none',
+                          transition: 'all 0.15s',
+                          background: present ? 'rgba(52,211,153,0.08)' : T.card,
+                          border: present ? '1px solid rgba(52,211,153,0.25)' : '1px solid ' + T.border,
+                        }}
                       >
-                        <div className={`w-9 h-9 ${color} rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: '50%', background: color,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0,
+                        }}>
                           {init}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{m.firstName} {m.lastName}</p>
-                          {m.position && <p className="text-xs text-gray-400 truncate">{m.position}</p>}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 14, fontWeight: 600, color: T.text1, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {m.firstName} {m.lastName}
+                          </p>
+                          {m.position && (
+                            <p style={{ fontSize: 12, color: T.text3, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {m.position}
+                            </p>
+                          )}
                         </div>
                         {saving === m.id ? (
-                          <span className="w-7 h-7 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin flex-shrink-0" />
+                          <div style={{
+                            width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                            border: `2px solid rgba(255,255,255,0.15)`, borderTopColor: T.accent,
+                            animation: 'spin 0.7s linear infinite',
+                          }} />
                         ) : (
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${present ? 'bg-emerald-500' : 'bg-gray-100'}`}>
-                            {present && <Check size={14} className="text-white" />}
+                          <div style={{
+                            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                            background: present ? T.success : 'rgba(255,255,255,0.06)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'background 0.15s',
+                          }}>
+                            {present && <Check size={14} color="#fff" />}
                           </div>
                         )}
                       </div>
@@ -252,9 +342,9 @@ export default function Attendance() {
           )}
 
           {!selectedEvent && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <CalendarDays size={48} className="text-gray-200 mb-4" />
-              <p className="text-sm font-medium text-gray-400">Select an event to take attendance</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', textAlign: 'center' }}>
+              <CalendarDays size={48} style={{ color: T.text3, marginBottom: 12, opacity: 0.5 }} />
+              <p style={{ fontSize: 14, fontWeight: 500, color: T.text3 }}>Select an event to take attendance</p>
             </div>
           )}
         </>
@@ -263,41 +353,55 @@ export default function Attendance() {
       {tab === 'history' && (
         <div>
           {historyLoading ? (
-            <div className="space-y-3">
-              {Array(5).fill(0).map((_, i) => <div key={i} className="skeleton h-14 rounded-xl" />)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {Array(5).fill(0).map((_, i) => (
+                <div key={i} style={{ height: 56, borderRadius: 10, background: 'rgba(255,255,255,0.04)' }} />
+              ))}
             </div>
           ) : history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <History size={48} className="text-gray-200 mb-4" />
-              <p className="text-sm text-gray-400">No attendance history yet</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', textAlign: 'center' }}>
+              <History size={48} style={{ color: T.text3, marginBottom: 12, opacity: 0.5 }} />
+              <p style={{ fontSize: 14, color: T.text2 }}>No attendance history yet</p>
             </div>
           ) : (
-            <div className="card overflow-hidden">
-              <table className="w-full">
+            <div style={{ ...cardStyle, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="th">Event</th>
-                    <th className="th hidden sm:table-cell">Date</th>
-                    <th className="th">Present</th>
-                    <th className="th">Total</th>
-                    <th className="th">Rate</th>
+                  <tr style={{ borderBottom: '1px solid ' + T.border, background: 'rgba(255,255,255,0.02)' }}>
+                    {['Event', 'Date', 'Present', 'Total', 'Rate'].map((h, i) => (
+                      <th key={h} style={{
+                        textAlign: 'left', padding: '12px 16px',
+                        fontSize: 11, fontWeight: 700, color: T.text3,
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                        display: i === 1 ? undefined : undefined,
+                      }}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {history.map((row, i) => {
                     const rate = row.total > 0 ? Math.round((row.attended / row.total) * 100) : 0;
+                    const rColor = rate >= 80 ? T.success : rate >= 60 ? T.warning : T.danger;
                     return (
-                      <tr key={i} className="table-row">
-                        <td className="td font-medium text-gray-900">{row.eventTitle}</td>
-                        <td className="td hidden sm:table-cell text-gray-500">
+                      <tr
+                        key={i}
+                        style={{
+                          background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        }}
+                      >
+                        <td style={{ padding: '13px 16px', fontSize: 14, fontWeight: 600, color: T.text1 }}>
+                          {row.eventTitle}
+                        </td>
+                        <td style={{ padding: '13px 16px', fontSize: 14, color: T.text2 }}>
                           {row.date ? new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                         </td>
-                        <td className="td text-gray-700">{row.attended}</td>
-                        <td className="td text-gray-700">{row.total}</td>
-                        <td className="td">
-                          <span className={`font-semibold ${rate >= 80 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
-                            {rate}%
-                          </span>
+                        <td style={{ padding: '13px 16px', fontSize: 14, color: T.text2 }}>{row.attended}</td>
+                        <td style={{ padding: '13px 16px', fontSize: 14, color: T.text2 }}>{row.total}</td>
+                        <td style={{ padding: '13px 16px' }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: rColor }}>{rate}%</span>
                         </td>
                       </tr>
                     );
@@ -310,6 +414,8 @@ export default function Attendance() {
       )}
 
       <QRScanModal isOpen={showQR} onClose={() => setShowQR(false)} eventId={selectedEvent} />
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

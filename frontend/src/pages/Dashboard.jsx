@@ -1,16 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, DollarSign, CalendarDays, TrendingUp,
-  ChevronRight, UserPlus, BarChart2, Star, Bell,
+  ChevronRight, UserPlus, BarChart2, Star,
   Zap, Clock, ArrowRight
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useHaptic } from '../hooks/useHaptic';
-import { IOSStatCard } from '../components/IOSList';
-import OnboardingChecklist from '../components/OnboardingChecklist';
 
+// ── Design tokens ──────────────────────────────────────────────
+const T = {
+  bgPrimary:   '#070B14',
+  cardBg:      '#0D1424',
+  elevatedBg:  '#131D2E',
+  accentBlue:  '#4F8EF7',
+  gold:        '#F0B429',
+  success:     '#34D399',
+  warning:     '#FBBF24',
+  danger:      '#F87171',
+  textPrimary: '#F8FAFC',
+  textSecond:  '#94A3B8',
+  textMuted:   '#475569',
+  border:      'rgba(255,255,255,0.07)',
+  borderHover: 'rgba(255,255,255,0.13)',
+  cardRadius:  12,
+  btnRadius:   8,
+  shadow:      '0 4px 24px rgba(0,0,0,0.4)',
+  transition:  '150ms ease',
+};
+
+const card = {
+  background:   T.cardBg,
+  border:       `1px solid ${T.border}`,
+  borderRadius: T.cardRadius,
+  boxShadow:    T.shadow,
+};
+
+// ── Helpers ────────────────────────────────────────────────────
 const greeting = () => {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -27,35 +54,98 @@ const timeAgo = (d) => {
   return `${Math.floor(s / 86400)}d ago`;
 };
 
-const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+const fmtDate = (d) =>
+  new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-const ACTIVITY_ICONS = {
-  dues_paid: { bg: '#34C759', icon: DollarSign },
-  member_joined: { bg: '#007AFF', icon: UserPlus },
-  event_created: { bg: '#AF52DE', icon: CalendarDays },
-  default: { bg: '#8E8E93', icon: Zap },
+const ACTIVITY_CFG = {
+  dues_paid:     { bg: T.success,  icon: DollarSign },
+  member_joined: { bg: T.accentBlue, icon: UserPlus },
+  event_created: { bg: '#A78BFA',  icon: CalendarDays },
+  default:       { bg: T.textMuted, icon: Zap },
 };
 
 const EVENT_COLORS = {
-  mixer: '#007AFF', formal: '#C9A84C', meeting: '#0F1C3F',
-  philanthropy: '#34C759', social: '#AF52DE', other: '#8E8E93',
+  mixer:        T.accentBlue,
+  formal:       T.gold,
+  meeting:      '#818CF8',
+  philanthropy: T.success,
+  social:       '#A78BFA',
+  other:        T.textMuted,
 };
 
 const QUICK = [
-  { to: '/members', icon: UserPlus, label: 'Add Member', color: '#007AFF' },
-  { to: '/events', icon: CalendarDays, label: 'New Event', color: '#AF52DE' },
-  { to: '/recruitment', icon: Star, label: 'Rush', color: '#C9A84C' },
-  { to: '/analytics', icon: BarChart2, label: 'Analytics', color: '#30B0C7' },
+  { to: '/members',    icon: UserPlus,    label: 'Add Member', color: T.accentBlue },
+  { to: '/events',     icon: CalendarDays, label: 'New Event', color: '#A78BFA' },
+  { to: '/recruitment', icon: Star,        label: 'Rush',      color: T.gold },
+  { to: '/analytics',  icon: BarChart2,   label: 'Analytics', color: T.success },
 ];
 
+// ── Stat Card ──────────────────────────────────────────────────
+function StatCard({ label, value, color, icon: Icon, onClick }) {
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        ...card,
+        padding: 20,
+        cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden',
+        border: `1px solid ${hovered ? T.borderHover : T.border}`,
+        transition: `border-color ${T.transition}, transform ${T.transition}`,
+        transform: hovered ? 'translateY(-1px)' : 'none',
+      }}
+    >
+      {/* Subtle tint gradient */}
+      <div style={{
+        position: 'absolute', bottom: 0, right: 0,
+        width: 80, height: 80,
+        background: `radial-gradient(circle at bottom right, ${color}22 0%, transparent 70%)`,
+        pointerEvents: 'none',
+      }} />
+
+      {/* Icon badge */}
+      <div style={{
+        position: 'absolute', top: 14, right: 14,
+        width: 32, height: 32, borderRadius: 8,
+        background: `${color}1A`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={15} color={color} strokeWidth={2} />
+      </div>
+
+      <p style={{ fontSize: 28, fontWeight: 700, color: T.textPrimary, margin: '0 0 6px', lineHeight: 1 }}>
+        {value ?? '—'}
+      </p>
+      <p style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        {label}
+      </p>
+    </div>
+  );
+}
+
+// ── Section label ──────────────────────────────────────────────
+const SectionLabel = ({ children, action }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+    <p style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      {children}
+    </p>
+    {action}
+  </div>
+);
+
+// ── Main Component ─────────────────────────────────────────────
 export default function Dashboard() {
   const { user, org } = useAuth();
   const { impact } = useHaptic();
   const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
-  const [events, setEvents] = useState([]);
+  const [stats, setStats]       = useState(null);
+  const [events, setEvents]     = useState([]);
   const [activity, setActivity] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -76,263 +166,265 @@ export default function Dashboard() {
     (Math.min(stats.activePNMs || 0, 20) / 20) * 100 * 0.15
   )) : 0;
 
-  const healthColor = healthScore >= 75 ? '#34C759' : healthScore >= 50 ? '#FF9500' : '#FF3B30';
+  const healthColor = healthScore >= 75 ? T.success : healthScore >= 50 ? T.warning : T.danger;
+  const circumference = 2 * Math.PI * 34; // r=34
 
   return (
-    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: T.bgPrimary, minHeight: '100vh' }}>
 
-      {/* ── HERO HEADER ── */}
+      {/* ── HERO ── */}
       <div style={{
-        background: 'linear-gradient(160deg, #0F1C3F 0%, #1a2f6b 100%)',
-        padding: '56px 20px 28px',
-        paddingTop: 'max(56px, calc(env(safe-area-inset-top) + 40px))',
+        background: 'linear-gradient(135deg, #0D1424 0%, #111827 50%, #0a1628 100%)',
+        padding: '32px 24px 28px',
+        paddingTop: 'max(32px, calc(env(safe-area-inset-top) + 24px))',
         position: 'relative',
         overflow: 'hidden',
+        borderBottom: `1px solid ${T.border}`,
       }}>
-        {/* Decorative circles */}
+        {/* SVG noise texture overlay */}
+        <svg width="0" height="0" style={{ position: 'absolute' }}>
+          <defs>
+            <filter id="noise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+              <feColorMatrix type="saturate" values="0" />
+              <feBlend in="SourceGraphic" mode="overlay" />
+            </filter>
+          </defs>
+        </svg>
         <div style={{
-          position: 'absolute', top: -40, right: -40,
-          width: 180, height: 180, borderRadius: '50%',
-          background: 'rgba(201,168,76,0.12)',
-        }} />
-        <div style={{
-          position: 'absolute', top: 20, right: 20,
-          width: 80, height: 80, borderRadius: '50%',
-          background: 'rgba(201,168,76,0.08)',
+          position: 'absolute', inset: 0,
+          filter: 'url(#noise)',
+          opacity: 0.03,
+          pointerEvents: 'none',
+          background: '#fff',
         }} />
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div>
-            <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, margin: '0 0 4px', fontWeight: 500 }}>
-              {org?.name}
+        {/* Soft glow orbs */}
+        <div style={{ position: 'absolute', top: -60, right: -40, width: 220, height: 220, borderRadius: '50%', background: `radial-gradient(circle, ${T.accentBlue}14 0%, transparent 70%)`, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -30, left: -20, width: 160, height: 160, borderRadius: '50%', background: `radial-gradient(circle, ${T.gold}0d 0%, transparent 70%)`, pointerEvents: 'none' }} />
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          {/* Left: greeting */}
+          <div style={{ flex: 1 }}>
+            <p style={{ color: T.textMuted, fontSize: 13, fontWeight: 500, margin: '0 0 4px', letterSpacing: '0.01em' }}>
+              {greeting()},
             </p>
-            <h1 style={{ color: '#fff', fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
-              {greeting()},{'\n'}
-              <span style={{ color: '#C9A84C' }}>{user?.firstName}</span>
+            <h1 style={{ color: T.textPrimary, fontSize: 28, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+              {user?.firstName} {user?.lastName}
             </h1>
+            <p style={{ color: T.textSecond, fontSize: 13, margin: 0 }}>{org?.name}</p>
           </div>
-          <button
-            onClick={() => { impact('light'); navigate('/profile'); }}
-            style={{
-              width: 42, height: 42, borderRadius: '50%',
-              background: 'rgba(201,168,76,0.2)',
-              border: '2px solid rgba(201,168,76,0.4)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#C9A84C', fontWeight: 700, fontSize: 15,
-              WebkitTapHighlightColor: 'transparent', cursor: 'pointer',
-            }}
-          >
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
-          </button>
+
+          {/* Right: Health ring */}
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              {/* Track */}
+              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
+              {/* Progress */}
+              <circle
+                cx="40" cy="40" r="34" fill="none"
+                stroke={healthColor} strokeWidth="6"
+                strokeDasharray={`${(healthScore / 100) * circumference} ${circumference}`}
+                strokeLinecap="round"
+                transform="rotate(-90 40 40)"
+                style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.34,1.56,0.64,1)', filter: `drop-shadow(0 0 6px ${healthColor}66)` }}
+              />
+              <text x="40" y="44" textAnchor="middle" fill={T.textPrimary} fontSize="14" fontWeight="700" fontFamily="-apple-system, sans-serif">
+                {healthScore}
+              </text>
+            </svg>
+            <p style={{ fontSize: 10, fontWeight: 600, color: healthColor, margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Health
+            </p>
+          </div>
         </div>
 
-        {/* Health ring */}
-        <div style={{
-          marginTop: 20,
-          background: 'rgba(255,255,255,0.08)',
-          borderRadius: 16,
-          padding: '14px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}>
-          <svg width="52" height="52" viewBox="0 0 52 52">
-            <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
-            <circle
-              cx="26" cy="26" r="22" fill="none"
-              stroke={healthColor} strokeWidth="5"
-              strokeDasharray={`${(healthScore / 100) * 138.2} 138.2`}
-              strokeLinecap="round"
-              transform="rotate(-90 26 26)"
-              style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.34,1.56,0.64,1)' }}
-            />
-            <text x="26" y="30" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="700" fontFamily="-apple-system">{healthScore}</text>
-          </svg>
-          <div>
-            <p style={{ color: '#fff', fontWeight: 600, fontSize: 15, margin: 0 }}>Chapter Health</p>
-            <p style={{ color: healthColor, fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>
-              {healthScore >= 75 ? '✓ Excellent' : healthScore >= 50 ? 'Good' : 'Needs attention'}
-            </p>
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, margin: '2px 0 0' }}>Dues · Events · Members · Rush</p>
-          </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div>
-              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dues</p>
-              <p style={{ color: '#fff', fontSize: 13, fontWeight: 600, margin: 0 }}>{stats?.duesRate ?? '—'}%</p>
+        {/* Mini health pills */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Dues', value: `${stats?.duesRate ?? '—'}%`, color: T.success },
+            { label: 'Events', value: stats?.upcomingEvents ?? '—', color: T.accentBlue },
+            { label: 'Members', value: stats?.totalMembers ?? '—', color: T.gold },
+            { label: 'PNMs', value: stats?.activePNMs ?? '—', color: '#A78BFA' },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{
+              background: `${color}12`,
+              border: `1px solid ${color}33`,
+              borderRadius: 999,
+              padding: '5px 12px',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 500 }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color }}>{value}</span>
             </div>
-            <div>
-              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Events</p>
-              <p style={{ color: '#fff', fontSize: 13, fontWeight: 600, margin: 0 }}>{stats?.upcomingEvents ?? '—'}</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      <div style={{ padding: '20px 16px 0', background: '#111113' }}>
-        <OnboardingChecklist />
+      {/* ── CONTENT ── */}
+      <div style={{ padding: '24px 20px 48px' }}>
 
-        {/* ── STATS GRID ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-          <IOSStatCard
-            label="Members"
-            value={loading ? '—' : stats?.totalMembers}
-            color="#0F1C3F"
-            icon={<Users size={16} />}
-            onClick={() => { impact('light'); navigate('/members'); }}
-          />
-          <IOSStatCard
-            label="Dues Rate"
-            value={loading ? '—' : `${stats?.duesRate ?? 0}%`}
-            color="#34C759"
-            icon={<DollarSign size={16} />}
-            sub={stats?.duesRate >= 80 ? 'On track ↑' : null}
-            onClick={() => { impact('light'); navigate('/dues'); }}
-          />
-          <IOSStatCard
-            label="Upcoming Events"
-            value={loading ? '—' : stats?.upcomingEvents}
-            color="#AF52DE"
-            icon={<CalendarDays size={16} />}
-            onClick={() => { impact('light'); navigate('/events'); }}
-          />
-          <IOSStatCard
-            label="Active PNMs"
-            value={loading ? '—' : stats?.activePNMs}
-            color="#FF9500"
-            icon={<TrendingUp size={16} />}
-            onClick={() => { impact('light'); navigate('/recruitment'); }}
-          />
+        {/* ── STAT CARDS ── */}
+        <div style={{ marginBottom: 28 }}>
+          <SectionLabel>Overview</SectionLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            <StatCard label="Members" value={loading ? '—' : stats?.totalMembers} color={T.accentBlue} icon={Users} onClick={() => { impact?.('light'); navigate('/members'); }} />
+            <StatCard label="Dues Rate" value={loading ? '—' : `${stats?.duesRate ?? 0}%`} color={T.success} icon={DollarSign} onClick={() => { impact?.('light'); navigate('/dues'); }} />
+            <StatCard label="Upcoming Events" value={loading ? '—' : stats?.upcomingEvents} color="#A78BFA" icon={CalendarDays} onClick={() => { impact?.('light'); navigate('/events'); }} />
+            <StatCard label="Active PNMs" value={loading ? '—' : stats?.activePNMs} color={T.warning} icon={TrendingUp} onClick={() => { impact?.('light'); navigate('/recruitment'); }} />
+          </div>
         </div>
 
         {/* ── QUICK ACTIONS ── */}
-        <div style={{ marginBottom: 24 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-            Quick Actions
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        <div style={{ marginBottom: 28 }}>
+          <SectionLabel>Quick Actions</SectionLabel>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {QUICK.map(({ to, icon: Icon, label, color }) => (
-              <Link
-                key={to}
-                to={to}
-                onClick={() => impact('light')}
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 6, padding: '12px 4px',
-                  background: '#1c1c1e', borderRadius: 14,
-                  border: '0.5px solid rgba(255,255,255,0.07)',
-                  WebkitTapHighlightColor: 'transparent',
-                  textDecoration: 'none',
-                }}
-                className="active:scale-95 transition-transform duration-100"
-              >
-                <div style={{
-                  width: 40, height: 40, borderRadius: 10,
-                  background: color + '18',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Icon size={20} color={color} strokeWidth={1.8} />
-                </div>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>
-                  {label}
-                </span>
-              </Link>
+              <QuickPill key={to} to={to} icon={Icon} label={label} color={color} onClick={() => impact?.('light')} />
             ))}
           </div>
         </div>
 
         {/* ── UPCOMING EVENTS ── */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
-              Upcoming
-            </p>
-            <Link to="/events" onClick={() => impact('light')} style={{ color: '#C9A84C', fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}>
-              See all <ChevronRight size={13} />
-            </Link>
-          </div>
+        <div style={{ marginBottom: 28 }}>
+          <SectionLabel
+            action={
+              <Link to="/events" style={{ color: T.accentBlue, fontSize: 12, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
+                See all <ChevronRight size={13} />
+              </Link>
+            }
+          >
+            Upcoming Events
+          </SectionLabel>
+
           {events.length === 0 ? (
-            <div style={{ background: '#1c1c1e', borderRadius: 14, padding: 24, textAlign: 'center', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-              <CalendarDays size={28} color="rgba(255,255,255,0.2)" style={{ margin: '0 auto 8px' }} />
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', margin: 0 }}>No upcoming events</p>
-              <Link to="/events" style={{ fontSize: 13, color: '#C9A84C', fontWeight: 600, textDecoration: 'none', marginTop: 6, display: 'block' }}>Create one →</Link>
+            <div style={{ ...card, padding: 32, textAlign: 'center' }}>
+              <CalendarDays size={28} color={T.textMuted} style={{ margin: '0 auto 10px' }} />
+              <p style={{ fontSize: 14, color: T.textMuted, margin: '0 0 10px' }}>No upcoming events</p>
+              <Link to="/events" style={{ fontSize: 13, color: T.accentBlue, fontWeight: 600, textDecoration: 'none' }}>
+                Create one <ArrowRight size={12} style={{ verticalAlign: 'middle' }} />
+              </Link>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {events.map((e, i) => (
-                <div key={e.id} onClick={() => { impact('light'); navigate('/events'); }}
-                  style={{
-                    background: '#1c1c1e', borderRadius: 14,
-                    padding: '12px 14px',
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    border: '0.5px solid rgba(255,255,255,0.07)',
-                    cursor: 'pointer',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                  className="active:scale-[0.98] transition-transform duration-75"
-                >
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 12,
-                    background: (EVENT_COLORS[e.type] || EVENT_COLORS.other) + '22',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <CalendarDays size={20} color={EVENT_COLORS[e.type] || EVENT_COLORS.other} strokeWidth={1.8} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 15, fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>{fmtDate(e.date)}</p>
-                  </div>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, color: EVENT_COLORS[e.type] || EVENT_COLORS.other,
-                    background: (EVENT_COLORS[e.type] || EVENT_COLORS.other) + '22',
-                    padding: '3px 8px', borderRadius: 20, textTransform: 'capitalize',
-                  }}>{e.type}</span>
-                </div>
+              {events.map((e) => (
+                <EventRow key={e.id} event={e} onClick={() => { impact?.('light'); navigate('/events'); }} />
               ))}
             </div>
           )}
         </div>
 
         {/* ── ACTIVITY FEED ── */}
-        <div style={{ marginBottom: 32 }}>
-          <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
-            Recent Activity
-          </p>
+        <div style={{ marginBottom: 8 }}>
+          <SectionLabel>Recent Activity</SectionLabel>
           {activity.length === 0 ? (
-            <div style={{ background: '#1c1c1e', borderRadius: 14, padding: 24, textAlign: 'center', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-              <Clock size={28} color="rgba(255,255,255,0.2)" style={{ margin: '0 auto 8px' }} />
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', margin: 0 }}>No activity yet</p>
+            <div style={{ ...card, padding: 32, textAlign: 'center' }}>
+              <Clock size={28} color={T.textMuted} style={{ margin: '0 auto 10px' }} />
+              <p style={{ fontSize: 14, color: T.textMuted, margin: 0 }}>No activity yet</p>
             </div>
           ) : (
-            <div style={{ background: '#1c1c1e', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ ...card, overflow: 'hidden' }}>
               {activity.map((item, i) => {
-                const cfg = ACTIVITY_ICONS[item.type] || ACTIVITY_ICONS.default;
+                const cfg = ACTIVITY_CFG[item.type] || ACTIVITY_CFG.default;
                 const Icon = cfg.icon;
                 return (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 14px',
-                    borderBottom: i < activity.length - 1 ? '0.5px solid rgba(255,255,255,0.06)' : 'none',
+                    padding: '13px 16px',
+                    borderBottom: i < activity.length - 1 ? `1px solid ${T.border}` : 'none',
                   }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%',
-                      background: cfg.bg + '25',
+                      background: `${cfg.bg}20`,
+                      border: `1px solid ${cfg.bg}33`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <Icon size={16} color={cfg.bg} />
+                      <Icon size={15} color={cfg.bg} strokeWidth={2} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: 0, lineHeight: 1.3 }}>{item.message}</p>
-                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', margin: '2px 0 0' }}>{timeAgo(item.createdAt)}</p>
+                      <p style={{ fontSize: 14, color: T.textPrimary, margin: 0, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.message}
+                      </p>
                     </div>
+                    <span style={{ fontSize: 11, color: T.textMuted, flexShrink: 0 }}>
+                      {timeAgo(item.createdAt)}
+                    </span>
                   </div>
                 );
               })}
             </div>
           )}
         </div>
+
       </div>
+    </div>
+  );
+}
+
+// ── Sub-components ─────────────────────────────────────────────
+function QuickPill({ to, icon: Icon, label, color, onClick }) {
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        padding: '9px 16px',
+        background: hovered ? `${T.accentBlue}12` : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${hovered ? T.accentBlue : 'rgba(255,255,255,0.10)'}`,
+        borderRadius: 999,
+        textDecoration: 'none',
+        transition: `all ${T.transition}`,
+        cursor: 'pointer',
+      }}
+    >
+      <Icon size={14} color={hovered ? T.accentBlue : color} strokeWidth={2} style={{ transition: `color ${T.transition}` }} />
+      <span style={{ fontSize: 13, fontWeight: 600, color: hovered ? T.textPrimary : T.textSecond, transition: `color ${T.transition}` }}>
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+function EventRow({ event: e, onClick }) {
+  const [hovered, setHovered] = React.useState(false);
+  const color = EVENT_COLORS[e.type] || EVENT_COLORS.other;
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        ...card,
+        padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: 14,
+        cursor: 'pointer',
+        borderLeft: `3px solid ${color}`,
+        border: `1px solid ${hovered ? T.borderHover : T.border}`,
+        borderLeftColor: color,
+        transition: `all ${T.transition}`,
+        transform: hovered ? 'translateX(2px)' : 'none',
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {e.title}
+        </p>
+        <p style={{ fontSize: 12, color: T.textSecond, margin: 0 }}>{fmtDate(e.date)}</p>
+      </div>
+      <span style={{
+        fontSize: 11, fontWeight: 600, color,
+        background: `${color}18`,
+        border: `1px solid ${color}33`,
+        padding: '3px 9px', borderRadius: 6,
+        textTransform: 'capitalize', flexShrink: 0,
+      }}>
+        {e.type}
+      </span>
     </div>
   );
 }

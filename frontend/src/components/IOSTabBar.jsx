@@ -1,86 +1,72 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useHaptic } from '../hooks/useHaptic';
 
-// SF Symbol-style SVG paths — hand-crafted to feel native
 const HomeIcon = ({ filled }) => (
-  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-    {filled ? (
-      <path d="M13 2.5L3 10.5V22.5C3 23.05 3.45 23.5 4 23.5H9.5V16.5H16.5V23.5H22C22.55 23.5 23 23.05 23 22.5V10.5L13 2.5Z" fill="currentColor"/>
-    ) : (
-      <>
-        <path d="M13 2.5L3 10.5V22.5C3 23.05 3.45 23.5 4 23.5H9.5V16.5H16.5V23.5H22C22.55 23.5 23 23.05 23 22.5V10.5L13 2.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
-      </>
-    )}
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    {filled
+      ? <path d="M12 2L3 9.5V21C3 21.55 3.45 22 4 22H8.5V15H15.5V22H20C20.55 22 21 21.55 21 21V9.5L12 2Z" fill="currentColor"/>
+      : <path d="M12 2L3 9.5V21C3 21.55 3.45 22 4 22H8.5V15H15.5V22H20C20.55 22 21 21.55 21 21V9.5L12 2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" fill="none"/>
+    }
   </svg>
 );
 
 const MembersIcon = ({ filled }) => (
-  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
     {filled ? (
       <>
-        <circle cx="10" cy="9" r="4" fill="currentColor"/>
-        <path d="M2 21C2 17.13 5.13 14 9 14H11C14.87 14 18 17.13 18 21" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
-        <circle cx="19" cy="9" r="3" fill="currentColor" opacity="0.7"/>
-        <path d="M17 21C17 18.24 18.69 15.89 21 15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" opacity="0.7"/>
+        <circle cx="9" cy="8" r="4" fill="currentColor"/>
+        <path d="M1 20C1 16.13 4.58 13 9 13H10C14.42 13 18 16.13 18 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+        <circle cx="18" cy="8" r="3" fill="currentColor" opacity="0.6"/>
+        <path d="M16 20C16 17.5 17.5 15.3 20 14.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.6"/>
       </>
     ) : (
       <>
-        <circle cx="10" cy="9" r="4" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-        <path d="M2 21C2 17.13 5.13 14 9 14H11C14.87 14 18 17.13 18 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-        <circle cx="19" cy="9" r="3" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-        <path d="M17 21C17 18.24 18.69 15.89 21 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+        <circle cx="9" cy="8" r="4" stroke="currentColor" strokeWidth="1.7" fill="none"/>
+        <path d="M1 20C1 16.13 4.58 13 9 13H10C14.42 13 18 16.13 18 20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" fill="none"/>
+        <circle cx="18" cy="8" r="3" stroke="currentColor" strokeWidth="1.7" fill="none"/>
+        <path d="M16 20C16 17.5 17.5 15.3 20 14.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" fill="none"/>
       </>
     )}
   </svg>
 );
 
 const ChatIcon = ({ filled }) => (
-  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-    {filled ? (
-      <path d="M13 3C7.48 3 3 6.92 3 11.75C3 14.21 4.18 16.43 6.08 17.97L5 23L10.42 20.29C11.24 20.46 12.1 20.55 13 20.55C18.52 20.55 23 16.63 23 11.75C23 6.92 18.52 3 13 3Z" fill="currentColor"/>
-    ) : (
-      <path d="M13 3C7.48 3 3 6.92 3 11.75C3 14.21 4.18 16.43 6.08 17.97L5 23L10.42 20.29C11.24 20.46 12.1 20.55 13 20.55C18.52 20.55 23 16.63 23 11.75C23 6.92 18.52 3 13 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
-    )}
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    {filled
+      ? <path d="M12 2C6.48 2 2 5.92 2 10.75C2 13.21 3.18 15.43 5.08 16.97L4 22L9.42 19.29C10.24 19.46 11.1 19.55 12 19.55C17.52 19.55 22 15.63 22 10.75C22 5.92 17.52 2 12 2Z" fill="currentColor"/>
+      : <path d="M12 2C6.48 2 2 5.92 2 10.75C2 13.21 3.18 15.43 5.08 16.97L4 22L9.42 19.29C10.24 19.46 11.1 19.55 12 19.55C17.52 19.55 22 15.63 22 10.75C22 5.92 17.52 2 12 2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" fill="none"/>
+    }
   </svg>
 );
 
 const EventsIcon = ({ filled }) => (
-  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-    {filled ? (
-      <>
-        <rect x="3" y="5" width="20" height="18" rx="3" fill="currentColor" opacity="0.15"/>
-        <rect x="3" y="5" width="20" height="18" rx="3" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-        <path d="M3 10H23" stroke="currentColor" strokeWidth="1.8"/>
-        <path d="M8 3V7M18 3V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        {filled && <rect x="7" y="14" width="4" height="4" rx="1" fill="currentColor"/>}
-        {filled && <rect x="15" y="14" width="4" height="4" rx="1" fill="currentColor"/>}
-      </>
-    ) : (
-      <>
-        <rect x="3" y="5" width="20" height="18" rx="3" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-        <path d="M3 10H23" stroke="currentColor" strokeWidth="1.8"/>
-        <path d="M8 3V7M18 3V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        <rect x="7" y="14" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-        <rect x="15" y="14" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      </>
-    )}
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <>
+      <rect x="3" y="4" width="18" height="17" rx="3" stroke="currentColor" strokeWidth="1.7" fill={filled ? 'rgba(79,142,247,0.15)' : 'none'}/>
+      <path d="M3 9H21" stroke="currentColor" strokeWidth="1.7"/>
+      <path d="M8 2V5M16 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      {filled && <rect x="7" y="13" width="3" height="3" rx="1" fill="currentColor"/>}
+      {filled && <rect x="14" y="13" width="3" height="3" rx="1" fill="currentColor"/>}
+      {!filled && <rect x="7" y="13" width="3" height="3" rx="1" stroke="currentColor" strokeWidth="1.4" fill="none"/>}
+      {!filled && <rect x="14" y="13" width="3" height="3" rx="1" stroke="currentColor" strokeWidth="1.4" fill="none"/>}
+    </>
   </svg>
 );
 
 const MoreIcon = ({ filled }) => (
-  <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
     {filled ? (
       <>
-        <circle cx="5.5" cy="13" r="2.5" fill="currentColor"/>
-        <circle cx="13" cy="13" r="2.5" fill="currentColor"/>
-        <circle cx="20.5" cy="13" r="2.5" fill="currentColor"/>
+        <circle cx="5" cy="12" r="2.2" fill="currentColor"/>
+        <circle cx="12" cy="12" r="2.2" fill="currentColor"/>
+        <circle cx="19" cy="12" r="2.2" fill="currentColor"/>
       </>
     ) : (
       <>
-        <circle cx="5.5" cy="13" r="2.5" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-        <circle cx="13" cy="13" r="2.5" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-        <circle cx="20.5" cy="13" r="2.5" stroke="currentColor" strokeWidth="1.8" fill="none"/>
+        <circle cx="5" cy="12" r="2.2" stroke="currentColor" strokeWidth="1.7" fill="none"/>
+        <circle cx="12" cy="12" r="2.2" stroke="currentColor" strokeWidth="1.7" fill="none"/>
+        <circle cx="19" cy="12" r="2.2" stroke="currentColor" strokeWidth="1.7" fill="none"/>
       </>
     )}
   </svg>
@@ -98,57 +84,48 @@ export default function IOSTabBar() {
   const { impact } = useHaptic();
   const location = useLocation();
 
-  const handleTap = () => impact('light');
-
   return (
     <nav
+      className="lg:hidden"
       style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 50,
-        background: 'rgba(14,14,16,0.96)',
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+        background: 'rgba(10,15,28,0.97)',
         backdropFilter: 'saturate(180%) blur(24px)',
         WebkitBackdropFilter: 'saturate(180%) blur(24px)',
-        borderTop: '0.5px solid rgba(255,255,255,0.08)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
-      className="lg:hidden"
     >
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: 49, paddingTop: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: 49 }}>
         {TABS.map(({ to, label, Icon }) => {
           const isActive = location.pathname === to || (to !== '/dashboard' && location.pathname.startsWith(to));
           return (
             <NavLink
               key={to}
               to={to}
-              onClick={handleTap}
+              onClick={() => impact('light')}
               style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 3,
-                paddingBottom: 6,
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 3, paddingTop: 6,
                 WebkitTapHighlightColor: 'transparent',
+                textDecoration: 'none',
               }}
             >
               <div style={{
-                color: isActive ? '#C9A84C' : 'rgba(255,255,255,0.3)',
-                transform: isActive ? 'scale(1.08)' : 'scale(1)',
-                transition: 'all 0.15s ease',
+                color: isActive ? '#4F8EF7' : 'rgba(255,255,255,0.28)',
+                transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                transition: 'all 150ms ease',
               }}>
                 <Icon filled={isActive} />
               </div>
               <span style={{
                 fontSize: 10,
                 fontWeight: isActive ? 600 : 400,
-                letterSpacing: '-0.01em',
-                color: isActive ? '#C9A84C' : 'rgba(255,255,255,0.3)',
+                color: isActive ? '#4F8EF7' : 'rgba(255,255,255,0.28)',
                 lineHeight: 1,
-                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-                transition: 'color 0.15s ease',
+                letterSpacing: '-0.01em',
+                transition: 'color 150ms ease',
               }}>
                 {label}
               </span>

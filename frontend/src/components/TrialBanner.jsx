@@ -1,47 +1,61 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, X } from 'lucide-react';
+import { X, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useState } from 'react';
 
 export default function TrialBanner() {
   const { user } = useAuth();
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed) return null;
-  if (!user?.org) return null;
-
+  if (dismissed || !user?.org) return null;
   const { plan, trialEndsAt } = user.org;
   if (plan !== 'trial' || !trialEndsAt) return null;
 
   const daysLeft = Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24));
   if (daysLeft < 0) return null;
 
-  const urgent = daysLeft <= 7;
+  const urgent = daysLeft <= 3;
 
   return (
-    <div className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 text-sm
-      ${urgent ? 'bg-red-500 text-white' : 'bg-amber-50 border-b border-amber-200 text-amber-800'}`}>
-      <div className="flex items-center gap-2">
-        <Clock size={14} className="flex-shrink-0" />
-        <span className="font-medium">
-          {daysLeft === 0
-            ? 'Your free trial expires today!'
-            : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in your free trial`}
-        </span>
-        <span className={urgent ? 'text-white/70' : 'text-amber-600'}>
-          — upgrade to keep your chapter running
+    <div style={{
+      height: 36,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '0 16px',
+      background: urgent
+        ? 'rgba(248,113,113,0.1)'
+        : 'rgba(240,180,41,0.08)',
+      borderBottom: `1px solid ${urgent ? 'rgba(248,113,113,0.2)' : 'rgba(240,180,41,0.15)'}`,
+      flexShrink: 0,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Zap size={12} color={urgent ? '#F87171' : '#F0B429'} />
+        <span style={{
+          fontSize: 12, fontWeight: 500,
+          color: urgent ? '#F87171' : '#F0B429',
+        }}>
+          {daysLeft === 0 ? 'Trial expires today' : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in trial`}
+          <span style={{ color: '#475569', marginLeft: 6 }}>— upgrade to keep full access</span>
         </span>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <Link to="/billing"
-          className={`font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors
-            ${urgent ? 'bg-white text-red-600 hover:bg-red-50' : 'bg-amber-500 text-white hover:bg-amber-600'}`}>
-          Upgrade now
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Link to="/billing" style={{
+          fontSize: 11, fontWeight: 700,
+          color: '#070B14',
+          background: urgent ? '#F87171' : '#F0B429',
+          padding: '3px 10px', borderRadius: 999,
+          textDecoration: 'none',
+          transition: 'filter 150ms ease',
+        }}
+          className="hover:brightness-110"
+        >
+          Upgrade
         </Link>
-        <button onClick={() => setDismissed(true)}
-          className={`p-1 rounded ${urgent ? 'hover:bg-white/10' : 'hover:bg-amber-100'} transition-colors`}>
-          <X size={14} />
+        <button
+          onClick={() => setDismissed(true)}
+          style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, display: 'flex' }}
+          className="hover:text-[#94A3B8]"
+        >
+          <X size={13} />
         </button>
       </div>
     </div>

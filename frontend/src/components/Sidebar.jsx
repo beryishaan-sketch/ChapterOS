@@ -1,83 +1,58 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   CreditCard, UserCheck, Settings, Shield,
-  LogOut, X, Zap, Upload, Megaphone, Trophy, BarChart2, GraduationCap, ClipboardList as ReportIcon,
-  Vote, Building2, Wallet, ShieldCheck, FileText, User, ChevronDown, Gavel, MessageSquare
+  LogOut, X, Zap, Upload, Megaphone, Trophy, BarChart2, GraduationCap,
+  Vote, Building2, Wallet, ShieldCheck, FileText, Gavel, MessageSquare
 } from 'lucide-react';
 
-// role: undefined = visible to all; 'officer' = admin+officer only; 'admin' = admin only
 const NAV_GROUPS = [
   {
     label: 'Overview',
     items: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/analytics', icon: BarChart2, label: 'Analytics' },
-      { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+      { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/analytics',  icon: BarChart2,        label: 'Analytics' },
+      { to: '/leaderboard',icon: Trophy,           label: 'Leaderboard' },
     ],
   },
   {
     label: 'Chapter',
     items: [
-      { to: '/members', icon: Users, label: 'Members' },
-      { to: '/recruitment', icon: UserCheck, label: 'Recruitment', role: 'officer' },
-      { to: '/bid-voting', icon: Gavel, label: 'Bid Voting', badge: 'NEW', role: 'officer' },
-      { to: '/events', icon: Calendar, label: 'Events' },
-      { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+      { to: '/members',    icon: Users,       label: 'Members' },
+      { to: '/recruitment',icon: UserCheck,   label: 'Recruitment', role: 'officer' },
+      { to: '/bid-voting', icon: Gavel,       label: 'Bid Voting',  role: 'officer', badge: 'NEW' },
+      { to: '/events',     icon: Calendar,    label: 'Events' },
+      { to: '/attendance', icon: ClipboardList,label: 'Attendance' },
     ],
   },
   {
     label: 'Finance',
     items: [
-      { to: '/dues', icon: CreditCard, label: 'Dues' },
-      { to: '/budget', icon: Wallet, label: 'Treasury', role: 'officer' },
+      { to: '/dues',   icon: CreditCard, label: 'Dues' },
+      { to: '/budget', icon: Wallet,     label: 'Treasury', role: 'officer' },
     ],
   },
   {
     label: 'Engagement',
     items: [
-      { to: '/announcements', icon: Megaphone, label: 'Announcements' },
-      { to: '/channels', icon: MessageSquare, label: 'Channels', badge: 'NEW' },
-      { to: '/polls', icon: Vote, label: 'Polls' },
+      { to: '/announcements', icon: Megaphone,     label: 'Announcements' },
+      { to: '/channels',      icon: MessageSquare, label: 'Channels', badge: 'NEW' },
+      { to: '/polls',         icon: Vote,          label: 'Polls' },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { to: '/academics', icon: GraduationCap, label: 'Academics' },
-      { to: '/reports', icon: ReportIcon, label: 'HQ Reports', badge: 'NEW', role: 'officer' },
-      { to: '/risk', icon: ShieldCheck, label: 'Risk Management', role: 'officer' },
-      { to: '/documents', icon: FileText, label: 'Documents' },
-      { to: '/import', icon: Upload, label: 'Import Data', role: 'admin' },
-    ],
-  },
-  {
-    label: 'Growth',
-    items: [
-      { to: '/sponsors', icon: Building2, label: 'Sponsorships', badge: 'NEW', role: 'officer' },
+      { to: '/academics',  icon: GraduationCap, label: 'Academics' },
+      { to: '/risk',       icon: ShieldCheck,   label: 'Risk Mgmt',   role: 'officer' },
+      { to: '/documents',  icon: FileText,      label: 'Documents' },
+      { to: '/sponsors',   icon: Building2,     label: 'Sponsorships',role: 'officer', badge: 'NEW' },
+      { to: '/import',     icon: Upload,        label: 'Import Data', role: 'admin' },
     ],
   },
 ];
-
-const NavItem = ({ to, icon: Icon, label, badge, onClick }) => (
-  <NavLink to={to} onClick={onClick}
-    className={({ isActive }) =>
-      `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 group ${
-        isActive ? 'bg-gold text-navy-dark shadow-sm' : 'text-white/60 hover:text-white hover:bg-white/8'
-      }`
-    }
-  >
-    {({ isActive }) => (
-      <>
-        <Icon size={16} strokeWidth={isActive ? 2.2 : 1.8} className="flex-shrink-0" />
-        <span className="flex-1">{label}</span>
-        {badge && <span className="text-[9px] font-bold bg-gold/20 text-gold px-1.5 py-0.5 rounded-full">{badge}</span>}
-      </>
-    )}
-  </NavLink>
-);
 
 const canSee = (itemRole, userRole) => {
   if (!itemRole) return true;
@@ -86,89 +61,190 @@ const canSee = (itemRole, userRole) => {
   return true;
 };
 
-const Sidebar = ({ mobileOpen, setMobileOpen }) => {
-  const { user, org, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const content = (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="px-4 pt-5 pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gold rounded-lg flex items-center justify-center flex-shrink-0">
-            <Zap size={15} className="text-navy-dark" strokeWidth={2.5} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-white font-bold text-sm leading-tight">ChapterOS</p>
-            {org && <p className="text-white/40 text-xs truncate">{org.name}</p>}
-          </div>
-        </div>
-      </div>
-
-      <div className="px-3 mb-1"><div className="h-px bg-white/8" /></div>
-
-      {/* Nav groups */}
-      <nav className="flex-1 px-3 overflow-y-auto py-2 space-y-3">
-        {NAV_GROUPS.map(group => {
-          const visibleItems = group.items.filter(item => canSee(item.role, user?.role));
-          if (visibleItems.length === 0) return null;
-          return (
-            <div key={group.label}>
-              <p className="text-white/25 text-[10px] font-bold uppercase tracking-widest px-3 pb-1">{group.label}</p>
-              <div className="space-y-0.5">
-                {visibleItems.map(item => (
-                  <NavItem key={item.to} {...item} onClick={() => setMobileOpen?.(false)} />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* Bottom */}
-      <div className="px-3 pb-4 border-t border-white/8 pt-3 space-y-0.5">
-        <NavItem to="/settings" icon={Settings} label="Settings" onClick={() => setMobileOpen?.(false)} />
-        {(user?.role === 'admin') && (
-          <NavItem to="/billing" icon={Shield} label="Billing & Plan" onClick={() => setMobileOpen?.(false)} />
+const NavItem = ({ to, icon: Icon, label, badge, onClick }) => (
+  <NavLink to={to} onClick={onClick}
+    className={({ isActive }) =>
+      `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 relative group ${
+        isActive
+          ? 'text-[#4F8EF7] bg-[rgba(79,142,247,0.1)]'
+          : 'text-[#475569] hover:text-[#94A3B8] hover:bg-[rgba(255,255,255,0.04)]'
+      }`
+    }
+  >
+    {({ isActive }) => (
+      <>
+        {/* Active blue left border */}
+        {isActive && (
+          <div style={{
+            position: 'absolute', left: 0, top: '20%', bottom: '20%',
+            width: 3, borderRadius: '0 3px 3px 0',
+            background: '#4F8EF7',
+            boxShadow: '0 0 8px rgba(79,142,247,0.6)',
+          }} />
         )}
+        <Icon size={15} strokeWidth={isActive ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>{label}</span>
+        {badge && (
+          <span style={{
+            fontSize: 9, fontWeight: 700,
+            background: 'rgba(79,142,247,0.2)', color: '#4F8EF7',
+            padding: '1px 5px', borderRadius: 999,
+            border: '1px solid rgba(79,142,247,0.3)',
+          }}>
+            {badge}
+          </span>
+        )}
+      </>
+    )}
+  </NavLink>
+);
 
-        {/* User card */}
-        <div className="mt-2 px-3 py-2.5 flex items-center gap-3 rounded-xl hover:bg-white/5 cursor-pointer group transition-colors"
-          onClick={() => { navigate('/profile'); setMobileOpen?.(false); }}>
-          <div className="w-7 h-7 bg-gold/20 rounded-full flex items-center justify-center text-gold text-xs font-bold flex-shrink-0">
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white/80 text-xs font-semibold truncate">{user?.firstName} {user?.lastName}</p>
-            <p className="text-white/35 text-[10px] capitalize">{user?.role}</p>
-          </div>
-          <button onClick={(e) => { e.stopPropagation(); logout(); }}
-            className="p-1 text-white/25 hover:text-white/60 rounded transition-colors" title="Sign out">
-            <LogOut size={13} />
-          </button>
+const SidebarContent = ({ user, org, logout, navigate, onClose }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    {/* Logo */}
+    <div style={{ padding: '20px 16px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: 'linear-gradient(135deg, #4F8EF7, #3b7de8)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, boxShadow: '0 0 16px rgba(79,142,247,0.35)',
+        }}>
+          <Zap size={15} color="#fff" strokeWidth={2.5} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ color: '#F8FAFC', fontWeight: 700, fontSize: 14, lineHeight: 1.2, margin: 0 }}>ChapterOS</p>
+          {org && <p style={{ color: '#475569', fontSize: 11, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{org.name}</p>}
         </div>
       </div>
     </div>
-  );
+
+    <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 12px' }} />
+
+    {/* Nav */}
+    <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px', scrollbarWidth: 'none' }}>
+      {NAV_GROUPS.map(group => {
+        const visible = group.items.filter(item => canSee(item.role, user?.role));
+        if (!visible.length) return null;
+        return (
+          <div key={group.label} style={{ marginBottom: 20 }}>
+            <p style={{
+              fontSize: 10, fontWeight: 700,
+              color: '#334155', textTransform: 'uppercase',
+              letterSpacing: '0.08em', padding: '0 12px 6px',
+              margin: 0,
+            }}>
+              {group.label}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {visible.map(item => (
+                <NavItem key={item.to} {...item} onClick={onClose} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+
+    {/* Bottom */}
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '12px 8px 16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 8 }}>
+        <NavItem to="/settings" icon={Settings} label="Settings" onClick={onClose} />
+        {user?.role === 'admin' && (
+          <NavItem to="/billing" icon={Shield} label="Billing & Plan" onClick={onClose} />
+        )}
+      </div>
+
+      {/* User card */}
+      <div
+        onClick={() => { navigate('/profile'); onClose?.(); }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 12px', borderRadius: 10,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          cursor: 'pointer', transition: 'all 150ms ease',
+        }}
+        className="hover:bg-[rgba(255,255,255,0.06)]"
+      >
+        <div style={{
+          width: 30, height: 30, borderRadius: '50%',
+          background: 'rgba(79,142,247,0.2)',
+          border: '1px solid rgba(79,142,247,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#4F8EF7', fontWeight: 700, fontSize: 11, flexShrink: 0,
+        }}>
+          {user?.firstName?.[0]}{user?.lastName?.[0]}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ color: '#94A3B8', fontSize: 12, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.firstName} {user?.lastName}
+          </p>
+          <p style={{ color: '#475569', fontSize: 10, margin: 0, textTransform: 'capitalize' }}>{user?.role}</p>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); logout(); }}
+          style={{ padding: 4, color: '#475569', borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', transition: 'color 150ms ease', display: 'flex' }}
+          className="hover:text-[#F87171]"
+          title="Sign out"
+        >
+          <LogOut size={13} />
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+export default function Sidebar({ mobileOpen, setMobileOpen }) {
+  const { user, org, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <>
-      <aside className="hidden lg:flex flex-col w-56 bg-navy min-h-screen flex-shrink-0">
-        {content}
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden lg:flex flex-col flex-shrink-0"
+        style={{
+          width: 220, minHeight: '100vh',
+          background: '#0A0F1C',
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+          position: 'sticky', top: 0, height: '100vh', overflowY: 'auto',
+        }}
+      >
+        <SidebarContent user={user} org={org} logout={logout} navigate={navigate} />
       </aside>
+
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-navy-dark/70 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-60 bg-navy animate-slide-in">
-            <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 p-1.5 text-white/40 hover:text-white/80 rounded-lg">
-              <X size={18} />
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(7,11,20,0.7)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside
+            className="animate-slide-in"
+            style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 240,
+              background: '#0A0F1C',
+              borderRight: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            <button
+              onClick={() => setMobileOpen(false)}
+              style={{
+                position: 'absolute', top: 16, right: 14,
+                width: 28, height: 28, borderRadius: 8,
+                background: 'rgba(255,255,255,0.06)', border: 'none',
+                color: '#94A3B8', cursor: 'pointer', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <X size={15} />
             </button>
-            {content}
+            <SidebarContent user={user} org={org} logout={logout} navigate={navigate} onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
       )}
     </>
   );
-};
-
-export default Sidebar;
+}

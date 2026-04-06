@@ -6,43 +6,52 @@ import {
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
+const T = {
+  bg: '#070B14', card: '#0D1424', elevated: '#131D2E',
+  accent: '#4F8EF7', gold: '#F0B429', success: '#34D399', warning: '#FBBF24', danger: '#F87171',
+  text1: '#F8FAFC', text2: '#94A3B8', text3: '#475569',
+  border: 'rgba(255,255,255,0.07)', borderStrong: 'rgba(255,255,255,0.12)',
+};
+
 const VOTE_OPTIONS = [
-  { value: 'yes', label: 'Yes', icon: ThumbsUp, color: 'emerald', bg: 'bg-emerald-500', border: 'border-emerald-500', ring: 'ring-emerald-400', text: 'text-emerald-700', light: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  { value: 'abstain', label: 'Abstain', icon: Minus, color: 'amber', bg: 'bg-amber-400', border: 'border-amber-400', ring: 'ring-amber-300', text: 'text-amber-700', light: 'bg-amber-50 text-amber-700 border-amber-200' },
-  { value: 'no', label: 'No', icon: ThumbsDown, color: 'red', bg: 'bg-red-500', border: 'border-red-500', ring: 'ring-red-400', text: 'text-red-700', light: 'bg-red-50 text-red-700 border-red-200' },
+  { value: 'yes',     label: 'Yes',     icon: ThumbsUp,   color: T.success,  dimColor: 'rgba(52,211,153,0.12)',  activeGlow: '0 0 20px rgba(52,211,153,0.3)' },
+  { value: 'abstain', label: 'Abstain', icon: Minus,       color: T.warning,  dimColor: 'rgba(251,191,36,0.12)',  activeGlow: '0 0 20px rgba(251,191,36,0.3)' },
+  { value: 'no',      label: 'No',      icon: ThumbsDown,  color: T.danger,   dimColor: 'rgba(248,113,113,0.12)', activeGlow: '0 0 20px rgba(248,113,113,0.3)' },
 ];
 
 const TallyBar = ({ tally }) => {
   const total = tally.yes + tally.no + tally.abstain;
-  if (total === 0) return <p className="text-xs text-gray-400 italic">No votes yet</p>;
+  if (total === 0) return <p style={{ fontSize: 12, color: T.text3, fontStyle: 'italic' }}>No votes yet</p>;
 
   const pct = (n) => (total > 0 ? Math.round((n / total) * 100) : 0);
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex h-2 rounded-full overflow-hidden gap-px">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', height: 6, borderRadius: 99, overflow: 'hidden', gap: 2, background: 'rgba(255,255,255,0.05)' }}>
         {tally.yes > 0 && (
-          <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${pct(tally.yes)}%` }} />
+          <div style={{ background: T.success, transition: 'width 0.5s', width: `${pct(tally.yes)}%`, borderRadius: 99 }} />
         )}
         {tally.abstain > 0 && (
-          <div className="bg-amber-400 transition-all duration-500" style={{ width: `${pct(tally.abstain)}%` }} />
+          <div style={{ background: T.warning, transition: 'width 0.5s', width: `${pct(tally.abstain)}%`, borderRadius: 99 }} />
         )}
         {tally.no > 0 && (
-          <div className="bg-red-500 transition-all duration-500" style={{ width: `${pct(tally.no)}%` }} />
+          <div style={{ background: T.danger, transition: 'width 0.5s', width: `${pct(tally.no)}%`, borderRadius: 99 }} />
         )}
-        {total === 0 && <div className="bg-gray-200 w-full" />}
       </div>
-      <div className="flex items-center gap-4 text-xs">
-        <span className="flex items-center gap-1 font-semibold text-emerald-600">
-          <div className="w-2 h-2 rounded-full bg-emerald-500" /> Yes: {tally.yes} ({pct(tally.yes)}%)
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 11 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: T.success, fontWeight: 600 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.success, display: 'inline-block' }} />
+          Yes: {tally.yes} ({pct(tally.yes)}%)
         </span>
-        <span className="flex items-center gap-1 font-semibold text-amber-600">
-          <div className="w-2 h-2 rounded-full bg-amber-400" /> Abstain: {tally.abstain}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: T.warning, fontWeight: 600 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.warning, display: 'inline-block' }} />
+          Abstain: {tally.abstain}
         </span>
-        <span className="flex items-center gap-1 font-semibold text-red-600">
-          <div className="w-2 h-2 rounded-full bg-red-500" /> No: {tally.no}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: T.danger, fontWeight: 600 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.danger, display: 'inline-block' }} />
+          No: {tally.no}
         </span>
-        <span className="ml-auto text-gray-400">{total} vote{total !== 1 ? 's' : ''}</span>
+        <span style={{ marginLeft: 'auto', color: T.text3 }}>{total} vote{total !== 1 ? 's' : ''}</span>
       </div>
     </div>
   );
@@ -72,78 +81,124 @@ const PNMCard = ({ pnm, result, votingOpen, onVote, onMove, isAdmin, userVote })
     finally { setMoving(null); }
   };
 
+  const initials = `${pnm.firstName?.[0] || ''}${pnm.lastName?.[0] || ''}`.toUpperCase();
+
   return (
-    <div className="card p-5">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-navy/10 rounded-full flex items-center justify-center text-navy font-bold text-sm flex-shrink-0">
-            {pnm.firstName[0]}{pnm.lastName[0]}
+    <div style={{
+      background: T.card,
+      border: `1px solid ${T.border}`,
+      borderRadius: 12,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+      overflow: 'hidden',
+      transition: 'border-color 0.2s',
+    }}>
+      {/* Top accent bar */}
+      <div style={{ height: 3, background: `linear-gradient(90deg, ${T.accent}, rgba(167,139,250,0.6))` }} />
+
+      <div style={{ padding: '18px 20px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #4F8EF7, #A78BFA)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 800, fontSize: 14, flexShrink: 0,
+              boxShadow: '0 0 12px rgba(79,142,247,0.3)',
+            }}>
+              {initials}
+            </div>
+            <div>
+              <h3 style={{ fontWeight: 700, color: T.text1, margin: 0, fontSize: 15 }}>{pnm.firstName} {pnm.lastName}</h3>
+              <p style={{ fontSize: 12, color: T.text3, margin: '2px 0 0' }}>{result?.totalVotes || 0} member{result?.totalVotes !== 1 ? 's' : ''} voted</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900">{pnm.firstName} {pnm.lastName}</h3>
-            <p className="text-xs text-gray-400">{result?.totalVotes || 0} member{result?.totalVotes !== 1 ? 's' : ''} voted</p>
-          </div>
+
+          {!votingOpen && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11,
+              color: T.text3, background: 'rgba(255,255,255,0.05)',
+              padding: '3px 8px', borderRadius: 99, border: `1px solid ${T.border}`,
+            }}>
+              <Lock size={10} /> Closed
+            </span>
+          )}
         </div>
 
-        {!votingOpen && (
-          <span className="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-            <Lock size={10} /> Closed
-          </span>
+        {/* Tally */}
+        <div style={{ marginBottom: 16 }}>
+          <TallyBar tally={tally} />
+        </div>
+
+        {/* Vote buttons */}
+        {votingOpen && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+            {VOTE_OPTIONS.map(opt => {
+              const Icon = opt.icon;
+              const isSelected = userVote === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => castVote(opt.value)}
+                  disabled={voting}
+                  style={{
+                    flex: 1,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    padding: '10px 8px',
+                    borderRadius: 10,
+                    border: `1px solid ${isSelected ? opt.color : T.border}`,
+                    background: isSelected ? opt.dimColor : 'rgba(255,255,255,0.03)',
+                    color: isSelected ? opt.color : T.text3,
+                    fontSize: 11, fontWeight: 700,
+                    cursor: voting ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s',
+                    boxShadow: isSelected ? opt.activeGlow : 'none',
+                    transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                    opacity: voting ? 0.6 : 1,
+                  }}
+                >
+                  <Icon size={15} strokeWidth={2.5} />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Admin controls */}
+        {isAdmin && !votingOpen && (
+          <div style={{ display: 'flex', gap: 8, paddingTop: 14, borderTop: `1px solid ${T.border}`, marginTop: 4 }}>
+            <button
+              onClick={() => moveTo('pledged')}
+              disabled={moving !== null}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: 'rgba(52,211,153,0.1)', color: T.success,
+                border: `1px solid rgba(52,211,153,0.25)`,
+                opacity: moving !== null ? 0.6 : 1, transition: 'all 0.15s',
+              }}
+            >
+              <CheckCircle size={13} />
+              {moving === 'pledged' ? 'Moving…' : 'Bid → Pledged'}
+            </button>
+            <button
+              onClick={() => moveTo('dropped')}
+              disabled={moving !== null}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: 'rgba(248,113,113,0.1)', color: T.danger,
+                border: `1px solid rgba(248,113,113,0.25)`,
+                opacity: moving !== null ? 0.6 : 1, transition: 'all 0.15s',
+              }}
+            >
+              <XCircle size={13} />
+              {moving === 'dropped' ? 'Moving…' : 'Drop'}
+            </button>
+          </div>
         )}
       </div>
-
-      {/* Tally */}
-      <div className="mb-4">
-        <TallyBar tally={tally} />
-      </div>
-
-      {/* Vote buttons */}
-      {votingOpen && (
-        <div className="flex gap-2 mb-4">
-          {VOTE_OPTIONS.map(opt => {
-            const Icon = opt.icon;
-            const isSelected = userVote === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => castVote(opt.value)}
-                disabled={voting}
-                className={`flex-1 flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border-2 text-xs font-bold transition-all ${
-                  isSelected
-                    ? `${opt.bg} border-transparent text-white shadow-md scale-105`
-                    : `bg-white ${opt.border} ${opt.text} hover:scale-102 opacity-70 hover:opacity-100`
-                }`}
-              >
-                <Icon size={16} strokeWidth={2.5} />
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Admin controls — only show after voting closed */}
-      {isAdmin && !votingOpen && (
-        <div className="flex gap-2 pt-3 border-t border-gray-100">
-          <button
-            onClick={() => moveTo('pledged')}
-            disabled={moving !== null}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-60"
-          >
-            <CheckCircle size={14} />
-            {moving === 'pledged' ? 'Moving…' : 'Bid → Pledged'}
-          </button>
-          <button
-            onClick={() => moveTo('dropped')}
-            disabled={moving !== null}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-60"
-          >
-            <XCircle size={14} />
-            {moving === 'dropped' ? 'Moving…' : 'Drop'}
-          </button>
-        </div>
-      )}
     </div>
   );
 };
@@ -175,16 +230,12 @@ export default function BidVoting() {
       const resultMap = {};
       resultList.forEach(r => { resultMap[r.id] = r; });
       setResults(resultMap);
-
-      // Check which PNMs the current user has voted on
-      // We can infer this from the PNM votes if included, otherwise we track locally
     } catch { /* empty */ }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Auto-refresh tallies every 15s when voting is open
   useEffect(() => {
     if (!votingOpen) return;
     const interval = setInterval(() => fetchData(true), 15000);
@@ -193,7 +244,6 @@ export default function BidVoting() {
 
   const handleVote = (pnmId, vote) => {
     setUserVotes(prev => ({ ...prev, [pnmId]: vote }));
-    // Optimistically update tally
     setResults(prev => {
       const current = prev[pnmId] || { tally: { yes: 0, no: 0, abstain: 0 }, totalVotes: 0 };
       const oldVote = userVotes[pnmId];
@@ -215,39 +265,62 @@ export default function BidVoting() {
   };
 
   return (
-    <div>
+    <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>
+
       {/* Header */}
-      <div className="page-header flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="page-title">Bid Day Voting</h1>
-            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
-              votingOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-            }`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${votingOpen ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <h1 style={{ color: T.text1, fontWeight: 800, fontSize: 26, margin: 0 }}>Bid Day Voting</h1>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700,
+              padding: '4px 10px', borderRadius: 99,
+              background: votingOpen ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.05)',
+              color: votingOpen ? T.success : T.text3,
+              border: `1px solid ${votingOpen ? 'rgba(52,211,153,0.25)' : T.border}`,
+            }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: votingOpen ? T.success : T.text3,
+                display: 'inline-block',
+                animation: votingOpen ? 'pulse 2s infinite' : 'none',
+              }} />
               {votingOpen ? 'Voting Open' : 'Voting Closed'}
             </span>
           </div>
-          <p className="page-subtitle">
+          <p style={{ color: T.text2, fontSize: 14, margin: 0 }}>
             {votingOpen
               ? 'Cast your vote for each candidate. Results are anonymous — only tallies are shown.'
               : 'Voting is closed. Admins can now move candidates to Pledged or Dropped.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={() => fetchData(true)}
-            className="btn-secondary"
             disabled={refreshing}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'rgba(255,255,255,0.06)', color: T.text2,
+              border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 8,
+              padding: '8px 16px', fontWeight: 500, cursor: 'pointer', fontSize: 13,
+              opacity: refreshing ? 0.7 : 1,
+            }}
           >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
             Refresh
           </button>
           {isAdmin && (
             <button
               onClick={() => setVotingOpen(v => !v)}
-              className={votingOpen ? 'btn-danger' : 'btn-primary'}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: votingOpen ? 'rgba(248,113,113,0.15)' : T.accent,
+                color: votingOpen ? T.danger : '#fff',
+                border: `1px solid ${votingOpen ? 'rgba(248,113,113,0.3)' : 'transparent'}`,
+                borderRadius: 8, padding: '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 13,
+                boxShadow: votingOpen ? 'none' : '0 0 20px rgba(79,142,247,0.2)',
+              }}
             >
               {votingOpen ? <><Lock size={14} /> Close Voting</> : <><Vote size={14} /> Reopen Voting</>}
             </button>
@@ -255,52 +328,69 @@ export default function BidVoting() {
         </div>
       </div>
 
-      {/* Instructions */}
+      {/* Instructions banner */}
       {votingOpen && (
-        <div className="flex items-start gap-3 p-4 bg-navy/5 border border-navy/15 rounded-xl mb-6">
-          <Vote size={18} className="text-navy mt-0.5 flex-shrink-0" />
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          padding: '14px 18px',
+          background: 'rgba(79,142,247,0.07)',
+          border: `1px solid rgba(79,142,247,0.2)`,
+          borderRadius: 10, marginBottom: 24,
+        }}>
+          <Vote size={17} style={{ color: T.accent, marginTop: 1, flexShrink: 0 }} />
           <div>
-            <p className="text-sm font-semibold text-navy">Voting is anonymous.</p>
-            <p className="text-sm text-gray-600">Individual votes are not shown — only the total tally (Yes / Abstain / No). Vote for each candidate using the buttons below their name. You can change your vote at any time while voting is open.</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: T.accent, margin: '0 0 2px' }}>Voting is anonymous.</p>
+            <p style={{ fontSize: 13, color: T.text2, margin: 0 }}>
+              Individual votes are not shown — only the total tally (Yes / Abstain / No). Vote for each candidate using the buttons below their name. You can change your vote at any time while voting is open.
+            </p>
           </div>
         </div>
       )}
 
       {/* PNM Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
           {Array(6).fill(0).map((_, i) => (
-            <div key={i} className="card p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="skeleton w-10 h-10 rounded-full" />
+            <div key={i} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} />
                 <div>
-                  <div className="skeleton w-28 h-4 rounded mb-1" />
-                  <div className="skeleton w-16 h-3 rounded" />
+                  <div style={{ width: 120, height: 14, borderRadius: 6, background: 'rgba(255,255,255,0.05)', marginBottom: 6 }} />
+                  <div style={{ width: 70, height: 11, borderRadius: 6, background: 'rgba(255,255,255,0.04)' }} />
                 </div>
               </div>
-              <div className="skeleton w-full h-2 rounded-full mb-3" />
-              <div className="flex gap-2">
-                <div className="skeleton flex-1 h-10 rounded-xl" />
-                <div className="skeleton flex-1 h-10 rounded-xl" />
-                <div className="skeleton flex-1 h-10 rounded-xl" />
+              <div style={{ height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.05)', marginBottom: 16 }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[1,2,3].map(j => <div key={j} style={{ flex: 1, height: 48, borderRadius: 10, background: 'rgba(255,255,255,0.04)' }} />)}
               </div>
             </div>
           ))}
         </div>
       ) : pnms.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Users size={48} className="text-gray-200 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-400 mb-1">No candidates in bid stage</h3>
-          <p className="text-sm text-gray-400 max-w-sm">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', textAlign: 'center' }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: 20,
+            background: 'rgba(255,255,255,0.04)', border: `1px solid ${T.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+          }}>
+            <Users size={32} style={{ color: T.text3 }} />
+          </div>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: T.text2, margin: '0 0 8px' }}>No candidates in bid stage</h3>
+          <p style={{ fontSize: 14, color: T.text3, maxWidth: 340, margin: '0 0 24px' }}>
             Move PNMs to the "bid" stage in Recruitment to start voting.
           </p>
-          <a href="/recruitment" className="btn-primary mt-4">
+          <a href="/recruitment" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: T.accent, color: '#fff', border: 'none', borderRadius: 8,
+            padding: '9px 18px', fontWeight: 600, cursor: 'pointer', textDecoration: 'none', fontSize: 14,
+            boxShadow: '0 0 20px rgba(79,142,247,0.2)',
+          }}>
             Go to Recruitment <ChevronRight size={14} />
           </a>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
             {pnms.map(pnm => (
               <PNMCard
                 key={pnm.id}
@@ -316,14 +406,19 @@ export default function BidVoting() {
           </div>
 
           {/* Summary footer */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-4">
-            <BarChart2 size={18} className="text-gray-400 flex-shrink-0" />
-            <div className="text-sm text-gray-600">
-              <strong>{pnms.length}</strong> candidate{pnms.length !== 1 ? 's' : ''} in bid stage ·{' '}
-              <strong>{Object.values(userVotes).length}</strong> of {pnms.length} voted by you
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            marginTop: 24, padding: '14px 18px',
+            background: T.card, border: `1px solid ${T.border}`,
+            borderRadius: 10, boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+          }}>
+            <BarChart2 size={17} style={{ color: T.text3, flexShrink: 0 }} />
+            <div style={{ fontSize: 13, color: T.text2 }}>
+              <strong style={{ color: T.text1 }}>{pnms.length}</strong> candidate{pnms.length !== 1 ? 's' : ''} in bid stage &middot;{' '}
+              <strong style={{ color: T.text1 }}>{Object.values(userVotes).length}</strong> of {pnms.length} voted by you
             </div>
             {isAdmin && !votingOpen && (
-              <div className="ml-auto text-xs text-gray-400">
+              <div style={{ marginLeft: 'auto', fontSize: 12, color: T.text3 }}>
                 Voting closed — use the buttons on each card to finalize decisions.
               </div>
             )}

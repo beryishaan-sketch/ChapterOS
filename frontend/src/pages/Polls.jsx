@@ -4,17 +4,72 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Modal from '../components/Modal';
 
+const T = {
+  bg: '#070B14', card: '#0D1424', elevated: '#131D2E', sidebar: '#0A0F1C',
+  accent: '#4F8EF7', gold: '#F0B429', success: '#34D399', warning: '#FBBF24', danger: '#F87171',
+  text1: '#F8FAFC', text2: '#94A3B8', text3: '#475569',
+  border: 'rgba(255,255,255,0.07)', borderStrong: 'rgba(255,255,255,0.12)',
+};
+
+const cardStyle = {
+  background: T.card,
+  border: '1px solid ' + T.border,
+  borderRadius: 12,
+  boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+};
+
+const primaryBtnStyle = {
+  background: T.accent,
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  padding: '8px 16px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  boxShadow: '0 0 20px rgba(79,142,247,0.2)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 14,
+};
+
+const secondaryBtnStyle = {
+  background: 'rgba(255,255,255,0.06)',
+  color: T.text1,
+  border: '1px solid ' + T.borderStrong,
+  borderRadius: 8,
+  padding: '8px 16px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 14,
+};
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 8,
+  color: T.text1,
+  padding: '10px 14px',
+  outline: 'none',
+  width: '100%',
+  fontSize: 14,
+  boxSizing: 'border-box',
+};
+
 const timeAgo = (d) => {
   const diff = Date.now() - new Date(d).getTime();
   const hrs = Math.floor(diff / 3600000);
   if (hrs < 1) return 'just now';
   if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs/24)}d ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 };
 
 export default function Polls() {
   const { user } = useAuth();
-  const isAdmin = ['admin','officer'].includes(user?.role);
+  const isAdmin = ['admin', 'officer'].includes(user?.role);
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -68,117 +123,228 @@ export default function Polls() {
   };
 
   if (loading) return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      {[1,2].map(i => <div key={i} className="card p-6"><div className="skeleton h-32 rounded" /></div>)}
+    <div style={{ padding: '24px', minHeight: '100vh', background: T.bg, maxWidth: 680, margin: '0 auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {[1, 2].map(i => (
+          <div key={i} style={{ ...cardStyle, padding: 24 }}>
+            <div style={{ height: 120, borderRadius: 8, background: 'rgba(255,255,255,0.04)' }} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="page-title">Chapter Polls</h1>
-          <p className="page-subtitle">Vote on chapter decisions and track results</p>
+    <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>
+      <div style={{ maxWidth: 680, margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 28 }}>
+          <div>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text1, margin: 0 }}>Chapter Polls</h1>
+            <p style={{ fontSize: 14, color: T.text2, margin: '4px 0 0' }}>Vote on chapter decisions and track results</p>
+          </div>
+          {isAdmin && (
+            <button onClick={() => setShowModal(true)} style={primaryBtnStyle}>
+              <Plus size={16} /> Create Poll
+            </button>
+          )}
         </div>
-        {isAdmin && <button onClick={() => setShowModal(true)} className="btn-primary"><Plus size={16} /> Create Poll</button>}
-      </div>
 
-      {polls.length === 0 ? (
-        <div className="card p-16 text-center">
-          <Vote size={32} className="text-gray-300 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-700 mb-1">No polls yet</h3>
-          <p className="text-sm text-gray-400 mb-4">Create a poll to get your chapter's input</p>
-          {isAdmin && <button onClick={() => setShowModal(true)} className="btn-primary mx-auto">Create First Poll</button>}
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {polls.map(poll => {
-            const totalVotes = (poll.options || []).reduce((s, o) => s + (o.votes || 0), 0);
-            const myVote = voted[poll.id];
-            const expired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
-            return (
-              <div key={poll.id} className="card p-6">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-lg">{poll.question}</h3>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-gray-400">{totalVotes} vote{totalVotes !== 1 ? 's' : ''}</span>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${expired ? 'bg-gray-100 text-gray-500' : 'bg-emerald-50 text-emerald-600'}`}>
-                        {expired ? 'Closed' : poll.expiresAt ? `Closes ${new Date(poll.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Open'}
-                      </span>
+        {polls.length === 0 ? (
+          <div style={{ ...cardStyle, padding: '64px 24px', textAlign: 'center' }}>
+            <Vote size={36} style={{ color: T.text3, margin: '0 auto 14px', display: 'block', opacity: 0.5 }} />
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: T.text1, margin: '0 0 6px' }}>No polls yet</h3>
+            <p style={{ fontSize: 14, color: T.text2, margin: '0 0 20px' }}>Create a poll to get your chapter's input</p>
+            {isAdmin && (
+              <button onClick={() => setShowModal(true)} style={{ ...primaryBtnStyle, margin: '0 auto' }}>
+                Create First Poll
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {polls.map(poll => {
+              const totalVotes = (poll.options || []).reduce((s, o) => s + (o.votes || 0), 0);
+              const myVote = voted[poll.id];
+              const expired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+              return (
+                <div key={poll.id} style={{ ...cardStyle, padding: 24 }}>
+                  {/* Poll header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 18 }}>
+                    <div>
+                      <h3 style={{ fontSize: 17, fontWeight: 700, color: T.text1, margin: '0 0 8px', lineHeight: 1.4 }}>
+                        {poll.question}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 12, color: T.text3 }}>
+                          {totalVotes} vote{totalVotes !== 1 ? 's' : ''}
+                        </span>
+                        <span style={{
+                          fontSize: 12, fontWeight: 600, padding: '2px 10px', borderRadius: 20,
+                          background: expired ? 'rgba(255,255,255,0.06)' : 'rgba(52,211,153,0.12)',
+                          color: expired ? T.text3 : T.success,
+                          border: expired ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(52,211,153,0.2)',
+                        }}>
+                          {expired
+                            ? 'Closed'
+                            : poll.expiresAt
+                              ? `Closes ${new Date(poll.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                              : 'Open'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  {isAdmin && <button onClick={() => handleDelete(poll.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14} /></button>}
-                </div>
-                <div className="space-y-2.5">
-                  {(poll.options || []).map((opt, i) => {
-                    const pct = totalVotes > 0 ? Math.round(((opt.votes || 0) / totalVotes) * 100) : 0;
-                    const selected = myVote === i;
-                    const canVote = myVote === undefined && !expired;
-                    return (
-                      <button key={i} onClick={() => canVote && handleVote(poll.id, i)} disabled={!canVote}
-                        className={`w-full text-left rounded-xl border-2 transition-all overflow-hidden ${selected ? 'border-navy' : canVote ? 'border-gray-200 hover:border-navy/40' : 'border-gray-100'}`}>
-                        <div className="relative p-3">
-                          <div className="absolute inset-0 bg-navy/8 transition-all" style={{ width: (myVote !== undefined || expired) ? `${pct}%` : '0%' }} />
-                          <div className="relative flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              {selected && <CheckCircle2 size={14} className="text-navy flex-shrink-0" />}
-                              <span className={`text-sm font-medium ${selected ? 'text-navy' : 'text-gray-700'}`}>{opt.label || opt.text || `Option ${i+1}`}</span>
-                            </div>
-                            {(myVote !== undefined || expired) && <span className="text-xs font-semibold text-gray-500">{pct}%</span>}
-                          </div>
-                        </div>
+                    {isAdmin && (
+                      <button onClick={() => handleDelete(poll.id)} style={{
+                        padding: 8, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.15)',
+                        borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Trash2 size={14} color={T.danger} />
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                    )}
+                  </div>
 
-      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setError(''); }} title="Create Poll">
-        <form onSubmit={handleCreate} className="space-y-4">
-          {error && <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"><AlertCircle size={14} className="text-red-500" /><p className="text-sm text-red-700">{error}</p></div>}
-          <div>
-            <label className="label">Question</label>
-            <input className="input-field" placeholder="What should we decide?" value={form.question} onChange={e => setForm(f => ({ ...f, question: e.target.value }))} autoFocus />
-          </div>
-          <div>
-            <label className="label">Options</label>
-            <div className="space-y-2">
-              {form.options.map((opt, i) => (
-                <div key={i} className="flex gap-2">
-                  <input className="input-field flex-1" placeholder={`Option ${i + 1}`} value={opt}
-                    onChange={e => setForm(f => ({ ...f, options: f.options.map((o, j) => j === i ? e.target.value : o) }))} />
-                  {form.options.length > 2 && (
-                    <button type="button" onClick={() => setForm(f => ({ ...f, options: f.options.filter((_, j) => j !== i) }))}
-                      className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
-                  )}
+                  {/* Options */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {(poll.options || []).map((opt, i) => {
+                      const pct = totalVotes > 0 ? Math.round(((opt.votes || 0) / totalVotes) * 100) : 0;
+                      const selected = myVote === i;
+                      const canVote = myVote === undefined && !expired;
+                      const showResult = myVote !== undefined || expired;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => canVote && handleVote(poll.id, i)}
+                          disabled={!canVote}
+                          style={{
+                            width: '100%', textAlign: 'left', position: 'relative', overflow: 'hidden',
+                            padding: '12px 14px', borderRadius: 9, cursor: canVote ? 'pointer' : 'default',
+                            background: selected ? 'rgba(79,142,247,0.1)' : 'rgba(255,255,255,0.03)',
+                            border: selected
+                              ? '1px solid rgba(79,142,247,0.4)'
+                              : canVote
+                                ? '1px solid rgba(255,255,255,0.1)'
+                                : '1px solid rgba(255,255,255,0.06)',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          {/* Progress bar fill */}
+                          {showResult && (
+                            <div style={{
+                              position: 'absolute', inset: 0, left: 0, top: 0, bottom: 0,
+                              width: `${pct}%`,
+                              background: selected ? 'rgba(79,142,247,0.15)' : 'rgba(255,255,255,0.04)',
+                              transition: 'width 0.4s ease',
+                              borderRadius: 8,
+                            }} />
+                          )}
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {selected && <CheckCircle2 size={14} color={T.accent} style={{ flexShrink: 0 }} />}
+                              <span style={{ fontSize: 14, fontWeight: selected ? 600 : 400, color: selected ? T.accent : T.text1 }}>
+                                {opt.label || opt.text || `Option ${i + 1}`}
+                              </span>
+                            </div>
+                            {showResult && (
+                              <span style={{ fontSize: 13, fontWeight: 700, color: selected ? T.accent : T.text2, flexShrink: 0 }}>
+                                {pct}%
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
-              {form.options.length < 6 && (
-                <button type="button" onClick={() => setForm(f => ({ ...f, options: [...f.options, ''] }))}
-                  className="text-sm text-navy hover:text-navy-light font-medium">+ Add option</button>
-              )}
+              );
+            })}
+          </div>
+        )}
+
+        {/* Create Poll Modal */}
+        <Modal isOpen={showModal} onClose={() => { setShowModal(false); setError(''); }} title="Create Poll">
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {error && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+                background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 8,
+              }}>
+                <AlertCircle size={14} color={T.danger} />
+                <p style={{ fontSize: 13, color: T.danger, margin: 0 }}>{error}</p>
+              </div>
+            )}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Question
+              </label>
+              <input
+                style={inputStyle}
+                placeholder="What should we decide?"
+                value={form.question}
+                onChange={e => setForm(f => ({ ...f, question: e.target.value }))}
+                autoFocus
+              />
             </div>
-          </div>
-          <div>
-            <label className="label">Closes in</label>
-            <select className="select-field" value={form.expiresIn} onChange={e => setForm(f => ({ ...f, expiresIn: e.target.value }))}>
-              <option value="24">24 hours</option>
-              <option value="48">48 hours</option>
-              <option value="72">3 days</option>
-              <option value="168">1 week</option>
-            </select>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button type="submit" disabled={submitting} className="btn-primary flex-1 justify-center">{submitting ? 'Creating…' : 'Create Poll'}</button>
-          </div>
-        </form>
-      </Modal>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.text2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Options
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {form.options.map((opt, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      style={{ ...inputStyle, flex: 1 }}
+                      placeholder={`Option ${i + 1}`}
+                      value={opt}
+                      onChange={e => setForm(f => ({ ...f, options: f.options.map((o, j) => j === i ? e.target.value : o) }))}
+                    />
+                    {form.options.length > 2 && (
+                      <button type="button"
+                        onClick={() => setForm(f => ({ ...f, options: f.options.filter((_, j) => j !== i) }))}
+                        style={{
+                          padding: '8px 10px', background: 'rgba(248,113,113,0.08)',
+                          border: '1px solid rgba(248,113,113,0.2)', borderRadius: 8, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center',
+                        }}>
+                        <Trash2 size={14} color={T.danger} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {form.options.length < 6 && (
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, options: [...f.options, ''] }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: T.accent, textAlign: 'left', padding: '2px 0' }}>
+                    + Add option
+                  </button>
+                )}
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Closes In
+              </label>
+              <select
+                style={{ ...inputStyle, cursor: 'pointer' }}
+                value={form.expiresIn}
+                onChange={e => setForm(f => ({ ...f, expiresIn: e.target.value }))}
+              >
+                <option value="24">24 hours</option>
+                <option value="48">48 hours</option>
+                <option value="72">3 days</option>
+                <option value="168">1 week</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+              <button type="button" onClick={() => setShowModal(false)} style={{ ...secondaryBtnStyle, flex: 1, justifyContent: 'center' }}>
+                Cancel
+              </button>
+              <button type="submit" disabled={submitting} style={{ ...primaryBtnStyle, flex: 1, justifyContent: 'center', opacity: submitting ? 0.7 : 1 }}>
+                {submitting ? 'Creating…' : 'Create Poll'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,80 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Modal from '../components/Modal';
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  bg: '#070B14',
+  card: '#0D1424',
+  elevated: '#131D2E',
+  accent: '#4F8EF7',
+  gold: '#F0B429',
+  success: '#34D399',
+  danger: '#F87171',
+  textPrimary: '#F8FAFC',
+  textSecondary: '#94A3B8',
+  textMuted: '#475569',
+  border: 'rgba(255,255,255,0.07)',
+  cardShadow: '0 4px 24px rgba(0,0,0,0.4)',
+};
+
+const cardStyle = {
+  background: T.card,
+  border: `1px solid ${T.border}`,
+  borderRadius: 12,
+  boxShadow: T.cardShadow,
+  overflow: 'hidden',
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: 11,
+  fontWeight: 700,
+  color: T.textSecondary,
+  marginBottom: 6,
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+};
+
+const inputStyle = {
+  width: '100%',
+  background: T.bg,
+  border: `1px solid ${T.border}`,
+  borderRadius: 8,
+  padding: '9px 12px',
+  color: T.textPrimary,
+  fontSize: 14,
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 150ms ease',
+};
+
+const btnPrimary = {
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '8px 16px',
+  background: T.accent,
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'opacity 150ms ease',
+};
+
+const btnSecondary = {
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '7px 14px',
+  background: T.elevated,
+  color: T.textSecondary,
+  border: `1px solid ${T.border}`,
+  borderRadius: 8,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'opacity 150ms ease',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const timeAgo = (dateStr) => {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -22,11 +96,17 @@ const roleBadge = (role) => {
 };
 
 const initials = (firstName, lastName) => `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
-const avatarColor = (name) => {
-  const colors = ['bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700', 'bg-emerald-100 text-emerald-700', 'bg-orange-100 text-orange-700', 'bg-rose-100 text-rose-700'];
-  return colors[(name?.charCodeAt(0) || 0) % colors.length];
-};
 
+const AVATAR_PALETTES = [
+  { color: '#60A5FA', bg: 'rgba(96,165,250,0.2)' },
+  { color: '#A78BFA', bg: 'rgba(167,139,250,0.2)' },
+  { color: '#34D399', bg: 'rgba(52,211,153,0.2)' },
+  { color: '#FB923C', bg: 'rgba(251,146,60,0.2)' },
+  { color: '#F472B6', bg: 'rgba(244,114,182,0.2)' },
+];
+const avatarPalette = (name) => AVATAR_PALETTES[(name?.charCodeAt(0) || 0) % AVATAR_PALETTES.length];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function Announcements() {
   const { user } = useAuth();
   const isAdmin = ['admin', 'officer'].includes(user?.role);
@@ -83,108 +163,204 @@ export default function Announcements() {
   };
 
   if (loading) return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      {[1,2,3].map(i => <div key={i} className="card h-32 skeleton" />)}
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {[1, 2, 3].map(i => (
+        <div key={i} style={{ ...cardStyle, height: 128, background: T.card, opacity: 0.5 }} />
+      ))}
     </div>
   );
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-5">
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '0 0 48px' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '28px 24px 20px', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 className="page-title">Announcements</h1>
-          <p className="page-subtitle">Chapter-wide updates</p>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: T.textPrimary, margin: 0, letterSpacing: '-0.03em' }}>Announcements</h1>
+          <p style={{ fontSize: 14, color: T.textSecondary, margin: '4px 0 0' }}>Chapter-wide updates</p>
         </div>
         {isAdmin && (
-          <button onClick={() => setShowModal(true)} className="btn-navy text-sm px-3 py-2 min-h-0 h-10">
+          <button onClick={() => setShowModal(true)} style={btnPrimary}>
             <Plus size={15} /> Post
           </button>
         )}
       </div>
 
-      {announcements.length === 0 ? (
-        <div className="card py-16 text-center">
-          <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <Megaphone size={24} className="text-gray-300" />
+      {/* Content */}
+      <div style={{ padding: '0 24px' }}>
+        {announcements.length === 0 ? (
+          <div style={{ ...cardStyle, padding: '64px 24px', textAlign: 'center' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: T.elevated,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <Megaphone size={24} color={T.textMuted} />
+            </div>
+            <p style={{ fontSize: 15, fontWeight: 600, color: T.textSecondary, margin: '0 0 4px' }}>No announcements yet</p>
+            {isAdmin && (
+              <button onClick={() => setShowModal(true)} style={{ ...btnPrimary, marginTop: 16 }}>
+                Post First Announcement
+              </button>
+            )}
           </div>
-          <p className="font-semibold text-gray-400">No announcements yet</p>
-          {isAdmin && (
-            <button onClick={() => setShowModal(true)} className="btn-primary mt-4 mx-auto">
-              Post First Announcement
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {announcements.map(ann => (
-            <div key={ann.id} className={`card overflow-hidden ${ann.pinned ? 'border-gold/40' : ''}`}>
-              {ann.pinned && (
-                <div className="flex items-center gap-1.5 text-gold-dark text-xs font-bold px-4 pt-3 pb-0">
-                  <Pin size={11} className="fill-gold-dark" /> PINNED
-                </div>
-              )}
-              <div className={`p-4 ${ann.pinned ? 'bg-gold/3' : ''}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-bold text-gray-900 leading-snug flex-1">{ann.title}</h3>
-                  {isAdmin && (
-                    <div className="flex gap-0.5 flex-shrink-0">
-                      <button onClick={() => handlePin(ann.id)}
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                          ann.pinned ? 'text-gold bg-gold/10' : 'text-gray-300 hover:text-gold hover:bg-gold/10'
-                        }`}>
-                        <Pin size={14} />
-                      </button>
-                      <button onClick={() => handleDelete(ann.id)}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                        <Trash2 size={14} />
-                      </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {announcements.map(ann => {
+              const palette = avatarPalette(ann.author?.firstName);
+              return (
+                <div
+                  key={ann.id}
+                  style={{
+                    ...cardStyle,
+                    border: ann.pinned
+                      ? `1px solid rgba(240,180,41,0.3)`
+                      : `1px solid ${T.border}`,
+                  }}
+                >
+                  {/* Pinned bar */}
+                  {ann.pinned && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '8px 16px 0',
+                      color: T.gold,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                    }}>
+                      <Pin size={10} fill={T.gold} color={T.gold} />
+                      Pinned
                     </div>
                   )}
-                </div>
-                <p className="text-sm text-gray-600 mt-2 leading-relaxed whitespace-pre-wrap line-clamp-3">{ann.body}</p>
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${avatarColor(ann.author?.firstName)}`}>
-                    {initials(ann.author?.firstName, ann.author?.lastName)}
+
+                  <div style={{ padding: ann.pinned ? '10px 16px 16px' : '16px', background: ann.pinned ? 'rgba(240,180,41,0.03)' : 'transparent' }}>
+                    {/* Title row */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, lineHeight: 1.35, flex: 1 }}>
+                        {ann.title}
+                      </h3>
+                      {isAdmin && (
+                        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                          <button
+                            onClick={() => handlePin(ann.id)}
+                            style={{
+                              width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all 150ms ease',
+                              background: ann.pinned ? 'rgba(240,180,41,0.15)' : 'transparent',
+                              color: ann.pinned ? T.gold : T.textMuted,
+                            }}
+                            onMouseEnter={e => { if (!ann.pinned) { e.currentTarget.style.color = T.gold; e.currentTarget.style.background = 'rgba(240,180,41,0.12)'; } }}
+                            onMouseLeave={e => { if (!ann.pinned) { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = 'transparent'; } }}
+                          >
+                            <Pin size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(ann.id)}
+                            style={{
+                              width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all 150ms ease',
+                              background: 'transparent', color: T.textMuted,
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.color = T.danger; e.currentTarget.style.background = 'rgba(248,113,113,0.12)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Body */}
+                    <p style={{
+                      fontSize: 14,
+                      color: T.textSecondary,
+                      marginTop: 10,
+                      lineHeight: 1.6,
+                      whiteSpace: 'pre-wrap',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}>
+                      {ann.body}
+                    </p>
+
+                    {/* Author + timestamp */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      marginTop: 12, paddingTop: 12,
+                      borderTop: `1px solid ${T.border}`,
+                    }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%',
+                        background: palette.bg,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: palette.color,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        flexShrink: 0,
+                      }}>
+                        {initials(ann.author?.firstName, ann.author?.lastName)}
+                      </div>
+                      <p style={{ fontSize: 13, color: T.textSecondary, fontWeight: 600, margin: 0 }}>
+                        {ann.author?.firstName} {ann.author?.lastName}
+                      </p>
+                      <span style={{ color: T.textMuted, fontSize: 13 }}>·</span>
+                      <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{timeAgo(ann.createdAt)}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 font-medium">{ann.author?.firstName} {ann.author?.lastName}</p>
-                  <span className="text-gray-200">·</span>
-                  <p className="text-xs text-gray-400">{timeAgo(ann.createdAt)}</p>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Post Modal */}
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); setError(''); }} title="Post Announcement">
-        <form onSubmit={handleCreate} className="space-y-4">
+        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 14px',
+              background: 'rgba(248,113,113,0.1)',
+              border: '1px solid rgba(248,113,113,0.25)',
+              borderRadius: 8,
+            }}>
+              <AlertCircle size={14} color={T.danger} />
+              <p style={{ fontSize: 13, color: T.danger, margin: 0 }}>{error}</p>
             </div>
           )}
           <div>
-            <label className="label">Title</label>
-            <input className="input-field" placeholder="Announcement title" value={form.title}
+            <label style={labelStyle}>Title</label>
+            <input style={inputStyle} placeholder="Announcement title" value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoFocus />
           </div>
           <div>
-            <label className="label">Message</label>
-            <textarea className="input-field h-32 resize-none" placeholder="Write your announcement..."
-              value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} />
+            <label style={labelStyle}>Message</label>
+            <textarea
+              style={{ ...inputStyle, height: 128, resize: 'none', lineHeight: 1.6 }}
+              placeholder="Write your announcement..."
+              value={form.body}
+              onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
+            />
           </div>
           {user?.role === 'admin' && (
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.pinned} onChange={e => setForm(f => ({ ...f, pinned: e.target.checked }))}
-                className="w-4 h-4 accent-gold" />
-              <span className="text-sm text-gray-700 font-medium">Pin this announcement</span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={form.pinned}
+                onChange={e => setForm(f => ({ ...f, pinned: e.target.checked }))}
+                style={{ accentColor: T.gold, width: 16, height: 16 }}
+              />
+              <span style={{ fontSize: 13, color: T.textSecondary, fontWeight: 600 }}>Pin this announcement</span>
             </label>
           )}
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button type="submit" disabled={submitting} className="btn-primary flex-1 justify-center">
+          <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+            <button type="button" onClick={() => setShowModal(false)} style={{ ...btnSecondary, flex: 1, justifyContent: 'center' }}>Cancel</button>
+            <button type="submit" disabled={submitting} style={{ ...btnPrimary, flex: 1, justifyContent: 'center', opacity: submitting ? 0.6 : 1 }}>
               {submitting ? 'Posting…' : 'Post Announcement'}
             </button>
           </div>

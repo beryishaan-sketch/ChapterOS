@@ -9,30 +9,32 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#111113' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#070B14' }}>
       {/* Sidebar — desktop only */}
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <TrialBanner />
-        {/* Desktop navbar only */}
+
+        {/* Navbar — desktop only */}
         <div className="hidden lg:block">
           <Navbar onMenuClick={() => setMobileOpen(true)} />
         </div>
 
         <main
           id="ios-main-scroll"
-          className="flex-1 overflow-y-auto overflow-x-hidden"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}
         >
-          {/* Mobile: no horizontal padding (pages handle their own), tab bar safe area */}
-          <div className="lg:px-8 lg:pt-8 lg:pb-10 max-w-screen-xl mx-auto pb-[calc(49px+env(safe-area-inset-bottom)+8px)]">
+          <div
+            className="lg:p-8 max-w-screen-xl mx-auto"
+            style={{ paddingBottom: 'calc(49px + env(safe-area-inset-bottom) + 8px)' }}
+          >
             <Outlet />
           </div>
         </main>
       </div>
 
-      {/* iOS native tab bar */}
+      {/* iOS tab bar */}
       <IOSTabBar />
     </div>
   );

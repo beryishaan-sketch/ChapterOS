@@ -9,16 +9,55 @@ import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import ImportComponent from './Import';
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  bg: '#070B14',
+  card: '#0D1424',
+  elevated: '#131D2E',
+  accent: '#4F8EF7',
+  gold: '#F0B429',
+  success: '#34D399',
+  danger: '#F87171',
+  textPrimary: '#F8FAFC',
+  textSecondary: '#94A3B8',
+  textMuted: '#475569',
+  border: 'rgba(255,255,255,0.07)',
+  cardShadow: '0 4px 24px rgba(0,0,0,0.4)',
+};
+
+const cardStyle = {
+  background: T.card,
+  border: `1px solid ${T.border}`,
+  borderRadius: 12,
+  boxShadow: T.cardShadow,
+};
+
+// ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  paid: { label: 'Paid', classes: 'badge-green' },
-  unpaid: { label: 'Unpaid', classes: 'badge-red' },
-  partial: { label: 'Partial', classes: 'badge-yellow' },
-  waived: { label: 'Waived', classes: 'badge-gray' },
+  paid:    { label: 'Paid',    color: T.success, bg: 'rgba(52,211,153,0.12)' },
+  unpaid:  { label: 'Unpaid',  color: T.danger,  bg: 'rgba(248,113,113,0.12)' },
+  partial: { label: 'Partial', color: T.gold,    bg: 'rgba(240,180,41,0.12)' },
+  waived:  { label: 'Waived',  color: T.textMuted, bg: 'rgba(71,85,105,0.2)' },
 };
 
 const StatusBadge = ({ status }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.unpaid;
-  return <span className={cfg.classes}>{cfg.label}</span>;
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '3px 10px',
+      borderRadius: 20,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase',
+      color: cfg.color,
+      background: cfg.bg,
+    }}>
+      {cfg.label}
+    </span>
+  );
 };
 
 const formatCurrency = (cents) => {
@@ -31,7 +70,33 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-// Create Dues Record Modal
+// ─── Input / label styles ─────────────────────────────────────────────────────
+const labelStyle = {
+  display: 'block',
+  fontSize: 12,
+  fontWeight: 600,
+  color: T.textSecondary,
+  marginBottom: 6,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+};
+
+const inputStyle = {
+  width: '100%',
+  background: T.bg,
+  border: `1px solid ${T.border}`,
+  borderRadius: 8,
+  padding: '9px 12px',
+  color: T.textPrimary,
+  fontSize: 14,
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 150ms ease',
+};
+
+const selectStyle = { ...inputStyle };
+
+// ─── Create Dues Modal ────────────────────────────────────────────────────────
 const CreateDuesModal = ({ isOpen, onClose, onSave }) => {
   const [form, setForm] = useState({ semester: '', amount: '', dueDate: '', description: '' });
   const [loading, setLoading] = useState(false);
@@ -62,49 +127,58 @@ const CreateDuesModal = ({ isOpen, onClose, onSave }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Create Dues Record" size="md"
       footer={
         <>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
+          <button style={{ ...btnSecondary }} onClick={onClose}>Cancel</button>
+          <button style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }} onClick={handleSubmit} disabled={loading}>
             {loading ? 'Creating…' : 'Create record'}
           </button>
         </>
       }
     >
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg mb-4 text-sm text-red-700">
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px',
+          background: 'rgba(248,113,113,0.1)',
+          border: '1px solid rgba(248,113,113,0.25)',
+          borderRadius: 8,
+          marginBottom: 16,
+          color: T.danger,
+          fontSize: 13,
+        }}>
           <X size={14} />{error}
         </div>
       )}
-      <div className="space-y-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label className="label">Semester *</label>
-          <select className="select-field" value={form.semester} onChange={e => update('semester', e.target.value)}>
+          <label style={labelStyle}>Semester *</label>
+          <select style={selectStyle} value={form.semester} onChange={e => update('semester', e.target.value)}>
             <option value="">Select semester…</option>
             {semesters.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label className="label">Amount *</label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-              <input type="number" step="0.01" min="0" className="input-field pl-7" placeholder="200.00" value={form.amount} onChange={e => update('amount', e.target.value)} />
+            <label style={labelStyle}>Amount *</label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T.textMuted, fontSize: 14 }}>$</span>
+              <input type="number" step="0.01" min="0" style={{ ...inputStyle, paddingLeft: 24 }} placeholder="200.00" value={form.amount} onChange={e => update('amount', e.target.value)} />
             </div>
           </div>
           <div>
-            <label className="label">Due date</label>
-            <input type="date" className="input-field" value={form.dueDate} onChange={e => update('dueDate', e.target.value)} />
+            <label style={labelStyle}>Due date</label>
+            <input type="date" style={inputStyle} value={form.dueDate} onChange={e => update('dueDate', e.target.value)} />
           </div>
         </div>
         <div>
-          <label className="label">Description</label>
-          <input className="input-field" placeholder="Semester dues, initiation fee, etc." value={form.description} onChange={e => update('description', e.target.value)} />
+          <label style={labelStyle}>Description</label>
+          <input style={inputStyle} placeholder="Semester dues, initiation fee, etc." value={form.description} onChange={e => update('description', e.target.value)} />
         </div>
       </div>
     </Modal>
   );
 };
 
-// Mark Payment Modal
+// ─── Mark Payment Modal ───────────────────────────────────────────────────────
 const MarkPaymentModal = ({ dueRecord, isOpen, onClose, onSave }) => {
   const [amount, setAmount] = useState('');
   const [status, setStatus] = useState('paid');
@@ -135,38 +209,72 @@ const MarkPaymentModal = ({ dueRecord, isOpen, onClose, onSave }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Record Payment" size="sm"
       footer={
         <>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
+          <button style={btnSecondary} onClick={onClose}>Cancel</button>
+          <button style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }} onClick={handleSubmit} disabled={loading}>
             {loading ? 'Saving…' : 'Record payment'}
           </button>
         </>
       }
     >
-      <div className="space-y-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label className="label">Amount paid</label>
-          <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-            <input type="number" step="0.01" min="0" className="input-field pl-7" value={amount} onChange={e => setAmount(e.target.value)} />
+          <label style={labelStyle}>Amount paid</label>
+          <div style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T.textMuted, fontSize: 14 }}>$</span>
+            <input type="number" step="0.01" min="0" style={{ ...inputStyle, paddingLeft: 24 }} value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
         </div>
         <div>
-          <label className="label">Status</label>
-          <select className="select-field" value={status} onChange={e => setStatus(e.target.value)}>
+          <label style={labelStyle}>Status</label>
+          <select style={selectStyle} value={status} onChange={e => setStatus(e.target.value)}>
             <option value="paid">Paid in full</option>
             <option value="partial">Partial payment</option>
             <option value="waived">Waived</option>
           </select>
         </div>
         <div>
-          <label className="label">Payment date</label>
-          <input type="date" className="input-field" value={date} onChange={e => setDate(e.target.value)} />
+          <label style={labelStyle}>Payment date</label>
+          <input type="date" style={inputStyle} value={date} onChange={e => setDate(e.target.value)} />
         </div>
       </div>
     </Modal>
   );
 };
 
+// ─── Button styles ────────────────────────────────────────────────────────────
+const btnPrimary = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '8px 16px',
+  background: T.accent,
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'opacity 150ms ease',
+  whiteSpace: 'nowrap',
+};
+
+const btnSecondary = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '8px 14px',
+  background: T.elevated,
+  color: T.textSecondary,
+  border: `1px solid ${T.border}`,
+  borderRadius: 8,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'opacity 150ms ease',
+  whiteSpace: 'nowrap',
+};
+
+// ─── Main Dues Page ───────────────────────────────────────────────────────────
 export default function Dues() {
   const { user } = useAuth();
   const [dues, setDues] = useState([]);
@@ -187,7 +295,6 @@ export default function Dues() {
       const duesRes = await client.get('/dues');
       if (duesRes.data.success) setDues(duesRes.data.data || []);
     } catch { /* empty */ }
-    // Fines is optional — don't let it break dues loading
     try {
       const finesRes = await client.get('/dues/fines');
       if (finesRes.data.success) setFines(finesRes.data.data || []);
@@ -199,7 +306,7 @@ export default function Dues() {
 
   const handlePaymentSave = (updated) => {
     setDues(prev => prev.map(d => d.id === updated.id ? { ...d, status: updated.status, paidAmount: updated.amount, paidDate: updated.paidAt } : d));
-    fetchData(); // re-fetch to get accurate flat data from server
+    fetchData();
   };
 
   const sendReminder = async (dueId) => {
@@ -241,7 +348,6 @@ export default function Dues() {
     return matchSearch && matchStatus;
   });
 
-  // Summary stats
   const totalAmount = dues.reduce((s, d) => s + (d.amount || 0), 0);
   const totalPaid = dues.reduce((s, d) => s + (d.paidAmount || 0), 0);
   const totalOutstanding = totalAmount - totalPaid;
@@ -255,56 +361,85 @@ export default function Dues() {
     });
   };
 
+  const statCards = [
+    {
+      label: 'Total Collected',
+      value: loading ? '—' : formatCurrency(totalPaid),
+      sub: loading ? null : `of ${formatCurrency(totalAmount)}`,
+      icon: Check,
+      iconColor: T.success,
+      iconBg: 'rgba(52,211,153,0.15)',
+    },
+    {
+      label: 'Outstanding',
+      value: loading ? '—' : formatCurrency(totalOutstanding),
+      sub: loading ? null : `${dues.filter(d => d.status !== 'paid').length} unpaid records`,
+      icon: AlertTriangle,
+      iconColor: T.danger,
+      iconBg: 'rgba(248,113,113,0.15)',
+    },
+    {
+      label: 'Collection Rate',
+      value: loading ? '—' : `${collectionRate}%`,
+      sub: loading ? null : `${dues.filter(d => d.status === 'paid').length} / ${dues.length} members`,
+      icon: TrendingUp,
+      iconColor: T.accent,
+      iconBg: 'rgba(79,142,247,0.15)',
+    },
+  ];
+
   return (
-    <div>
+    <div style={{ minHeight: '100vh', background: T.bg, padding: '0 0 48px' }}>
+
       {/* Header */}
-      <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div style={{ padding: '28px 24px 20px', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h1 className="page-title">Dues</h1>
-          <p className="page-subtitle">Track member payments and outstanding balances</p>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: T.textPrimary, margin: 0, letterSpacing: '-0.03em' }}>Dues</h1>
+          <p style={{ fontSize: 14, color: T.textSecondary, margin: '4px 0 0' }}>Track member payments and outstanding balances</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button className="btn-secondary" onClick={exportCSV}><Download size={15} /> Export</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button style={btnSecondary} onClick={exportCSV}><Download size={14} /> Export</button>
           {isAdmin && (
             <>
-              <button className="btn-secondary" onClick={() => window.location.href='/import'}>
-                <FileSpreadsheet size={15} /> Import Spreadsheet
+              <button style={btnSecondary} onClick={() => window.location.href='/import'}>
+                <FileSpreadsheet size={14} /> Import Spreadsheet
               </button>
-              <button className="btn-primary" onClick={() => setShowCreate(true)}>
-                <Plus size={16} /> Create Record
+              <button style={btnPrimary} onClick={() => setShowCreate(true)}>
+                <Plus size={15} /> Create Record
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'Total Collected', value: loading ? '—' : formatCurrency(totalPaid), icon: Check, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600', sub: loading ? null : `of ${formatCurrency(totalAmount)}` },
-          { label: 'Outstanding', value: loading ? '—' : formatCurrency(totalOutstanding), icon: AlertTriangle, iconBg: 'bg-red-50', iconColor: 'text-red-500', sub: loading ? null : `${dues.filter(d => d.status !== 'paid').length} unpaid records` },
-          { label: 'Collection Rate', value: loading ? '—' : `${collectionRate}%`, icon: TrendingUp, iconBg: 'bg-blue-50', iconColor: 'text-blue-600', sub: loading ? null : `${dues.filter(d => d.status === 'paid').length} / ${dues.length} members` },
-        ].map(({ label, value, icon: Icon, iconBg, iconColor, sub }) => (
-          <div key={label} className="card p-5 flex items-start gap-4">
-            <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-              <Icon size={18} className={iconColor} />
+      {/* Stat Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, padding: '0 24px 24px' }}>
+        {statCards.map(({ label, value, sub, icon: Icon, iconColor, iconBg }) => (
+          <div key={label} style={{ ...cardStyle, padding: '18px 20px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon size={18} color={iconColor} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{value}</p>
-              <p className="text-sm text-gray-500">{label}</p>
-              {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+              <p style={{ fontSize: 22, fontWeight: 800, color: T.textPrimary, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
+              <p style={{ fontSize: 12, color: T.textSecondary, margin: '2px 0 0', fontWeight: 500 }}>{label}</p>
+              {sub && <p style={{ fontSize: 11, color: T.textMuted, margin: '2px 0 0' }}>{sub}</p>}
             </div>
           </div>
         ))}
       </div>
 
       {/* Filters + Bulk Actions */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="relative flex-1 min-w-48">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input className="input-field pl-10 py-2" placeholder="Search members…" value={search} onChange={e => setSearch(e.target.value)} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, padding: '0 24px 16px' }}>
+        <div style={{ position: 'relative', flex: '1 1 180px', minWidth: 180 }}>
+          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T.textMuted, pointerEvents: 'none' }} />
+          <input
+            style={{ ...inputStyle, paddingLeft: 36 }}
+            placeholder="Search members…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
-        <select className="select-field py-2 text-sm w-auto" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <select style={{ ...selectStyle, width: 'auto', paddingRight: 32 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="all">All statuses</option>
           {Object.keys(STATUS_CONFIG).map(s => (
             <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
@@ -312,166 +447,215 @@ export default function Dues() {
         </select>
         {isAdmin && (
           <>
-            <button onClick={sendBulkReminder} className="btn-secondary py-2" title="Email reminders to unpaid">
-              <Send size={14} />
+            <button onClick={sendBulkReminder} style={btnSecondary}>
+              <Send size={13} />
               {selected.size > 0 ? `Email ${selected.size}` : 'Email Unpaid'}
             </button>
             <button onClick={async () => {
               if (!dues[0]?.id) return;
               const r = await client.post('/dues/sms-reminders', { duesRecordId: dues[0].duesRecordId }).catch(() => null);
-              if (r?.data?.data) alert(`📱 SMS sent to ${r.data.data.sent} members${r.data.data.noPhone > 0 ? ` (${r.data.data.noPhone} had no phone number)` : ''}`);
-            }} className="btn-secondary py-2 bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" title="SMS reminders to unpaid members">
-              📱 SMS Unpaid
+              if (r?.data?.data) alert(`SMS sent to ${r.data.data.sent} members${r.data.data.noPhone > 0 ? ` (${r.data.data.noPhone} had no phone number)` : ''}`);
+            }} style={{ ...btnSecondary, color: T.success, borderColor: 'rgba(52,211,153,0.3)' }}>
+              SMS Unpaid
             </button>
           </>
         )}
       </div>
 
-      {/* Dues List — card-based for mobile */}
-            {/* Dues Table — mirrors the treasurer spreadsheet */}
-      <div className="card overflow-hidden mb-8">
-        {loading ? (
-          <div className="divide-y divide-gray-50">
-            {Array(5).fill(0).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-4">
-                <div className="skeleton w-32 h-4 rounded" />
-                <div className="skeleton h-4 w-16 rounded ml-auto" />
-                <div className="skeleton h-4 w-16 rounded" />
-                <div className="skeleton h-4 w-16 rounded" />
-                <div className="skeleton h-6 w-14 rounded-full" />
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-14 text-center">
-            <DollarSign size={32} className="text-gray-200 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-400">No dues records found</p>
-          </div>
-        ) : (() => {
-          // Detect if extended treasurer fields exist
-          const hasExtended = filtered.some(d => d.winterPayment > 0 || d.springPayment > 0 || d.discount > 0 || d.owing != null);
-          return (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/80">
-                    {isAdmin && <th className="w-8 px-3 py-3"><input type="checkbox" className="rounded"
-                      onChange={e => setSelected(e.target.checked ? new Set(filtered.map(d => d.id)) : new Set())}
-                      checked={selected.size === filtered.length && filtered.length > 0} /></th>}
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Member</th>
-                    <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Dues Owed</th>
-                    {hasExtended && <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Discount</th>}
-                    {hasExtended && <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Paid (Winter)</th>}
-                    {hasExtended && <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">Paid (Spring)</th>}
-                    <th className="text-right px-3 py-3 font-semibold text-gray-600 whitespace-nowrap">A/R</th>
-                    <th className="px-3 py-3 font-semibold text-gray-600">Status</th>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-600 hidden lg:table-cell">Notes</th>
-                    {isAdmin && <th className="px-3 py-3" />}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {filtered.map(due => {
-                    const isPaid = due.status === 'paid';
-                    const isWaived = due.status === 'waived';
-                    const owing = due.owing != null ? due.owing : (due.amount - (due.winterPayment || 0) - (due.springPayment || 0) - (due.discount || 0));
-                    return (
-                      <tr key={due.id} className={`transition-colors ${selected.has(due.id) ? 'bg-navy/[0.03]' : 'hover:bg-gray-50/60'}`}>
-                        {isAdmin && (
-                          <td className="px-3 py-3">
-                            <input type="checkbox" className="rounded"
-                              checked={selected.has(due.id)} onChange={() => toggleSelect(due.id)} />
-                          </td>
-                        )}
-                        {/* Name */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isPaid ? 'bg-emerald-500' : isWaived ? 'bg-gray-300' : due.status === 'partial' ? 'bg-amber-400' : 'bg-red-400'}`} />
-                            <div className="w-7 h-7 bg-navy/10 rounded-full flex items-center justify-center text-navy text-[10px] font-bold flex-shrink-0">
-                              {due.memberName?.split(' ').map(n => n[0]).join('') || '?'}
-                            </div>
-                            <span className="font-semibold text-gray-900 whitespace-nowrap">{due.memberName || '—'}</span>
-                          </div>
-                        </td>
-                        {/* Dues Owed */}
-                        <td className="px-3 py-3 text-right font-mono text-gray-800">{formatCurrency(due.amount)}</td>
-                        {/* Discount */}
-                        {hasExtended && <td className="px-3 py-3 text-right font-mono text-gray-500">
-                          {due.discount > 0 ? <span className="text-emerald-600">−{formatCurrency(due.discount)}</span> : <span className="text-gray-300">—</span>}
-                        </td>}
-                        {/* Paid Winter */}
-                        {hasExtended && <td className="px-3 py-3 text-right font-mono">
-                          {due.winterPayment > 0 ? <span className="text-emerald-700">{formatCurrency(due.winterPayment)}</span> : <span className="text-gray-300">—</span>}
-                        </td>}
-                        {/* Paid Spring */}
-                        {hasExtended && <td className="px-3 py-3 text-right font-mono">
-                          {due.springPayment > 0 ? <span className="text-emerald-700">{formatCurrency(due.springPayment)}</span> : <span className="text-gray-300">—</span>}
-                        </td>}
-                        {/* A/R */}
-                        <td className="px-3 py-3 text-right font-mono font-semibold">
-                          {owing <= 0
-                            ? <span className="text-emerald-600">—</span>
-                            : <span className="text-red-600">{formatCurrency(owing)}</span>}
-                        </td>
-                        {/* Status */}
-                        <td className="px-3 py-3"><StatusBadge status={due.status} /></td>
-                        {/* Notes */}
-                        <td className="px-3 py-3 text-gray-400 text-xs max-w-[180px] truncate hidden lg:table-cell" title={due.notes || ''}>
-                          {due.notes || ''}
-                        </td>
-                        {/* Actions */}
-                        {isAdmin && (
-                          <td className="px-3 py-3">
-                            <div className="flex items-center gap-1 justify-end">
-                              {!isPaid && !isWaived && (
-                                <button onClick={() => setPayModal(due)}
-                                  className="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors"
-                                  title="Mark paid"><Check size={13} /></button>
-                              )}
-                              {(due.status === 'unpaid' || due.status === 'partial') && (
-                                <button onClick={() => sendReminder(due.id)} disabled={sendingReminder === due.id}
-                                  className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-navy hover:bg-navy/8 rounded-lg transition-colors"
-                                  title="Send reminder">
-                                  {sendingReminder === due.id
-                                    ? <span className="w-3 h-3 border border-gray-400 border-t-gray-700 rounded-full animate-spin" />
-                                    : <Send size={12} />}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+      {/* Dues Table */}
+      <div style={{ padding: '0 24px', marginBottom: 32 }}>
+        <div style={{ ...cardStyle, overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ padding: '0' }}>
+              {Array(5).fill(0).map((_, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px',
+                  borderBottom: `1px solid ${T.border}`,
+                }}>
+                  {[120, 60, 60, 60, 56].map((w, j) => (
+                    <div key={j} style={{ height: 14, width: w, background: T.elevated, borderRadius: 6, opacity: 0.6 }} />
+                  ))}
+                </div>
+              ))}
             </div>
-          );
-        })()}
+          ) : filtered.length === 0 ? (
+            <div style={{ padding: '56px 20px', textAlign: 'center' }}>
+              <DollarSign size={32} color={T.textMuted} style={{ margin: '0 auto 12px' }} />
+              <p style={{ fontSize: 14, fontWeight: 600, color: T.textMuted }}>No dues records found</p>
+            </div>
+          ) : (() => {
+            const hasExtended = filtered.some(d => d.winterPayment > 0 || d.springPayment > 0 || d.discount > 0 || d.owing != null);
+            return (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+                      {isAdmin && (
+                        <th style={{ width: 36, padding: '12px 12px 12px 16px' }}>
+                          <input type="checkbox" style={{ accentColor: T.accent }}
+                            onChange={e => setSelected(e.target.checked ? new Set(filtered.map(d => d.id)) : new Set())}
+                            checked={selected.size === filtered.length && filtered.length > 0} />
+                        </th>
+                      )}
+                      {['Member', 'Dues Owed', ...(hasExtended ? ['Discount', 'Paid (Winter)', 'Paid (Spring)'] : []), 'A/R', 'Status', 'Notes', ...(isAdmin ? [''] : [])].map((h, i) => (
+                        <th key={i} style={{
+                          padding: '11px 12px',
+                          textAlign: h === 'Member' || h === 'Notes' || h === '' ? 'left' : 'right',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: T.textMuted,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          whiteSpace: 'nowrap',
+                          background: T.elevated,
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((due, idx) => {
+                      const isPaid = due.status === 'paid';
+                      const isWaived = due.status === 'waived';
+                      const owing = due.owing != null ? due.owing : (due.amount - (due.winterPayment || 0) - (due.springPayment || 0) - (due.discount || 0));
+                      const statusDot = isPaid ? T.success : isWaived ? T.textMuted : due.status === 'partial' ? T.gold : T.danger;
+                      return (
+                        <tr
+                          key={due.id}
+                          style={{
+                            borderBottom: idx < filtered.length - 1 ? `1px solid ${T.border}` : 'none',
+                            background: selected.has(due.id) ? 'rgba(79,142,247,0.06)' : 'transparent',
+                            transition: 'background 150ms ease',
+                          }}
+                          onMouseEnter={e => { if (!selected.has(due.id)) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = selected.has(due.id) ? 'rgba(79,142,247,0.06)' : 'transparent'; }}
+                        >
+                          {isAdmin && (
+                            <td style={{ padding: '12px 12px 12px 16px' }}>
+                              <input type="checkbox" style={{ accentColor: T.accent }}
+                                checked={selected.has(due.id)} onChange={() => toggleSelect(due.id)} />
+                            </td>
+                          )}
+                          {/* Member */}
+                          <td style={{ padding: '12px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusDot, flexShrink: 0 }} />
+                              <div style={{
+                                width: 28, height: 28, borderRadius: '50%',
+                                background: 'rgba(79,142,247,0.15)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: T.accent, fontSize: 10, fontWeight: 700, flexShrink: 0,
+                              }}>
+                                {due.memberName?.split(' ').map(n => n[0]).join('') || '?'}
+                              </div>
+                              <span style={{ fontWeight: 600, color: T.textPrimary, whiteSpace: 'nowrap' }}>{due.memberName || '—'}</span>
+                            </div>
+                          </td>
+                          {/* Dues Owed */}
+                          <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', color: T.textSecondary }}>{formatCurrency(due.amount)}</td>
+                          {/* Discount */}
+                          {hasExtended && (
+                            <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>
+                              {due.discount > 0
+                                ? <span style={{ color: T.success }}>−{formatCurrency(due.discount)}</span>
+                                : <span style={{ color: T.textMuted }}>—</span>}
+                            </td>
+                          )}
+                          {/* Paid Winter */}
+                          {hasExtended && (
+                            <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>
+                              {due.winterPayment > 0
+                                ? <span style={{ color: T.success }}>{formatCurrency(due.winterPayment)}</span>
+                                : <span style={{ color: T.textMuted }}>—</span>}
+                            </td>
+                          )}
+                          {/* Paid Spring */}
+                          {hasExtended && (
+                            <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>
+                              {due.springPayment > 0
+                                ? <span style={{ color: T.success }}>{formatCurrency(due.springPayment)}</span>
+                                : <span style={{ color: T.textMuted }}>—</span>}
+                            </td>
+                          )}
+                          {/* A/R */}
+                          <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>
+                            {owing <= 0
+                              ? <span style={{ color: T.success }}>—</span>
+                              : <span style={{ color: T.danger }}>{formatCurrency(owing)}</span>}
+                          </td>
+                          {/* Status */}
+                          <td style={{ padding: '12px' }}><StatusBadge status={due.status} /></td>
+                          {/* Notes */}
+                          <td style={{ padding: '12px', color: T.textMuted, fontSize: 12, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={due.notes || ''}>
+                            {due.notes || ''}
+                          </td>
+                          {/* Actions */}
+                          {isAdmin && (
+                            <td style={{ padding: '12px 16px 12px 4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                                {!isPaid && !isWaived && (
+                                  <button
+                                    onClick={() => setPayModal(due)}
+                                    style={{
+                                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      background: 'rgba(52,211,153,0.12)', color: T.success, border: 'none', borderRadius: 7,
+                                      cursor: 'pointer', transition: 'opacity 150ms ease',
+                                    }}
+                                    title="Mark paid"
+                                  >
+                                    <Check size={13} />
+                                  </button>
+                                )}
+                                {(due.status === 'unpaid' || due.status === 'partial') && (
+                                  <button
+                                    onClick={() => sendReminder(due.id)}
+                                    disabled={sendingReminder === due.id}
+                                    style={{
+                                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      background: 'transparent', color: T.textMuted, border: 'none', borderRadius: 7,
+                                      cursor: 'pointer', transition: 'color 150ms ease',
+                                    }}
+                                    title="Send reminder"
+                                  >
+                                    {sendingReminder === due.id
+                                      ? <span style={{ width: 12, height: 12, border: `2px solid ${T.textMuted}`, borderTopColor: T.textSecondary, borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                                      : <Send size={12} />}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Fines Section */}
       {fines.length > 0 && (
-        <div className="mb-8">
-          <h2 className="section-title mb-4">Fines</h2>
-          <div className="card overflow-hidden">
-            <table className="w-full">
+        <div style={{ padding: '0 24px', marginBottom: 32 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: T.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Fines</h2>
+          <div style={{ ...cardStyle, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="th">Member</th>
-                  <th className="th">Reason</th>
-                  <th className="th">Amount</th>
-                  <th className="th">Status</th>
-                  <th className="th hidden sm:table-cell">Date</th>
+                <tr style={{ borderBottom: `1px solid ${T.border}`, background: T.elevated }}>
+                  {['Member', 'Reason', 'Amount', 'Status', 'Date'].map(h => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {fines.map(fine => (
-                  <tr key={fine.id} className="table-row">
-                    <td className="td font-medium text-gray-900">{fine.memberName || '—'}</td>
-                    <td className="td text-gray-600">{fine.reason || '—'}</td>
-                    <td className="td font-semibold text-gray-900">{formatCurrency(fine.amount)}</td>
-                    <td className="td"><StatusBadge status={fine.status} /></td>
-                    <td className="td hidden sm:table-cell text-gray-500">{formatDate(fine.createdAt)}</td>
+                {fines.map((fine, idx) => (
+                  <tr key={fine.id} style={{ borderBottom: idx < fines.length - 1 ? `1px solid ${T.border}` : 'none' }}>
+                    <td style={{ padding: '12px 16px', color: T.textPrimary, fontWeight: 600 }}>{fine.memberName || '—'}</td>
+                    <td style={{ padding: '12px 16px', color: T.textSecondary }}>{fine.reason || '—'}</td>
+                    <td style={{ padding: '12px 16px', color: T.textPrimary, fontWeight: 700 }}>{formatCurrency(fine.amount)}</td>
+                    <td style={{ padding: '12px 16px' }}><StatusBadge status={fine.status} /></td>
+                    <td style={{ padding: '12px 16px', color: T.textMuted }}>{formatDate(fine.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -482,12 +666,15 @@ export default function Dues() {
 
       {/* Modals */}
       <Modal isOpen={showImport} onClose={() => { setShowImport(false); fetchData(); }} title="Import Dues" size="xl">
-        <div className="p-1">
-          <div className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl mb-4">
-            <FileSpreadsheet size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-emerald-800">
-              <p className="font-semibold mb-0.5">Format: Name (or First/Last), Paid (Yes/No), Amount (optional)</p>
-              <p className="text-xs text-emerald-600">Upload your spreadsheet → map columns → hit Import. Takes 30 seconds.</p>
+        <div style={{ padding: 4 }}>
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px',
+            background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 10, marginBottom: 16,
+          }}>
+            <FileSpreadsheet size={16} color={T.success} style={{ marginTop: 2, flexShrink: 0 }} />
+            <div style={{ fontSize: 13, color: T.textSecondary }}>
+              <p style={{ fontWeight: 600, color: T.success, margin: '0 0 2px' }}>Format: Name (or First/Last), Paid (Yes/No), Amount (optional)</p>
+              <p style={{ margin: 0, fontSize: 12, color: T.textMuted }}>Upload your spreadsheet → map columns → hit Import. Takes 30 seconds.</p>
             </div>
           </div>
           <ImportComponent

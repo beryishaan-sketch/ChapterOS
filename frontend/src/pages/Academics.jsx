@@ -3,12 +3,47 @@ import { GraduationCap, BookOpen, AlertTriangle, TrendingUp, Clock, Search, Chev
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
-const GPA_COLORS = { high: 'text-emerald-600', mid: 'text-gold-dark', low: 'text-red-500' };
-const gpaColor = (gpa) => !gpa ? 'text-gray-300' : gpa >= 3.0 ? GPA_COLORS.high : gpa >= 2.5 ? GPA_COLORS.mid : GPA_COLORS.low;
-const gpaBg = (gpa) => !gpa ? 'bg-gray-100' : gpa >= 3.0 ? 'bg-emerald-50' : gpa >= 2.5 ? 'bg-gold/10' : 'bg-red-50';
+const T = {
+  bg: '#070B14', card: '#0D1424', elevated: '#131D2E', sidebar: '#0A0F1C',
+  accent: '#4F8EF7', gold: '#F0B429', success: '#34D399', warning: '#FBBF24', danger: '#F87171',
+  text1: '#F8FAFC', text2: '#94A3B8', text3: '#475569',
+  border: 'rgba(255,255,255,0.07)', borderStrong: 'rgba(255,255,255,0.12)',
+};
 
-const avatarColors = ['bg-blue-500','bg-purple-500','bg-emerald-500','bg-orange-500','bg-rose-500','bg-cyan-500','bg-amber-500'];
-const avatarColor = (name) => avatarColors[(name||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)%avatarColors.length];
+const AVATAR_PALETTE = ['#4F8EF7', '#A78BFA', '#34D399', '#FB923C', '#F87171', '#22D3EE', '#F0B429'];
+const avatarColor = (name) => AVATAR_PALETTE[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_PALETTE.length];
+
+const gpaColor = (gpa) => !gpa ? T.text3 : gpa >= 3.0 ? T.success : gpa >= 2.5 ? T.warning : T.danger;
+
+const cardStyle = {
+  background: T.card,
+  border: '1px solid ' + T.border,
+  borderRadius: 12,
+  boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+};
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 8,
+  color: T.text1,
+  padding: '10px 14px',
+  outline: 'none',
+  width: '100%',
+  fontSize: 14,
+  boxSizing: 'border-box',
+};
+
+const badgeBase = { borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 };
+const badges = {
+  red: { ...badgeBase, background: 'rgba(248,113,113,0.15)', color: '#F87171', border: '1px solid rgba(248,113,113,0.25)' },
+  green: { ...badgeBase, background: 'rgba(52,211,153,0.15)', color: '#34D399', border: '1px solid rgba(52,211,153,0.25)' },
+  blue: { ...badgeBase, background: 'rgba(79,142,247,0.15)', color: '#4F8EF7', border: '1px solid rgba(79,142,247,0.25)' },
+  gold: { ...badgeBase, background: 'rgba(240,180,41,0.15)', color: '#F0B429', border: '1px solid rgba(240,180,41,0.25)' },
+  gray: { ...badgeBase, background: 'rgba(255,255,255,0.07)', color: T.text2, border: '1px solid rgba(255,255,255,0.12)' },
+};
+
+const distBarColors = [T.success, T.accent, T.gold, T.danger];
 
 export default function Academics() {
   const { user } = useAuth();
@@ -64,8 +99,11 @@ export default function Academics() {
   };
 
   const SortIcon = ({ col }) => {
-    if (sortBy !== col) return <ChevronUp size={12} className="text-gray-300" />;
-    return sortDir === 'asc' ? <ChevronUp size={12} className="text-navy" /> : <ChevronDown size={12} className="text-navy" />;
+    const active = sortBy === col;
+    const color = active ? T.accent : T.text3;
+    return sortDir === 'asc' || !active
+      ? <ChevronUp size={12} style={{ color }} />
+      : <ChevronDown size={12} style={{ color }} />;
   };
 
   const filtered = members
@@ -95,59 +133,57 @@ export default function Academics() {
   const honorsCount = members.filter(m => m.gpa >= 3.5).length;
   const belowReqCount = members.filter(m => m.gpa != null && m.gpa < 2.5).length;
 
+  const statCards = [
+    { icon: <TrendingUp size={16} color={T.accent} />, iconBg: 'rgba(79,142,247,0.12)', value: avgGpa, label: 'Chapter Avg GPA' },
+    { icon: <AlertTriangle size={16} color={T.danger} />, iconBg: 'rgba(248,113,113,0.12)', value: onProbationCount, label: 'On Probation' },
+    { icon: <GraduationCap size={16} color={T.gold} />, iconBg: 'rgba(240,180,41,0.12)', value: honorsCount, label: "Dean's List (3.5+)" },
+    { icon: <BookOpen size={16} color={T.warning} />, iconBg: 'rgba(251,191,36,0.12)', value: belowReqCount, label: 'Below 2.5 GPA' },
+  ];
+
+  const filterOptions = [['all', 'All'], ['probation', 'Probation'], ['honors', 'Honors'], ['missing', 'No GPA']];
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Academic Tracking</h1>
-          <p className="page-subtitle">Monitor GPA, study hours, and academic standing</p>
-        </div>
+    <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: T.text1, margin: 0 }}>Academic Tracking</h1>
+        <p style={{ fontSize: 14, color: T.text2, margin: '4px 0 0' }}>Monitor GPA, study hours, and academic standing</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="card p-5">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-9 h-9 bg-navy/8 rounded-xl flex items-center justify-center">
-              <TrendingUp size={16} className="text-navy" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>
+        {statCards.map(({ icon, iconBg, value, label }) => (
+          <div key={label} style={{ ...cardStyle, padding: 20 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10, background: iconBg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+            }}>
+              {icon}
             </div>
+            <p style={{ fontSize: 28, fontWeight: 700, color: T.text1, margin: '0 0 4px' }}>{value}</p>
+            <p style={{ fontSize: 13, color: T.text2, margin: 0 }}>{label}</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{avgGpa}</p>
-          <p className="text-sm text-gray-500">Chapter Avg GPA</p>
-        </div>
-        <div className="card p-5">
-          <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center mb-1">
-            <AlertTriangle size={16} className="text-red-500" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{onProbationCount}</p>
-          <p className="text-sm text-gray-500">On Probation</p>
-        </div>
-        <div className="card p-5">
-          <div className="w-9 h-9 bg-gold/10 rounded-xl flex items-center justify-center mb-1">
-            <GraduationCap size={16} className="text-gold-dark" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{honorsCount}</p>
-          <p className="text-sm text-gray-500">Dean's List (3.5+)</p>
-        </div>
-        <div className="card p-5">
-          <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center mb-1">
-            <BookOpen size={16} className="text-orange-500" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{belowReqCount}</p>
-          <p className="text-sm text-gray-500">Below 2.5 GPA</p>
-        </div>
+        ))}
       </div>
 
       {/* Filters + Search */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input-field pl-9" placeholder="Search members…" value={search} onChange={e => setSearch(e.target.value)} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T.text3, pointerEvents: 'none' }} />
+          <input
+            style={{ ...inputStyle, paddingLeft: 38 }}
+            placeholder="Search members…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
-        <div className="flex gap-2">
-          {[['all','All'],['probation','Probation'],['honors','Honors'],['missing','No GPA']].map(([val, label]) => (
-            <button key={val} onClick={() => setFilter(val)}
-              className={`px-3 py-2 rounded-xl text-sm font-medium border transition-all ${filter === val ? 'bg-navy text-white border-navy' : 'bg-white text-gray-600 border-gray-200 hover:border-navy/30'}`}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {filterOptions.map(([val, label]) => (
+            <button key={val} onClick={() => setFilter(val)} style={
+              filter === val
+                ? { background: T.accent, color: '#fff', borderRadius: 20, padding: '6px 16px', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 13 }
+                : { background: 'transparent', color: T.text2, borderRadius: 20, padding: '6px 16px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontSize: 13 }
+            }>
               {label}
             </button>
           ))}
@@ -155,117 +191,155 @@ export default function Academics() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div style={{ ...cardStyle, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <button onClick={() => toggleSort('name')} className="flex items-center gap-1">Name <SortIcon col="name" /></button>
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Major</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <button onClick={() => toggleSort('gpa')} className="flex items-center gap-1">GPA <SortIcon col="gpa" /></button>
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <button onClick={() => toggleSort('hours')} className="flex items-center gap-1 whitespace-nowrap">Study Hrs <SortIcon col="hours" /></button>
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Standing</th>
-                {isAdmin && <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>}
+              <tr style={{ borderBottom: '1px solid ' + T.border, background: 'rgba(255,255,255,0.02)' }}>
+                {[
+                  { label: 'Name', col: 'name', sortable: true },
+                  { label: 'Major', col: null, sortable: false },
+                  { label: 'GPA', col: 'gpa', sortable: true },
+                  { label: 'Study Hrs', col: 'hours', sortable: true },
+                  { label: 'Standing', col: null, sortable: false },
+                ].map(({ label, col, sortable }) => (
+                  <th key={label} style={{ textAlign: 'left', padding: '12px 16px', fontSize: 11, fontWeight: 700, color: T.text3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {sortable ? (
+                      <button onClick={() => toggleSort(col)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, color: T.text3, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', padding: 0 }}>
+                        {label} <SortIcon col={col} />
+                      </button>
+                    ) : label}
+                  </th>
+                ))}
+                {isAdmin && <th style={{ textAlign: 'right', padding: '12px 16px', fontSize: 11, fontWeight: 700, color: T.text3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody>
               {loading ? (
                 Array(5).fill(0).map((_, i) => (
                   <tr key={i}>
-                    {Array(5).fill(0).map((_, j) => (
-                      <td key={j} className="px-6 py-4"><div className="skeleton h-4 rounded w-24" /></td>
+                    {Array(5 + (isAdmin ? 1 : 0)).fill(0).map((_, j) => (
+                      <td key={j} style={{ padding: '16px 16px' }}>
+                        <div style={{ height: 14, borderRadius: 6, background: 'rgba(255,255,255,0.06)', width: 80 }} />
+                      </td>
                     ))}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
-                    <GraduationCap size={32} className="text-gray-200 mx-auto mb-3" />
-                    <p className="text-sm text-gray-400">No members found</p>
+                  <td colSpan={6} style={{ padding: '64px 16px', textAlign: 'center' }}>
+                    <GraduationCap size={32} style={{ color: T.text3, margin: '0 auto 12px', display: 'block', opacity: 0.4 }} />
+                    <p style={{ fontSize: 14, color: T.text2, margin: 0 }}>No members found</p>
                   </td>
                 </tr>
-              ) : filtered.map(m => (
-                <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 ${avatarColor(`${m.firstName}${m.lastName}`)} rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                        {(m.firstName||'?')[0]}{(m.lastName||'?')[0]}
+              ) : filtered.map((m, idx) => (
+                <tr
+                  key={m.id}
+                  style={{
+                    background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)'}
+                >
+                  {/* Name */}
+                  <td style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        background: avatarColor(`${m.firstName}${m.lastName}`),
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0,
+                      }}>
+                        {(m.firstName || '?')[0]}{(m.lastName || '?')[0]}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{m.firstName} {m.lastName}</p>
-                        <p className="text-xs text-gray-400 capitalize">{m.role}</p>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: T.text1, margin: 0 }}>{m.firstName} {m.lastName}</p>
+                        <p style={{ fontSize: 12, color: T.text3, margin: '2px 0 0', textTransform: 'capitalize' }}>{m.role}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-sm text-gray-600">{m.major || <span className="text-gray-300">—</span>}</span>
+                  {/* Major */}
+                  <td style={{ padding: '14px 16px' }}>
+                    <span style={{ fontSize: 14, color: m.major ? T.text2 : T.text3 }}>{m.major || '—'}</span>
                   </td>
-                  <td className="px-4 py-3.5">
+                  {/* GPA */}
+                  <td style={{ padding: '14px 16px' }}>
                     {editing === m.id ? (
-                      <input type="number" step="0.01" min="0" max="4" className="input-field w-20 py-1 text-sm"
-                        value={editForm.gpa} onChange={e => setEditForm(f => ({ ...f, gpa: e.target.value }))} />
+                      <input type="number" step="0.01" min="0" max="4"
+                        style={{ ...inputStyle, width: 80, padding: '6px 10px', fontSize: 13 }}
+                        value={editForm.gpa}
+                        onChange={e => setEditForm(f => ({ ...f, gpa: e.target.value }))}
+                      />
                     ) : (
-                      <span className={`text-sm font-bold ${gpaColor(m.gpa)}`}>
-                        {m.gpa != null ? m.gpa.toFixed(2) : <span className="text-gray-300 font-normal">—</span>}
+                      <span style={{ fontSize: 14, fontWeight: 700, color: gpaColor(m.gpa) }}>
+                        {m.gpa != null ? m.gpa.toFixed(2) : <span style={{ color: T.text3, fontWeight: 400 }}>—</span>}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5">
+                  {/* Study Hours */}
+                  <td style={{ padding: '14px 16px' }}>
                     {editing === m.id ? (
-                      <input type="number" min="0" className="input-field w-20 py-1 text-sm"
-                        value={editForm.studyHours} onChange={e => setEditForm(f => ({ ...f, studyHours: e.target.value }))} />
+                      <input type="number" min="0"
+                        style={{ ...inputStyle, width: 80, padding: '6px 10px', fontSize: 13 }}
+                        value={editForm.studyHours}
+                        onChange={e => setEditForm(f => ({ ...f, studyHours: e.target.value }))}
+                      />
                     ) : (
-                      <span className="text-sm text-gray-700 flex items-center gap-1">
-                        <Clock size={12} className="text-gray-400" />{m.studyHours || 0}h
+                      <span style={{ fontSize: 14, color: T.text2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <Clock size={12} style={{ color: T.text3 }} />{m.studyHours || 0}h
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5">
+                  {/* Standing */}
+                  <td style={{ padding: '14px 16px' }}>
                     {editing === m.id ? (
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                         <input type="checkbox" checked={editForm.onProbation}
                           onChange={e => setEditForm(f => ({ ...f, onProbation: e.target.checked }))}
-                          className="rounded border-gray-300 text-red-500" />
-                        <span className="text-xs text-gray-600">Probation</span>
+                          style={{ accentColor: T.danger }} />
+                        <span style={{ fontSize: 12, color: T.text2 }}>Probation</span>
                       </label>
                     ) : (
                       m.onProbation ? (
-                        <span className="badge-red text-xs">Probation</span>
+                        <span style={badges.red}>Probation</span>
                       ) : m.gpa >= 3.5 ? (
-                        <span className="badge-gold text-xs">Honors</span>
+                        <span style={badges.gold}>Honors</span>
                       ) : m.gpa >= 3.0 ? (
-                        <span className="badge-green text-xs">Good Standing</span>
+                        <span style={badges.green}>Good Standing</span>
                       ) : m.gpa >= 2.5 ? (
-                        <span className="badge-gray text-xs">Satisfactory</span>
+                        <span style={badges.gray}>Satisfactory</span>
                       ) : m.gpa != null ? (
-                        <span className="badge-red text-xs">At Risk</span>
+                        <span style={badges.red}>At Risk</span>
                       ) : (
-                        <span className="text-gray-300 text-xs">—</span>
+                        <span style={{ color: T.text3, fontSize: 13 }}>—</span>
                       )
                     )}
                   </td>
+                  {/* Action */}
                   {isAdmin && (
-                    <td className="px-6 py-3.5 text-right">
+                    <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                       {editing === m.id ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => saveEdit(m.id)} disabled={saving}
-                            className="w-7 h-7 bg-emerald-500 hover:bg-emerald-600 rounded-lg flex items-center justify-center text-white transition-colors">
-                            <Check size={13} />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                          <button onClick={() => saveEdit(m.id)} disabled={saving} style={{
+                            width: 28, height: 28, background: T.success, border: 'none', borderRadius: 7,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          }}>
+                            <Check size={13} color="#fff" />
                           </button>
-                          <button onClick={() => setEditing(null)}
-                            className="w-7 h-7 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 transition-colors">
-                            <X size={13} />
+                          <button onClick={() => setEditing(null)} style={{
+                            width: 28, height: 28, background: 'rgba(255,255,255,0.07)', border: '1px solid ' + T.border, borderRadius: 7,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          }}>
+                            <X size={13} color={T.text2} />
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => startEdit(m)}
-                          className="text-xs text-navy hover:text-gold font-semibold transition-colors">
+                        <button onClick={() => startEdit(m)} style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          fontSize: 13, fontWeight: 600, color: T.accent,
+                        }}>
                           Edit
                         </button>
                       )}
@@ -280,23 +354,27 @@ export default function Academics() {
 
       {/* GPA Distribution */}
       {!loading && withGpa.length > 0 && (
-        <div className="card p-6 mt-6">
-          <h2 className="section-title mb-4">GPA Distribution</h2>
-          <div className="grid grid-cols-4 gap-3">
+        <div style={{ ...cardStyle, padding: 24, marginTop: 20 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: T.text1, margin: '0 0 20px' }}>GPA Distribution</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
             {[
-              { label: '3.5 – 4.0', sublabel: "Dean's List", count: members.filter(m => m.gpa >= 3.5).length, color: 'bg-emerald-500' },
-              { label: '3.0 – 3.49', sublabel: 'Good Standing', count: members.filter(m => m.gpa >= 3.0 && m.gpa < 3.5).length, color: 'bg-blue-400' },
-              { label: '2.5 – 2.99', sublabel: 'Satisfactory', count: members.filter(m => m.gpa >= 2.5 && m.gpa < 3.0).length, color: 'bg-gold' },
-              { label: 'Below 2.5', sublabel: 'At Risk', count: members.filter(m => m.gpa != null && m.gpa < 2.5).length, color: 'bg-red-400' },
+              { label: '3.5 – 4.0', sublabel: "Dean's List", count: members.filter(m => m.gpa >= 3.5).length, color: distBarColors[0] },
+              { label: '3.0 – 3.49', sublabel: 'Good Standing', count: members.filter(m => m.gpa >= 3.0 && m.gpa < 3.5).length, color: distBarColors[1] },
+              { label: '2.5 – 2.99', sublabel: 'Satisfactory', count: members.filter(m => m.gpa >= 2.5 && m.gpa < 3.0).length, color: distBarColors[2] },
+              { label: 'Below 2.5', sublabel: 'At Risk', count: members.filter(m => m.gpa != null && m.gpa < 2.5).length, color: distBarColors[3] },
             ].map(({ label, sublabel, count, color }) => (
-              <div key={label} className="text-center">
-                <div className="relative h-24 flex items-end justify-center mb-2">
-                  <div className={`${color} rounded-t-lg w-12 transition-all`}
-                    style={{ height: `${withGpa.length > 0 ? Math.max(8, (count / withGpa.length) * 96) : 8}px` }} />
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ height: 96, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 10 }}>
+                  <div style={{
+                    width: 44, borderRadius: '6px 6px 0 0', background: color,
+                    height: `${withGpa.length > 0 ? Math.max(8, (count / withGpa.length) * 96) : 8}px`,
+                    transition: 'height 0.4s',
+                    boxShadow: `0 0 16px ${color}44`,
+                  }} />
                 </div>
-                <p className="text-lg font-bold text-gray-900">{count}</p>
-                <p className="text-xs font-semibold text-gray-600">{label}</p>
-                <p className="text-xs text-gray-400">{sublabel}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: T.text1, margin: '0 0 2px' }}>{count}</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: T.text2, margin: '0 0 2px' }}>{label}</p>
+                <p style={{ fontSize: 11, color: T.text3, margin: 0 }}>{sublabel}</p>
               </div>
             ))}
           </div>
