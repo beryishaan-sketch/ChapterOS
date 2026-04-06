@@ -22,8 +22,21 @@ const { authLimiter, apiLimiter } = require('./middleware/security');
 const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'https://web-production-29410.up.railway.app',
+  'capacitor://localhost',   // iOS Capacitor WebView
+  'http://localhost',        // Android Capacitor WebView
+  'http://localhost:5173',   // local dev
+  'http://localhost:4173',   // local preview
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: (origin, cb) => {
+    // allow requests with no origin (curl, Postman, same-origin)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: ${origin} not allowed`));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
