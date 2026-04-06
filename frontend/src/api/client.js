@@ -1,7 +1,13 @@
 import axios from 'axios';
+import { getIsNative } from '../hooks/useNative';
+
+const RAILWAY_API = 'https://web-production-29410.up.railway.app/api';
+
+const baseURL = import.meta.env.VITE_API_URL
+  || (getIsNative() ? RAILWAY_API : '/api');
 
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL,
   timeout: 15000,
 });
 
