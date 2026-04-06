@@ -3,8 +3,6 @@
   "appName": "ChapterHQ",
   "webDir": "dist",
   "server": {
-    "url": "https://web-production-29410.up.railway.app",
-    "cleartext": false,
     "androidScheme": "https"
   },
   "plugins": {
