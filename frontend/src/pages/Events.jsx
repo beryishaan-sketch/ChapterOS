@@ -6,6 +6,7 @@ import {
 import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getIsNative } from '../hooks/useNative';
 
 // ─── Design tokens ───────────────────────────────────────────
 const T = {
@@ -441,6 +442,15 @@ const EventRow = ({ event, onClick, isFirst, isLast }) => {
   );
 };
 
+// ─── Native design tokens ─────────────────────────────────────
+const N = {
+  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
 // ─── Main Events Page ─────────────────────────────────────────
 export default function Events() {
   const [events, setEvents] = useState([]);
@@ -452,6 +462,7 @@ export default function Events() {
   const [detailEvent, setDetailEvent] = useState(null);
   const { user } = useAuth();
   const isOfficer = user?.role === 'admin' || user?.role === 'officer';
+  const isNative = getIsNative();
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -480,6 +491,130 @@ export default function Events() {
   }).sort((a, b) => tab === 'upcoming' ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date));
 
   const grouped = groupEventsByDate(filtered);
+
+  // ─── Native iOS layout ──────────────────────────────────────
+  if (isNative) {
+    const nativeTabs = ['Upcoming', 'Past', 'All'];
+    const nativeTabMap = { Upcoming: 'upcoming', Past: 'past', All: 'all' };
+    // nativeTab state is driven by existing `tab`; map display tab to existing tab values
+    const [nativeTab, setNativeTab] = useState('Upcoming');
+
+    const nativeFiltered = events.filter(e => {
+      const isUpcoming = new Date(e.date) >= new Date();
+      if (nativeTab === 'Upcoming') return isUpcoming;
+      if (nativeTab === 'Past') return !isUpcoming;
+      return true;
+    }).sort((a, b) => nativeTab === 'Past'
+      ? new Date(b.date) - new Date(a.date)
+      : new Date(a.date) - new Date(b.date));
+
+    const nativeGrouped = groupEventsByDate(nativeFiltered);
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
+          Events
+        </h1>
+
+        {/* Segmented control */}
+        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '8px 16px' }}>
+          {nativeTabs.map(t => (
+            <button key={t} onClick={() => setNativeTab(t)} style={{
+              flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600,
+              background: nativeTab === t ? N.elevated : 'transparent',
+              color: nativeTab === t ? N.text1 : N.text2,
+              fontFamily: N.font,
+            }}>{t}</button>
+          ))}
+        </div>
+
+        {/* Event list grouped by date */}
+        {loading ? (
+          <div style={{ padding: '24px 20px', color: N.text2, fontSize: 15 }}>Loading…</div>
+        ) : nativeFiltered.length === 0 ? (
+          <div style={{ padding: '48px 20px', textAlign: 'center', color: N.text2, fontSize: 15 }}>
+            {nativeTab === 'Upcoming' ? 'No upcoming events' : nativeTab === 'Past' ? 'No past events' : 'No events'}
+          </div>
+        ) : (
+          nativeGrouped.map(([dateLabel, dayEvents]) => {
+            const d = new Date(dayEvents[0].date);
+            const headerLabel = dateLabel.toUpperCase();
+            return (
+              <div key={dateLabel}>
+                {/* Date section header */}
+                <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '24px 20px 8px' }}>
+                  {headerLabel}
+                </div>
+                {/* Grouped card */}
+                <div style={{ margin: '0 16px', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+                  {dayEvents.map((event, i) => {
+                    const cfg = TYPE_CONFIG[event.type] || TYPE_CONFIG.other;
+                    const timeStr = formatTime(event.date);
+                    const loc = event.location;
+                    const isLast = i === dayEvents.length - 1;
+                    return (
+                      <div
+                        key={event.id}
+                        onClick={() => setDetailEvent(event)}
+                        style={{
+                          display: 'flex', alignItems: 'center', padding: '12px 16px',
+                          borderBottom: isLast ? 'none' : `1px solid ${N.sep}`,
+                          minHeight: 60, cursor: 'pointer',
+                        }}
+                      >
+                        {/* Color dot bar */}
+                        <div style={{ width: 4, height: 44, borderRadius: 2, background: cfg.bar, marginRight: 14, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 17, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {event.title}
+                          </div>
+                          <div style={{ fontSize: 14, color: N.text2, marginTop: 2 }}>
+                            {timeStr}{loc ? ` · ${loc}` : ''}
+                          </div>
+                        </div>
+                        <ChevronRight size={17} style={{ color: N.text3, flexShrink: 0 }} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {/* FAB — create event (officers only) */}
+        {isOfficer && (
+          <button
+            onClick={() => setShowCreate(true)}
+            style={{
+              position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20,
+              width: 56, height: 56, borderRadius: 28, background: N.accent,
+              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)', zIndex: 50,
+            }}
+          >
+            <Plus size={24} style={{ color: '#fff' }} />
+          </button>
+        )}
+
+        {/* Reuse existing modals */}
+        <EventFormModal
+          isOpen={showCreate || !!editEvent}
+          onClose={() => { setShowCreate(false); setEditEvent(null); }}
+          onSave={handleSave}
+          editEvent={editEvent}
+        />
+        <EventDetailModal
+          event={detailEvent}
+          isOpen={!!detailEvent}
+          onClose={() => setDetailEvent(null)}
+          onEdit={(e) => { setDetailEvent(null); setEditEvent(e); }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Download, Users, DollarSign, CalendarDays, GraduationCap, Shield, TrendingUp, Loader } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getIsNative } from '../hooks/useNative';
 
 const T = {
   bg: '#070B14', card: '#0D1424', elevated: '#131D2E',
@@ -64,6 +65,24 @@ const REPORT_TYPES = [
 export default function Reports() {
   const { org } = useAuth();
   const [generating, setGenerating] = useState(null);
+  const isNative = getIsNative();
+
+  const N = {
+    bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+    sep: 'rgba(255,255,255,0.08)',
+    accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+    text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+    font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  };
+
+  const NATIVE_ICON_BGS = {
+    roster:      '#1E3A5F',
+    financial:   '#14532D',
+    academic:    '#713F12',
+    events:      '#581C87',
+    risk:        '#7F1D1D',
+    recruitment: '#78350F',
+  };
 
   const generate = async (type) => {
     setGenerating(type);
@@ -82,6 +101,43 @@ export default function Reports() {
       setGenerating(null);
     }
   };
+
+  if (isNative) return (
+    <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+      <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Reports</h1>
+      <p style={{ fontSize: 14, color: N.text2, margin: 0, padding: '0 20px 16px' }}>Generate PDF reports for national HQ</p>
+
+      <div style={{ padding: '0 16px' }}>
+        <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+          {REPORT_TYPES.map((report, idx) => {
+            const Icon = report.icon;
+            const isLoading = generating === report.id;
+            const iconBg = NATIVE_ICON_BGS[report.id] || N.elevated;
+            return (
+              <div key={report.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', minHeight: 64, borderBottom: idx < REPORT_TYPES.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
+                  <Icon size={20} style={{ color: '#fff' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: N.text1 }}>{report.title}</div>
+                  <div style={{ fontSize: 13, color: N.text2, marginTop: 2 }}>{report.description}</div>
+                </div>
+                <button
+                  onClick={() => generate(report.id)}
+                  disabled={!!generating}
+                  style={{ background: isLoading ? 'rgba(10,132,255,0.5)' : N.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 14, fontWeight: 600, cursor: generating ? 'not-allowed' : 'pointer', flexShrink: 0, opacity: generating && !isLoading ? 0.5 : 1 }}
+                >
+                  {isLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Export'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>

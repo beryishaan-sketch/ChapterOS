@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import ImportComponent from './Import';
+import { getIsNative } from '../hooks/useNative';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -274,9 +275,22 @@ const btnSecondary = {
   whiteSpace: 'nowrap',
 };
 
+// ─── Native design tokens ─────────────────────────────────────────────────────
+const N = {
+  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
+const NATIVE_AVATAR_PALETTE = ['#0A84FF', '#30D158', '#FF9F0A', '#FF453A', '#BF5AF2', '#32ADE6', '#FF375F'];
+const nativeAvatarColor = (name) => NATIVE_AVATAR_PALETTE[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % NATIVE_AVATAR_PALETTE.length];
+
 // ─── Main Dues Page ───────────────────────────────────────────────────────────
 export default function Dues() {
   const { user } = useAuth();
+  const isNative = getIsNative();
   const [dues, setDues] = useState([]);
   const [fines, setFines] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -387,6 +401,120 @@ export default function Dues() {
       iconBg: 'rgba(79,142,247,0.15)',
     },
   ];
+
+  // ─── Native iOS layout ──────────────────────────────────────────────────────
+  if (isNative) {
+    const nativeTabs = ['All', 'Unpaid', 'Paid', 'Partial'];
+    const nativeTabKey = { All: 'all', Unpaid: 'unpaid', Paid: 'paid', Partial: 'partial' };
+    const activeTabLabel = nativeTabs.find(t => nativeTabKey[t] === statusFilter) || 'All';
+
+    const nativeFiltered = dues.filter(d => {
+      const matchSearch = !search || d.memberName?.toLowerCase().includes(search.toLowerCase());
+      const matchStatus = statusFilter === 'all' || d.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+
+    const nativeStatusColor = { paid: N.success, unpaid: N.danger, partial: N.warning, waived: N.text3 };
+    const nativeStatusBg = { paid: 'rgba(48,209,88,0.18)', unpaid: 'rgba(255,69,58,0.18)', partial: 'rgba(255,159,10,0.18)', waived: 'rgba(235,235,245,0.1)' };
+    const nativeStatusLabel = { paid: 'PAID', unpaid: 'UNPAID', partial: 'PARTIAL', waived: 'WAIVED' };
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Dues</h1>
+
+        {/* Hero stats */}
+        <div style={{ padding: '16px 16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: N.success, letterSpacing: -0.5 }}>
+              {loading ? '—' : formatCurrency(totalPaid)}
+            </div>
+            <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Collected</div>
+          </div>
+          <div style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: N.danger, letterSpacing: -0.5 }}>
+              {loading ? '—' : formatCurrency(totalOutstanding)}
+            </div>
+            <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>Outstanding</div>
+          </div>
+        </div>
+
+        {/* Collection rate progress bar */}
+        {!loading && totalAmount > 0 && (
+          <div style={{ padding: '14px 16px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 13, color: N.text2 }}>Collection Rate</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: collectionRate >= 80 ? N.success : collectionRate >= 50 ? N.warning : N.danger }}>{collectionRate}%</span>
+            </div>
+            <div style={{ height: 6, background: N.elevated, borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: 99, width: `${collectionRate}%`, background: collectionRate >= 80 ? N.success : collectionRate >= 50 ? N.warning : N.danger, transition: 'width 0.5s ease' }} />
+            </div>
+          </div>
+        )}
+
+        {/* Segmented control */}
+        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '14px 16px 0' }}>
+          {nativeTabs.map(t => (
+            <button key={t} onClick={() => setStatusFilter(nativeTabKey[t])} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: activeTabLabel === t ? N.elevated : 'transparent', color: activeTabLabel === t ? N.text1 : N.text2 }}>{t}</button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div style={{ padding: '10px 16px 0' }}>
+          <div style={{ background: N.card, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Search size={16} style={{ color: N.text3, flexShrink: 0 }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search" style={{ background: 'none', border: 'none', color: N.text1, fontSize: 16, flex: 1, outline: 'none' }} />
+          </div>
+        </div>
+
+        {/* Member list */}
+        <div style={{ margin: '14px 16px 0', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
+          ) : nativeFiltered.length === 0 ? (
+            <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No dues records found</div>
+          ) : nativeFiltered.map((due, idx) => {
+            const initials = due.memberName?.split(' ').map(n => n[0]).join('') || '?';
+            const aColor = nativeAvatarColor(due.memberName || '');
+            const status = due.status || 'unpaid';
+            const sColor = nativeStatusColor[status] || N.text3;
+            const sBg = nativeStatusBg[status] || 'rgba(235,235,245,0.1)';
+            const sLabel = nativeStatusLabel[status] || status.toUpperCase();
+            const dueStr = due.dueDate ? `Due ${new Date(due.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : formatCurrency(due.amount);
+            return (
+              <div
+                key={due.id}
+                onClick={() => isAdmin && setPayModal(due)}
+                style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 56, borderBottom: idx < nativeFiltered.length - 1 ? `1px solid ${N.sep}` : 'none', cursor: isAdmin ? 'pointer' : 'default' }}
+              >
+                <div style={{ width: 40, height: 40, borderRadius: 20, background: aColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{initials}</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, color: N.text1 }}>{due.memberName || '—'}</div>
+                  <div style={{ fontSize: 13, color: N.text2 }}>{dueStr}</div>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: sColor, background: sBg, padding: '3px 8px', borderRadius: 6 }}>{sLabel}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Admin FAB */}
+        {isAdmin && (
+          <button onClick={() => setShowCreate(true)} style={{ position: 'fixed', bottom: 32, right: 24, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)' }}>
+            <Plus size={24} style={{ color: '#fff' }} />
+          </button>
+        )}
+
+        {/* Modals (reuse existing) */}
+        <CreateDuesModal isOpen={showCreate} onClose={() => setShowCreate(false)} onSave={(d) => setDues(prev => [d, ...prev])} />
+        {payModal && (
+          <MarkPaymentModal dueRecord={payModal} isOpen={!!payModal} onClose={() => setPayModal(null)} onSave={handlePaymentSave} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: T.bg, padding: '0 0 48px' }}>

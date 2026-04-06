@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, DollarSign, Star, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
 import client from '../api/client';
+import { getIsNative } from '../hooks/useNative';
 
 // ── Design tokens ──────────────────────────────────────────────
 const T = {
@@ -262,6 +263,18 @@ const EVENT_TYPE_COLORS = {
   other:        T.textMuted,
 };
 
+// ── Native design tokens ───────────────────────────────────────
+const N = {
+  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
+const NATIVE_FUNNEL_COLORS = ['#8E8E93', '#0A84FF', '#BF5AF2', '#FF9F0A', '#30D158'];
+const NATIVE_ROLE_COLORS = { Admins: '#FF9F0A', Officers: '#0A84FF', Members: '#BF5AF2', Alumni: '#636366' };
+
 // ── Main component ─────────────────────────────────────────────
 export default function Analytics() {
   const [data, setData]       = useState(null);
@@ -269,6 +282,7 @@ export default function Analytics() {
   const [pnms, setPnms]       = useState([]);
   const [events, setEvents]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const isNative = getIsNative();
 
   useEffect(() => {
     Promise.all([
@@ -327,6 +341,121 @@ export default function Analytics() {
 
   const eventTypes = ['mixer','formal','philanthropy','meeting','rush','other'];
   const eventTypeRows = eventTypes.map(type => ({ type, count: events.filter(e => e.type === type).length })).filter(r => r.count > 0);
+
+  // ── Native layout ─────────────────────────────────────────────
+  if (isNative) {
+    const activeMembers = members.filter(m => m.role !== 'alumni').length;
+    const retentionRate = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 0;
+
+    const roleBarItems = roleBreakdown.map(({ label, value }) => ({
+      label,
+      value: String(value),
+      pct: totalMembers > 0 ? Math.round((value / totalMembers) * 100) : 0,
+      color: NATIVE_ROLE_COLORS[label],
+    }));
+
+    const funnelItems = stageCounts.map(({ stage, count }, i) => ({
+      label: { invited: 'Prospecting', met: 'Met', liked: 'Liked', bid: 'Bid', pledged: 'Pledged' }[stage],
+      value: String(count),
+      pct: totalPnms > 0 ? Math.round((count / totalPnms) * 100) : 0,
+      color: NATIVE_FUNNEL_COLORS[i],
+    }));
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
+          Analytics
+        </h1>
+
+        {/* 2×2 stat grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
+          {[
+            { value: totalMembers, label: 'Total Members' },
+            { value: activeMembers, label: 'Active Members' },
+            { value: `${retentionRate}%`, label: 'Retention Rate' },
+            { value: avgGpa || '—', label: 'Avg GPA' },
+          ].map(({ value, label }) => (
+            <div key={label} style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
+              <div style={{ fontSize: 30, fontWeight: 700, color: N.text1, letterSpacing: -0.5 }}>{value}</div>
+              <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Member Breakdown bar chart */}
+        <div style={{ margin: '16px 16px 12px', background: N.card, borderRadius: 14, padding: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, marginBottom: 14 }}>Member Breakdown</div>
+          {totalMembers === 0 ? (
+            <div style={{ fontSize: 14, color: N.text3, textAlign: 'center', paddingBottom: 4 }}>No members yet</div>
+          ) : roleBarItems.map(item => (
+            <div key={item.label} style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 14, color: N.text1 }}>{item.label}</span>
+                <span style={{ fontSize: 14, color: N.text2 }}>{item.value}</span>
+              </div>
+              <div style={{ height: 6, background: N.elevated, borderRadius: 3 }}>
+                <div style={{ height: 6, width: `${item.pct}%`, background: item.color, borderRadius: 3 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Recruitment Funnel bar chart */}
+        <div style={{ margin: '0 16px 12px', background: N.card, borderRadius: 14, padding: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, marginBottom: 14 }}>Recruitment Funnel</div>
+          {totalPnms === 0 ? (
+            <div style={{ fontSize: 14, color: N.text3, textAlign: 'center', paddingBottom: 4 }}>No PNMs yet</div>
+          ) : funnelItems.map(item => (
+            <div key={item.label} style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 14, color: N.text1 }}>{item.label}</span>
+                <span style={{ fontSize: 14, color: N.text2 }}>{item.value}</span>
+              </div>
+              <div style={{ height: 6, background: N.elevated, borderRadius: 3 }}>
+                <div style={{ height: 6, width: `${item.pct}%`, background: item.color, borderRadius: 3 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Academic Standing */}
+        <div style={{ margin: '0 16px 12px', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, padding: '16px 16px 12px' }}>Academic Standing</div>
+          {[
+            { label: 'Chapter GPA', value: avgGpa || '—' },
+            { label: 'Total Study Hours', value: `${totalStudyHours}h` },
+            { label: 'On Academic Probation', value: String(onProbation), highlight: onProbation > 0 },
+          ].map(({ label, value, highlight }, i, arr) => (
+            <div key={label} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '12px 16px',
+              borderTop: `1px solid ${N.sep}`,
+            }}>
+              <span style={{ fontSize: 15, color: N.text1 }}>{label}</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: highlight ? N.danger : N.text2 }}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Events Overview */}
+        {eventTypeRows.length > 0 && (
+          <div style={{ margin: '0 16px 12px', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, padding: '16px 16px 12px' }}>Events Overview</div>
+            {eventTypeRows.map(({ type, count }) => (
+              <div key={type} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '12px 16px', borderTop: `1px solid ${N.sep}`,
+              }}>
+                <span style={{ fontSize: 15, color: N.text1, textTransform: 'capitalize' }}>{type}</span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: N.text2 }}>{count}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Plus, Trash2, Filter } from 'lucide-react';
 import client from '../api/client';
 import Modal from '../components/Modal';
+import { getIsNative } from '../hooks/useNative';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -93,7 +94,30 @@ const btnSecondary = {
   transition: 'opacity 150ms ease',
 };
 
+// ─── Native design tokens ─────────────────────────────────────────────────────
+const N = {
+  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
+const NATIVE_CAT_COLORS = {
+  dues:         '#0A84FF',
+  fundraising:  '#30D158',
+  donations:    '#BF5AF2',
+  sponsorship:  '#FF9F0A',
+  venue:        '#FF453A',
+  food:         '#FF6B35',
+  supplies:     '#8E8E93',
+  apparel:      '#5E5CE6',
+  philanthropy: '#32ADE6',
+  other:        '#8E8E93',
+};
+
 export default function Budget() {
+  const isNative = getIsNative();
   const [data, setData] = useState({ transactions: [], summary: { income: 0, expenses: 0, balance: 0 } });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -158,6 +182,135 @@ export default function Budget() {
       highlight: true,
     },
   ];
+
+  // ─── Native iOS layout ──────────────────────────────────────────────────────
+  if (isNative) {
+    const { income, expenses, balance } = data.summary;
+    const nativeFiltered = filter === 'all' ? data.transactions : data.transactions.filter(t => t.type === filter);
+
+    // Group by month
+    const grouped = {};
+    nativeFiltered.forEach(t => {
+      const key = t.date ? new Date(t.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Unknown';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(t);
+    });
+    const monthGroups = Object.entries(grouped);
+
+    const nativeTabs = ['All', 'Income', 'Expense'];
+    const nativeTabKey = { All: 'all', Income: 'income', Expense: 'expense' };
+    const activeTab = nativeTabs.find(t => nativeTabKey[t] === filter) || 'All';
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Budget</h1>
+
+        {/* Balance hero card */}
+        <div style={{ padding: '16px 16px 0' }}>
+          <div style={{ background: N.card, borderRadius: 14, padding: '20px 20px' }}>
+            <div style={{ fontSize: 13, color: N.text2, marginBottom: 6 }}>Balance</div>
+            <div style={{ fontSize: 36, fontWeight: 700, color: balance >= 0 ? N.success : N.danger, letterSpacing: -1 }}>
+              {balance < 0 ? '-' : ''}${Math.abs(balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ display: 'flex', gap: 24, marginTop: 14 }}>
+              <div>
+                <div style={{ fontSize: 12, color: N.text3, marginBottom: 2 }}>Income</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: N.success }}>+${income.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: N.text3, marginBottom: 2 }}>Expenses</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: N.danger }}>-${expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Segmented control */}
+        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '14px 16px 0' }}>
+          {nativeTabs.map(t => (
+            <button key={t} onClick={() => setFilter(nativeTabKey[t])} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: activeTab === t ? N.elevated : 'transparent', color: activeTab === t ? N.text1 : N.text2 }}>{t}</button>
+          ))}
+        </div>
+
+        {/* Transaction list grouped by month */}
+        {loading ? (
+          <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
+        ) : nativeFiltered.length === 0 ? (
+          <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No transactions</div>
+        ) : monthGroups.map(([month, txns]) => (
+          <div key={month} style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: N.text2, padding: '0 20px', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{month}</div>
+            <div style={{ background: N.card, borderRadius: 14, margin: '0 16px', overflow: 'hidden' }}>
+              {txns.map((t, idx) => {
+                const isIncome = t.type === 'income';
+                const catColor = NATIVE_CAT_COLORS[t.category] || NATIVE_CAT_COLORS.other;
+                const Icon = isIncome ? TrendingUp : TrendingDown;
+                const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+                return (
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 56, borderBottom: idx < txns.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: catColor + '28', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
+                      <Icon size={18} style={{ color: catColor }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 16, color: N.text1 }}>{t.description}</div>
+                      <div style={{ fontSize: 13, color: N.text2 }}>{t.category} · {dateStr}</div>
+                    </div>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: isIncome ? N.success : N.text1 }}>
+                      {isIncome ? '+' : '-'}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* FAB */}
+        <button onClick={() => setShowModal(true)} style={{ position: 'fixed', bottom: 32, right: 24, width: 56, height: 56, borderRadius: 28, background: N.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)' }}>
+          <Plus size={24} style={{ color: '#fff' }} />
+        </button>
+
+        {/* Add Transaction Modal (reuse existing) */}
+        <Modal isOpen={showModal} onClose={() => { setShowModal(false); setSaveError(''); }} title="Add Transaction">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {saveError && (
+              <div style={{ padding: '10px 14px', background: 'rgba(255,69,58,0.1)', border: '1px solid rgba(255,69,58,0.25)', borderRadius: 8, fontSize: 13, color: N.danger }}>{saveError}</div>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['income', 'expense'].map(tp => (
+                <button key={tp} type="button" onClick={() => setForm(f => ({ ...f, type: tp, category: CATEGORIES[tp][0] }))} style={{ flex: 1, padding: '9px', borderRadius: 8, fontSize: 13, fontWeight: 700, textTransform: 'capitalize', cursor: 'pointer', transition: 'all 150ms ease', border: form.type === tp ? `2px solid ${tp === 'income' ? N.success : N.danger}` : `2px solid rgba(255,255,255,0.1)`, background: form.type === tp ? (tp === 'income' ? 'rgba(48,209,88,0.1)' : 'rgba(255,69,58,0.1)') : N.elevated, color: form.type === tp ? (tp === 'income' ? N.success : N.danger) : N.text2 }}>{tp}</button>
+              ))}
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: N.text2, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Amount ($)</label>
+              <input style={{ width: '100%', background: N.elevated, border: `1px solid ${N.sep}`, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} type="number" step="0.01" min="0" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: N.text2, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Description</label>
+              <input style={{ width: '100%', background: N.elevated, border: `1px solid ${N.sep}`, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} placeholder="e.g. Spring mixer ticket sales" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} required />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: N.text2, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Category</label>
+                <select style={{ width: '100%', background: N.elevated, border: `1px solid ${N.sep}`, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                  {CATEGORIES[form.type].map(c => <option key={c} value={c} style={{ textTransform: 'capitalize' }}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: N.text2, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Date</label>
+                <input style={{ width: '100%', background: N.elevated, border: `1px solid ${N.sep}`, borderRadius: 8, padding: '9px 12px', color: N.text1, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+              <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, justifyContent: 'center', padding: '8px 14px', background: N.elevated, color: N.text2, border: `1px solid ${N.sep}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button type="submit" disabled={saving} style={{ flex: 1, justifyContent: 'center', padding: '8px 16px', background: N.accent, color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Add Transaction'}</button>
+            </div>
+          </form>
+        </Modal>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: T.bg, padding: '0 0 48px' }}>

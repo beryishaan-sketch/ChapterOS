@@ -7,6 +7,7 @@ import {
 import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getIsNative } from '../hooks/useNative';
 
 const T = {
   bg: '#070B14', card: '#0D1424', elevated: '#131D2E',
@@ -380,6 +381,108 @@ export default function Sponsors() {
   const totalRevenue = sponsors.filter(s => ['active','completed'].includes(s.dealStatus))
     .reduce((sum, s) => sum + (s.dealAmount || 0), 0);
   const activeCount = sponsors.filter(s => s.dealStatus === 'active').length;
+
+  const isNative = getIsNative();
+
+  const N = {
+    bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+    sep: 'rgba(255,255,255,0.08)',
+    accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+    text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+    font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  };
+
+  const TIER_DOT = {
+    bronze:   '#F97316',
+    silver:   '#94A3B8',
+    gold:     '#F0B429',
+    platinum: '#A78BFA',
+  };
+
+  if (isNative) {
+    if (loading) return (
+      <div style={{ background: N.bg, minHeight: '100vh', fontFamily: N.font }}>
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Sponsors</h1>
+        <div style={{ margin: '16px', background: N.card, borderRadius: 14, height: 200 }} />
+      </div>
+    );
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Sponsors</h1>
+
+        {/* Stats row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
+          <div style={{ background: N.card, borderRadius: 12, padding: '16px', textAlign: 'center' }}>
+            <div style={{ fontSize: 26, fontWeight: 700, color: N.text1 }}>{sponsors.length}</div>
+            <div style={{ fontSize: 12, color: N.text3, marginTop: 2 }}>Total Sponsors</div>
+          </div>
+          <div style={{ background: N.card, borderRadius: 12, padding: '16px', textAlign: 'center' }}>
+            <div style={{ fontSize: 26, fontWeight: 700, color: N.success }}>{totalRevenue > 0 ? fmt$(totalRevenue) : '—'}</div>
+            <div style={{ fontSize: 12, color: N.text3, marginTop: 2 }}>Total Raised</div>
+          </div>
+        </div>
+
+        {/* Add button for admins */}
+        {isAdmin && (
+          <div style={{ padding: '16px 16px 0' }}>
+            <button
+              onClick={() => { setEditing(null); setShowModal(true); }}
+              style={{ width: '100%', padding: '13px', borderRadius: 12, background: N.accent, color: '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}
+            >
+              + Add Sponsor
+            </button>
+          </div>
+        )}
+
+        {/* Sponsor list */}
+        <div style={{ padding: '16px 16px 0' }}>
+          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+            {sponsors.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <Users size={28} style={{ color: N.text3, marginBottom: 12 }} />
+                <div style={{ fontSize: 16, color: N.text2, fontWeight: 600 }}>No sponsors yet</div>
+                <div style={{ fontSize: 13, color: N.text3, marginTop: 4 }}>Local businesses want to reach your members.</div>
+              </div>
+            ) : sponsors.map((s, idx) => {
+              const tier = TIER_STYLES[s.tier];
+              const sc = STATUS_STYLES[s.dealStatus] || STATUS_STYLES.prospect;
+              const statusLabel = statusCfg(s.dealStatus)?.label || 'Prospect';
+              const dotColor = TIER_DOT[s.tier];
+              return (
+                <div key={s.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', minHeight: 64, borderBottom: idx < sponsors.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+                  {/* Tier dot */}
+                  <div style={{ width: 10, height: 10, borderRadius: 5, background: dotColor || N.text3, marginRight: 12, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                    <div style={{ fontSize: 13, color: N.text2, marginTop: 2 }}>
+                      {s.contactName ? `${s.contactName} · ` : ''}{statusLabel}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                    {s.dealAmount && (
+                      <span style={{ fontSize: 15, fontWeight: 700, color: N.success }}>{fmt$(s.dealAmount)}</span>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => { setEditing(s); setShowModal(true); }}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}
+                      >
+                        <Edit2 size={15} style={{ color: N.text3 }} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <SponsorModal isOpen={showModal} onClose={() => { setShowModal(false); setEditing(null); }}
+          onSave={handleSave} initial={editing} />
+      </div>
+    );
+  }
 
   if (loading) return (
     <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>

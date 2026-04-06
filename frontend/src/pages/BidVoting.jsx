@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getIsNative } from '../hooks/useNative';
 
 const T = {
   bg: '#070B14', card: '#0D1424', elevated: '#131D2E',
@@ -263,6 +264,139 @@ export default function BidVoting() {
       return next;
     });
   };
+
+  const isNative = getIsNative();
+
+  const N = {
+    bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+    sep: 'rgba(255,255,255,0.08)',
+    accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+    text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+    font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  };
+
+  const AVATAR_COLORS = ['#0A84FF','#30D158','#FF9F0A','#FF453A','#BF5AF2','#FF375F','#64D2FF','#FFD60A'];
+  const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+
+  const totalVoted = Object.keys(userVotes).length;
+  const allTallies = Object.values(results);
+  const totalYes = allTallies.reduce((s, r) => s + (r.tally?.yes || 0), 0);
+  const totalNo = allTallies.reduce((s, r) => s + (r.tally?.no || 0), 0);
+  const totalAll = totalYes + totalNo + allTallies.reduce((s, r) => s + (r.tally?.abstain || 0), 0);
+  const yesPct = totalAll > 0 ? Math.round((totalYes / totalAll) * 100) : 0;
+  const noPct = totalAll > 0 ? Math.round((totalNo / totalAll) * 100) : 0;
+
+  if (isNative) return (
+    <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+      <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Bid Voting</h1>
+
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
+        {[
+          { value: pnms.length, label: 'Candidates', color: N.text1 },
+          { value: `${yesPct}%`, label: 'Yes', color: N.success },
+          { value: `${noPct}%`, label: 'No', color: N.danger },
+        ].map(({ value, label, color }) => (
+          <div key={label} style={{ background: N.card, borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
+            <div style={{ fontSize: 12, color: N.text3, marginTop: 2 }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Status + controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 16px 0' }}>
+        <span style={{ flex: 1, fontSize: 14, color: votingOpen ? N.success : N.text3, fontWeight: 600 }}>
+          {votingOpen ? 'Voting Open' : 'Voting Closed'}
+        </span>
+        <button onClick={() => fetchData(true)} disabled={refreshing} style={{ background: N.elevated, border: 'none', borderRadius: 10, padding: '8px 14px', color: N.text2, fontSize: 14, cursor: 'pointer' }}>
+          Refresh
+        </button>
+        {isAdmin && (
+          <button onClick={() => setVotingOpen(v => !v)} style={{ background: votingOpen ? 'rgba(255,69,58,0.15)' : N.accent, color: votingOpen ? N.danger : '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            {votingOpen ? 'Close' : 'Reopen'}
+          </button>
+        )}
+      </div>
+
+      {/* PNM cards */}
+      <div style={{ padding: '16px 0 0' }}>
+        {loading ? (
+          <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3 }}>Loading…</div>
+        ) : pnms.length === 0 ? (
+          <div style={{ margin: '0 16px', background: N.card, borderRadius: 14, padding: '40px 20px', textAlign: 'center' }}>
+            <Users size={32} style={{ color: N.text3, marginBottom: 12 }} />
+            <div style={{ fontSize: 17, color: N.text2, fontWeight: 600 }}>No candidates in bid stage</div>
+            <div style={{ fontSize: 14, color: N.text3, marginTop: 6 }}>Move PNMs to the "bid" stage in Recruitment.</div>
+          </div>
+        ) : pnms.map(pnm => {
+          const result = results[pnm.id];
+          const tally = result?.tally || { yes: 0, no: 0, abstain: 0 };
+          const myVote = userVotes[pnm.id];
+          const initials = `${pnm.firstName?.[0] || ''}${pnm.lastName?.[0] || ''}`.toUpperCase();
+          const ac = avatarColor(pnm.firstName);
+          return (
+            <div key={pnm.id} style={{ margin: '0 16px 14px', background: N.card, borderRadius: 14, padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ width: 52, height: 52, borderRadius: 26, background: ac, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>{initials}</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: N.text1 }}>{pnm.firstName} {pnm.lastName}</div>
+                  <div style={{ fontSize: 14, color: N.text2 }}>{result?.totalVotes || 0} vote{result?.totalVotes !== 1 ? 's' : ''} cast</div>
+                </div>
+              </div>
+              {/* Tally bar */}
+              {(tally.yes + tally.no + tally.abstain) > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', height: 5, borderRadius: 99, overflow: 'hidden', gap: 2, background: 'rgba(255,255,255,0.05)', marginBottom: 6 }}>
+                    {tally.yes > 0 && <div style={{ background: N.success, width: `${Math.round(tally.yes/(tally.yes+tally.no+tally.abstain)*100)}%`, borderRadius: 99 }} />}
+                    {tally.abstain > 0 && <div style={{ background: N.warning, width: `${Math.round(tally.abstain/(tally.yes+tally.no+tally.abstain)*100)}%`, borderRadius: 99 }} />}
+                    {tally.no > 0 && <div style={{ background: N.danger, width: `${Math.round(tally.no/(tally.yes+tally.no+tally.abstain)*100)}%`, borderRadius: 99 }} />}
+                  </div>
+                  <div style={{ fontSize: 12, color: N.text3 }}>Yes {tally.yes} · Abs {tally.abstain} · No {tally.no}</div>
+                </div>
+              )}
+              {/* Vote buttons */}
+              {votingOpen && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  <button
+                    onClick={() => { client.post(`/pnms/${pnm.id}/bid-vote`, { vote: 'yes' }).then(() => handleVote(pnm.id, 'yes')).catch(() => {}); }}
+                    style={{ padding: '12px 0', background: myVote === 'yes' ? 'rgba(48,209,88,0.2)' : N.elevated, border: myVote === 'yes' ? '1px solid rgba(48,209,88,0.4)' : '1px solid transparent', borderRadius: 12, color: myVote === 'yes' ? N.success : N.text2, fontWeight: 600, fontSize: 15, cursor: 'pointer' }}
+                  >✓ Yes</button>
+                  <button
+                    onClick={() => { client.post(`/pnms/${pnm.id}/bid-vote`, { vote: 'abstain' }).then(() => handleVote(pnm.id, 'abstain')).catch(() => {}); }}
+                    style={{ padding: '12px 0', background: myVote === 'abstain' ? 'rgba(255,159,10,0.15)' : N.elevated, border: myVote === 'abstain' ? '1px solid rgba(255,159,10,0.3)' : '1px solid transparent', borderRadius: 12, color: myVote === 'abstain' ? N.warning : N.text2, fontWeight: 600, fontSize: 15, cursor: 'pointer' }}
+                  >— Abs</button>
+                  <button
+                    onClick={() => { client.post(`/pnms/${pnm.id}/bid-vote`, { vote: 'no' }).then(() => handleVote(pnm.id, 'no')).catch(() => {}); }}
+                    style={{ padding: '12px 0', background: myVote === 'no' ? 'rgba(255,69,58,0.15)' : N.elevated, border: myVote === 'no' ? '1px solid rgba(255,69,58,0.3)' : '1px solid transparent', borderRadius: 12, color: myVote === 'no' ? N.danger : N.text2, fontWeight: 600, fontSize: 15, cursor: 'pointer' }}
+                  >✕ No</button>
+                </div>
+              )}
+              {/* Admin move controls */}
+              {isAdmin && !votingOpen && (
+                <div style={{ display: 'flex', gap: 10, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${N.sep}` }}>
+                  <button
+                    onClick={() => { client.patch(`/pnms/${pnm.id}/stage`, { stage: 'pledged' }).then(() => handleMove(pnm.id, 'pledged')).catch(() => {}); }}
+                    style={{ flex: 1, padding: '10px', borderRadius: 12, background: 'rgba(48,209,88,0.12)', color: N.success, border: '1px solid rgba(48,209,88,0.25)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Bid → Pledged
+                  </button>
+                  <button
+                    onClick={() => { client.patch(`/pnms/${pnm.id}/stage`, { stage: 'dropped' }).then(() => handleMove(pnm.id, 'dropped')).catch(() => {}); }}
+                    style={{ flex: 1, padding: '10px', borderRadius: 12, background: 'rgba(255,69,58,0.12)', color: N.danger, border: '1px solid rgba(255,69,58,0.25)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Drop
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>

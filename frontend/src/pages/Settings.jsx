@@ -6,6 +6,7 @@ import {
 import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getIsNative } from '../hooks/useNative';
 
 const T = {
   bg: '#070B14', card: '#0D1424', elevated: '#131D2E',
@@ -315,6 +316,9 @@ export default function Settings() {
   });
   const [notifSaving, setNotifSaving] = useState(false);
 
+  const [nativeInviteCode, setNativeInviteCode] = useState(null);
+  const [nativeCodeCopied, setNativeCodeCopied] = useState(false);
+
   const [officers, setOfficers] = useState([]);
   const [members, setMembers] = useState([]);
   const [showAddOfficer, setShowAddOfficer] = useState(false);
@@ -340,9 +344,11 @@ export default function Settings() {
     Promise.all([
       client.get('/orgs/current/officers').catch(() => ({ data: { data: [] } })),
       client.get('/members').catch(() => ({ data: { data: [] } })),
-    ]).then(([offRes, memRes]) => {
+      client.get('/orgs/current').catch(() => ({ data: { data: {} } })),
+    ]).then(([offRes, memRes, orgRes]) => {
       setOfficers(offRes.data.data || []);
       setMembers(memRes.data.data || []);
+      setNativeInviteCode(orgRes.data.data?.inviteCode || null);
     });
   }, []);
 
@@ -410,6 +416,174 @@ export default function Settings() {
     pnmUpdates:     'PNM stage changes',
     weeklyDigest:   'Weekly chapter digest',
   };
+
+  const isNative = getIsNative();
+
+  const N = {
+    bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+    sep: 'rgba(255,255,255,0.08)',
+    accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+    text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+    font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  };
+
+  const nInput = {
+    background: 'transparent', border: 'none', color: N.text1, fontSize: 16,
+    outline: 'none', width: '100%', padding: 0,
+  };
+
+  if (isNative) return (
+    <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 40, fontFamily: N.font }}>
+      <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Settings</h1>
+
+      {/* Chapter Info */}
+      {isAdmin && (
+        <div style={{ padding: '28px 16px 0' }}>
+          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>CHAPTER INFO</div>
+          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+            {[
+              { label: 'Name', key: 'name' },
+              { label: 'School', key: 'school' },
+              { label: 'Greek Letters', key: 'greekLetters' },
+              { label: 'Designation', key: 'chapterDesignation', placeholder: 'Gamma Chapter' },
+            ].map(({ label, key, placeholder }, idx, arr) => (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 50, borderBottom: idx < arr.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+                <span style={{ fontSize: 16, color: N.text1, width: 120, flexShrink: 0 }}>{label}</span>
+                <input
+                  style={{ ...nInput, textAlign: 'right', color: N.text2 }}
+                  value={profile[key]}
+                  placeholder={placeholder || label}
+                  onChange={e => updateProfile(key, e.target.value)}
+                />
+              </div>
+            ))}
+            <div style={{ padding: '12px 16px', borderTop: `1px solid ${N.sep}` }}>
+              <button
+                onClick={saveProfile}
+                disabled={profileSaving}
+                style={{ width: '100%', padding: '12px', borderRadius: 12, background: profileSaved ? 'rgba(48,209,88,0.2)' : N.accent, color: profileSaved ? N.success : '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: 'pointer', opacity: profileSaving ? 0.7 : 1 }}
+              >
+                {profileSaved ? 'Saved!' : profileSaving ? 'Saving…' : 'Save Chapter Info'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications */}
+      <div style={{ padding: '28px 16px 0' }}>
+        <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>NOTIFICATIONS</div>
+        <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+          {Object.entries(NOTIF_LABELS).map(([key, label], idx, arr) => {
+            const isOn = notifications[key];
+            return (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 50, borderBottom: idx < arr.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+                <span style={{ flex: 1, fontSize: 17, color: N.text1 }}>{label}</span>
+                <button
+                  onClick={() => saveNotifications(key, !isOn)}
+                  style={{ width: 51, height: 31, borderRadius: 16, background: isOn ? N.success : N.elevated, border: 'none', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}
+                >
+                  <span style={{ position: 'absolute', top: 2, left: isOn ? 22 : 2, width: 27, height: 27, borderRadius: 14, background: '#fff', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Officers */}
+      {isAdmin && (
+        <div style={{ padding: '28px 16px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', padding: '0 4px 8px' }}>
+            <span style={{ flex: 1, fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>OFFICERS</span>
+            <button onClick={() => setShowAddOfficer(v => !v)} style={{ background: N.accent, color: '#fff', border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              + Add
+            </button>
+          </div>
+          {showAddOfficer && (
+            <div style={{ background: N.card, borderRadius: 14, padding: '12px 16px', marginBottom: 8 }}>
+              <select style={{ ...nInput, background: N.elevated, borderRadius: 8, padding: '10px', marginBottom: 8, color: N.text1 }} value={newOfficer.memberId} onChange={e => setNewOfficer(f => ({ ...f, memberId: e.target.value }))}>
+                <option value="">Select member…</option>
+                {members.map(m => <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>)}
+              </select>
+              <select style={{ ...nInput, background: N.elevated, borderRadius: 8, padding: '10px', marginBottom: 8, color: N.text1 }} value={newOfficer.role} onChange={e => setNewOfficer(f => ({ ...f, role: e.target.value }))}>
+                <option value="">Select role…</option>
+                {OFFICER_ROLES.map(r => <option key={r}>{r}</option>)}
+              </select>
+              <button onClick={addOfficer} style={{ width: '100%', padding: '11px', borderRadius: 12, background: N.accent, color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Add Officer</button>
+            </div>
+          )}
+          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+            {officers.length === 0 ? (
+              <div style={{ padding: '20px 16px', fontSize: 15, color: N.text3, textAlign: 'center' }}>No officers assigned yet</div>
+            ) : officers.map((o, idx) => (
+              <div key={o.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 50, borderBottom: idx < officers.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 18, background: 'linear-gradient(135deg, #0A84FF, #BF5AF2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, marginRight: 12, flexShrink: 0 }}>
+                  {(o.firstName?.[0] || '').toUpperCase()}{(o.lastName?.[0] || '').toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, color: N.text1, fontWeight: 600 }}>{o.firstName} {o.lastName}</div>
+                  <div style={{ fontSize: 13, color: N.text3 }}>{o.role}</div>
+                </div>
+                <button onClick={() => removeOfficer(o.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}>
+                  <X size={16} style={{ color: N.danger }} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Invite Code */}
+      {isAdmin && (
+        <div style={{ padding: '28px 16px 0' }}>
+          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>INVITE CODE</div>
+          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ padding: '20px 16px', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${N.sep}` }}>
+              <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 26, fontWeight: 800, letterSpacing: '0.3em', color: N.text1 }}>
+                {nativeInviteCode || '········'}
+              </span>
+              <button
+                onClick={() => {
+                  if (!nativeInviteCode) return;
+                  navigator.clipboard.writeText(nativeInviteCode);
+                  setNativeCodeCopied(true);
+                  setTimeout(() => setNativeCodeCopied(false), 2000);
+                }}
+                style={{ background: nativeCodeCopied ? 'rgba(48,209,88,0.2)' : N.elevated, border: 'none', borderRadius: 10, padding: '8px 14px', color: nativeCodeCopied ? N.success : N.text1, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              >
+                {nativeCodeCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <div style={{ padding: '14px 16px', fontSize: 13, color: N.text3 }}>
+              Members enter this code at registration to join your chapter.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Danger Zone */}
+      {isAdmin && (
+        <div style={{ padding: '28px 16px 0' }}>
+          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>DANGER ZONE</div>
+          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+            <div
+              onClick={() => setShowDelete(true)}
+              style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}
+            >
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,69,58,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
+                <Trash2 size={17} style={{ color: N.danger }} />
+              </div>
+              <span style={{ flex: 1, fontSize: 17, color: N.danger }}>Delete Chapter</span>
+              <ChevronRight size={17} style={{ color: N.text3 }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <DeleteChapterModal isOpen={showDelete} onClose={() => setShowDelete(false)} />
+    </div>
+  );
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useHaptic } from '../hooks/useHaptic';
+import { getIsNative } from '../hooks/useNative';
 import {
   Megaphone, Trophy, BarChart2, DollarSign, ShieldCheck,
   Star, FileText, Settings, CreditCard, ChevronRight,
@@ -179,6 +180,98 @@ export default function More() {
 
   const isAdmin = user?.role === 'admin';
   const isOfficer = isAdmin || user?.role === 'officer';
+  const isNative = getIsNative();
+
+  const N = {
+    bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+    sep: 'rgba(255,255,255,0.08)',
+    accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+    text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+    font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+  };
+
+  const NRow = ({ icon: Icon, iconBg, label, to, badge, onClick: rowClick, destructive }) => (
+    <div
+      onClick={() => {
+        if (rowClick) { rowClick(); return; }
+        if (to) { impact('light'); navigate(to); }
+      }}
+      style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', minHeight: 50, borderBottom: `1px solid ${N.sep}`, cursor: 'pointer', WebkitTapHighlightColor: 'rgba(255,255,255,0.05)' }}
+    >
+      <div style={{ width: 32, height: 32, borderRadius: 8, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
+        <Icon size={17} style={{ color: '#fff' }} />
+      </div>
+      <span style={{ flex: 1, fontSize: 17, color: destructive ? N.danger : N.text1 }}>{label}</span>
+      {badge && <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: N.accent, borderRadius: 8, padding: '2px 7px', marginRight: 8 }}>{badge}</span>}
+      {!destructive && <ChevronRight size={17} style={{ color: N.text3 }} />}
+    </div>
+  );
+
+  const NSection = ({ title, children }) => (
+    <div style={{ padding: '28px 16px 0' }}>
+      <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>{title}</div>
+      <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>
+  );
+
+  if (isNative) return (
+    <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+      {/* Profile hero */}
+      <div style={{ margin: '16px 16px 0', background: N.card, borderRadius: 16, padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <div style={{ width: 80, height: 80, borderRadius: 40, background: 'linear-gradient(135deg, #0A84FF, #BF5AF2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 30, fontWeight: 700, color: '#fff' }}>
+          {user?.firstName?.[0]}{user?.lastName?.[0]}
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: N.text1 }}>{user?.firstName} {user?.lastName}</div>
+        <div style={{ fontSize: 15, color: N.text2, marginTop: 4, textTransform: 'capitalize' }}>
+          {user?.position || user?.role}{org?.name ? ` · ${org.name}` : ''}
+        </div>
+      </div>
+
+      {/* CHAPTER section */}
+      <NSection title="CHAPTER">
+        <NRow icon={Megaphone}     iconBg="#EF4444" label="Recruitment"   to="/recruitment" />
+        <NRow icon={Calendar}      iconBg="#9333EA" label="Events"         to="/events" />
+        <NRow icon={Users}         iconBg="#1E3A5F" label="Members"        to="/roles" />
+        <NRow icon={DollarSign}    iconBg="#10B981" label="Dues"           to="/dues" />
+      </NSection>
+
+      {/* TOOLS section */}
+      <NSection title="TOOLS">
+        <NRow icon={BarChart2}     iconBg="#3B82F6" label="Analytics"      to="/analytics" />
+        <NRow icon={Trophy}        iconBg="#F97316" label="Leaderboard"    to="/leaderboard" />
+        <NRow icon={Wallet}        iconBg="#0EA5E9" label="Budget"         to="/budget" />
+        <NRow icon={ClipboardList} iconBg="#0EA5E9" label="Attendance"     to="/attendance" />
+        <NRow icon={BookOpen}      iconBg="#10B981" label="Academics"      to="/academics" />
+        <NRow icon={FileText}      iconBg="#64748B" label="Documents"      to="/documents" />
+      </NSection>
+
+      {/* ACCOUNT section */}
+      <NSection title="ACCOUNT">
+        <NRow icon={Star}          iconBg="#3B82F6" label="Profile"        to="/profile" />
+        <NRow icon={Settings}      iconBg="#64748B" label="Settings"       to="/settings" />
+        <NRow icon={CreditCard}    iconBg="#475569" label="Billing"        to="/billing" />
+      </NSection>
+
+      {/* Sign Out */}
+      <div style={{ padding: '28px 16px 0' }}>
+        <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+          <NRow
+            icon={LogOut}
+            iconBg="#7F1D1D"
+            label="Sign Out"
+            destructive
+            onClick={() => { notification('warning'); if (window.confirm('Sign out of ChapterOS?')) logout(); }}
+          />
+        </div>
+      </div>
+
+      <p style={{ textAlign: 'center', fontSize: 12, color: N.text3, marginTop: 24 }}>
+        ChapterOS · {org?.plan === 'trial' ? 'Trial' : 'Pro'}
+      </p>
+    </div>
+  );
 
   return (
     <div style={{

@@ -5,6 +5,7 @@ import {
   Calendar, CheckCircle, Save, BookOpen, GripVertical,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { getIsNative } from '../hooks/useNative';
 import {
   DndContext,
   DragOverlay,
@@ -678,6 +679,15 @@ const Shimmer = ({ width, height, borderRadius = 6 }) => (
   }} />
 );
 
+// ─── Native design tokens ─────────────────────────────────────
+const N = {
+  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
 // ─── Main Recruitment Page ────────────────────────────────────
 export default function Recruitment() {
   const [pnms, setPnms] = useState([]);
@@ -686,6 +696,7 @@ export default function Recruitment() {
   const [filterStage, setFilterStage] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [selectedPNM, setSelectedPNM] = useState(null);
+  const isNative = getIsNative();
 
   const fetchPNMs = useCallback(async () => {
     try {
@@ -731,6 +742,162 @@ export default function Recruitment() {
     { label: 'Pledged',     value: loading ? '—' : stats.pledged,           icon: CheckCircle,iconColor: T.success,    iconBg: 'rgba(52,211,153,0.12)' },
     { label: 'Conversion',  value: loading ? '—' : `${stats.conversionRate}%`, icon: TrendingUp, iconColor: '#A78BFA',   iconBg: 'rgba(167,139,250,0.12)' },
   ];
+
+  // ── Native layout ─────────────────────────────────────────────
+  if (isNative) {
+    const nativeStageColors = {
+      invited:  '#8E8E93',
+      met:      '#0A84FF',
+      liked:    '#BF5AF2',
+      rush:     '#FF6B35',
+      bid:      '#FF9F0A',
+      pledged:  '#30D158',
+      dropped:  '#FF453A',
+    };
+
+    const bidsOut = pnms.filter(p => p.stage === 'bid').length;
+    const acceptanceRate = bidsOut > 0 ? Math.round((stats.pledged / bidsOut) * 100) : 0;
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        {/* Large title + add button */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 4px' }}>
+          <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, letterSpacing: -0.5 }}>Recruitment</h1>
+          <button
+            onClick={() => setShowAdd(true)}
+            style={{
+              width: 32, height: 32, borderRadius: 16, background: N.accent,
+              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Plus size={18} color="#fff" />
+          </button>
+        </div>
+
+        {/* 2×2 stat grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
+          {[
+            { value: loading ? '—' : stats.total, label: 'Total PNMs' },
+            { value: loading ? '—' : bidsOut, label: 'Bids Out' },
+            { value: loading ? '—' : `${acceptanceRate}%`, label: 'Acceptance Rate' },
+            { value: loading ? '—' : stats.pledged, label: 'Pledged' },
+          ].map(({ value, label }) => (
+            <div key={label} style={{ background: N.card, borderRadius: 14, padding: '18px 16px' }}>
+              <div style={{ fontSize: 30, fontWeight: 700, color: N.text1, letterSpacing: -0.5 }}>{value}</div>
+              <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pipeline — one card per stage */}
+        <div style={{ marginTop: 16 }}>
+          {STAGES.map(stage => {
+            const cfg = STAGE_CONFIG[stage];
+            const stagePNMs = pnms.filter(p => p.stage === stage);
+            const stageColor = nativeStageColors[stage] || N.text2;
+
+            if (stagePNMs.length === 0) return null;
+
+            return (
+              <div key={stage} style={{ margin: '0 16px 14px', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+                {/* Stage header */}
+                <div style={{ padding: '14px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 5, background: stageColor }} />
+                    <span style={{ fontSize: 17, fontWeight: 600, color: N.text1 }}>{cfg.label}</span>
+                  </div>
+                  <span style={{ fontSize: 14, color: N.text2 }}>{stagePNMs.length} PNMs</span>
+                </div>
+
+                {/* PNM rows */}
+                {stagePNMs.map((pnm, i) => {
+                  const colorIndex = ((pnm.firstName?.charCodeAt(0) || 0) + (pnm.lastName?.charCodeAt(0) || 0)) % avatarPalette.length;
+                  const [avBg, avText] = avatarPalette[colorIndex];
+                  const inits = `${pnm.firstName?.[0] || ''}${pnm.lastName?.[0] || ''}`.toUpperCase();
+                  const STAGES_LIST = Object.keys(STAGE_CONFIG);
+                  const currentIdx = STAGES_LIST.indexOf(pnm.stage);
+
+                  return (
+                    <div
+                      key={pnm.id}
+                      onClick={() => setSelectedPNM(pnm)}
+                      style={{
+                        display: 'flex', alignItems: 'center', padding: '10px 16px',
+                        borderTop: `1px solid ${N.sep}`, cursor: 'pointer',
+                        minHeight: 52,
+                      }}
+                    >
+                      {/* Avatar */}
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 18, background: avBg,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: avText, fontWeight: 700, fontSize: 13, flexShrink: 0, marginRight: 12,
+                      }}>
+                        {inits}
+                      </div>
+
+                      {/* Name + meta */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {pnm.firstName} {pnm.lastName}
+                        </div>
+                        {(pnm.major || pnm.year) && (
+                          <div style={{ fontSize: 12, color: N.text2, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {pnm.major}{pnm.year ? ` · ${pnm.year}` : ''}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Move stage buttons */}
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {currentIdx > 0 && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleStageChange(pnm.id, STAGES_LIST[currentIdx - 1]); }}
+                            style={{
+                              width: 28, height: 28, borderRadius: 8, border: `1px solid ${N.sep}`,
+                              background: N.elevated, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                          >
+                            <ChevronLeft size={14} color={N.text2} />
+                          </button>
+                        )}
+                        {currentIdx < STAGES_LIST.length - 1 && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleStageChange(pnm.id, STAGES_LIST[currentIdx + 1]); }}
+                            style={{
+                              width: 28, height: 28, borderRadius: 8, border: 'none',
+                              background: N.accent, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                          >
+                            <ChevronRight size={14} color="#fff" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          {/* Empty state */}
+          {pnms.length === 0 && !loading && (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: N.text3 }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>👥</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: N.text2, marginBottom: 8 }}>No PNMs yet</div>
+              <div style={{ fontSize: 14, color: N.text3 }}>Tap + to add your first PNM</div>
+            </div>
+          )}
+        </div>
+
+        {/* Modals — reuse existing */}
+        <AddPNMModal isOpen={showAdd} onClose={() => setShowAdd(false)} onSave={pnm => { handleSaveNew(pnm); }} />
+        {selectedPNM && (
+          <PNMPanel pnm={selectedPNM} onClose={() => setSelectedPNM(null)} onUpdate={handleUpdate} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '100%' }}>

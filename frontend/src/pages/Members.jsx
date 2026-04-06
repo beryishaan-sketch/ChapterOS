@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useHaptic } from '../hooks/useHaptic';
+import { getIsNative } from '../hooks/useNative';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -38,6 +39,26 @@ const ROLE_CONFIG = {
   alumni:  { label: 'Alumni',  color: T.gold,    bg: 'rgba(240,180,41,0.12)'  },
   pledge:  { label: 'Pledge',  color: T.success, bg: 'rgba(52,211,153,0.12)'  },
 };
+
+// ─── Native design tokens ─────────────────────────────────────────────────────
+const N = {
+  bg: '#000000',
+  card: '#1C1C1E',
+  elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF',
+  success: '#30D158',
+  warning: '#FF9F0A',
+  danger: '#FF453A',
+  text1: '#FFFFFF',
+  text2: 'rgba(235,235,245,0.6)',
+  text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
+const NATIVE_AVATAR_COLORS = ['#0A84FF','#30D158','#FF9F0A','#FF453A','#BF5AF2','#FF6B35','#00C7BE'];
+const getNativeAvatarColor = (name) =>
+  NATIVE_AVATAR_COLORS[(name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % NATIVE_AVATAR_COLORS.length];
 
 // ─── Avatar helpers ───────────────────────────────────────────────────────────
 const AVATAR_BG = ['#4F8EF7','#a78bfa','#34D399','#F0B429','#F87171','#22d3ee','#fb923c'];
@@ -648,6 +669,7 @@ const MemberCard = ({ member, onClick, onUpdate, isAdmin }) => {
 export default function Members() {
   const { user } = useAuth();
   const { impact } = useHaptic();
+  const isNative = getIsNative();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -685,6 +707,161 @@ export default function Members() {
   });
 
   const ROLE_PILLS = ['all', ...ROLES];
+
+  // ── NATIVE BRANCH ──────────────────────────────────────────────
+  if (isNative) {
+    const nativeTabs = ['All', ...ROLES.map(r => ROLE_CONFIG[r]?.label || r)];
+    const activeTabLabel = roleFilter === 'all' ? 'All' : (ROLE_CONFIG[roleFilter]?.label || roleFilter);
+
+    const handleNativeTabSelect = (tabLabel) => {
+      impact?.('light');
+      if (tabLabel === 'All') {
+        setRoleFilter('all');
+      } else {
+        const role = ROLES.find(r => ROLE_CONFIG[r]?.label === tabLabel) || tabLabel.toLowerCase();
+        setRoleFilter(role);
+      }
+    };
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 32, fontFamily: N.font }}>
+
+        {/* Large title + count */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 2px', letterSpacing: -0.5, fontFamily: N.font }}>
+          Members
+        </h1>
+        <p style={{ fontSize: 14, color: N.text2, margin: 0, padding: '0 20px 12px', fontFamily: N.font }}>
+          {members.length} {members.length === 1 ? 'member' : 'members'}
+        </p>
+
+        {/* iOS search bar */}
+        <div style={{ padding: '8px 16px' }}>
+          <div style={{ background: N.card, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Search size={16} style={{ color: N.text3, flexShrink: 0 }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search"
+              style={{ background: 'none', border: 'none', color: N.text1, fontSize: 16, flex: 1, outline: 'none', fontFamily: N.font }}
+            />
+            {search ? (
+              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+                <X size={14} style={{ color: N.text3 }} />
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* iOS segmented control */}
+        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '8px 16px 0' }}>
+          {nativeTabs.map(t => (
+            <button
+              key={t}
+              onClick={() => handleNativeTabSelect(t)}
+              style={{
+                flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: 600,
+                background: activeTabLabel === t ? N.elevated : 'transparent',
+                color: activeTabLabel === t ? N.text1 : N.text2,
+                fontFamily: N.font,
+              }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* Add Member button (admin only) */}
+        {isAdmin && (
+          <div style={{ padding: '16px 16px 0' }}>
+            <button
+              onClick={() => { impact?.('medium'); setShowAdd(true); }}
+              style={{ background: N.accent, color: '#fff', border: 'none', borderRadius: 14, padding: '16px 20px', fontSize: 17, fontWeight: 600, width: '100%', cursor: 'pointer', fontFamily: N.font }}
+            >
+              Add Member
+            </button>
+          </div>
+        )}
+
+        {/* Member list */}
+        <div style={{ padding: '20px 16px 0' }}>
+          {loading ? (
+            <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+              {Array(6).fill(0).map((_, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', minHeight: 60, borderBottom: i < 5 ? `1px solid ${N.sep}` : 'none', gap: 14 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 21, background: N.elevated, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ height: 14, width: 130, background: N.elevated, borderRadius: 4, marginBottom: 8 }} />
+                    <div style={{ height: 12, width: 90, background: N.elevated, borderRadius: 4 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ background: N.card, borderRadius: 14, padding: '40px 24px', textAlign: 'center' }}>
+              <Users size={36} style={{ color: N.text3, margin: '0 auto 12px', display: 'block' }} />
+              <p style={{ fontSize: 16, fontWeight: 600, color: N.text2, margin: '0 0 4px', fontFamily: N.font }}>
+                {search || roleFilter !== 'all' ? 'No matches' : 'No members yet'}
+              </p>
+              <p style={{ fontSize: 14, color: N.text3, margin: 0, fontFamily: N.font }}>
+                {search || roleFilter !== 'all' ? 'Try adjusting your search or filter' : 'Add your first member to get started'}
+              </p>
+            </div>
+          ) : (
+            <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+              {filtered.map((m, i) => {
+                const avatarColor = getNativeAvatarColor(m.firstName + m.lastName);
+                const init = initials(m.firstName, m.lastName);
+                const subtitle = [
+                  ROLE_CONFIG[m.role]?.label || m.role,
+                  m.major || m.position || m.pledgeClass,
+                ].filter(Boolean).join(' · ');
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => { impact?.('light'); setSelectedMember(m); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', padding: '10px 16px', minHeight: 60,
+                      borderBottom: i < filtered.length - 1 ? `1px solid ${N.sep}` : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {m.avatarUrl ? (
+                      <img src={m.avatarUrl} alt="" style={{ width: 42, height: 42, borderRadius: 21, objectFit: 'cover', flexShrink: 0, marginRight: 14 }} />
+                    ) : (
+                      <div style={{ width: 42, height: 42, borderRadius: 21, background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
+                        <span style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>{init}</span>
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 17, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: N.font }}>
+                        {m.firstName} {m.lastName}
+                      </div>
+                      <div style={{ fontSize: 14, color: N.text2, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: N.font }}>
+                        {subtitle}
+                      </div>
+                    </div>
+                    <ChevronRight size={17} style={{ color: N.text3, flexShrink: 0 }} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Modals render normally — full-screen overlays work on native */}
+        <AddMemberModal isOpen={showAdd} onClose={() => setShowAdd(false)} onSave={(m) => setMembers(prev => [m, ...prev])} />
+        <MemberProfileModal
+          member={selectedMember}
+          isOpen={!!selectedMember}
+          onClose={() => setSelectedMember(null)}
+          onUpdate={handleUpdate}
+          isAdmin={isAdmin}
+        />
+      </div>
+    );
+  }
+  // ── END NATIVE BRANCH ──────────────────────────────────────────
 
   return (
     <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", sans-serif', background: T.bg, minHeight: '100vh', padding: '32px 32px 48px' }}>

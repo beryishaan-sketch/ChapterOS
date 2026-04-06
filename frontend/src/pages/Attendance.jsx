@@ -6,6 +6,7 @@ import {
 import Modal from '../components/Modal';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getIsNative } from '../hooks/useNative';
 
 const T = {
   bg: '#070B14', card: '#0D1424', elevated: '#131D2E', sidebar: '#0A0F1C',
@@ -92,8 +93,18 @@ const QRScanModal = ({ isOpen, onClose, eventId }) => {
   );
 };
 
+// ─── Native design tokens ─────────────────────────────────────────────────────
+const N = {
+  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
 export default function Attendance() {
   const { user } = useAuth();
+  const isNative = getIsNative();
   const [tab, setTab] = useState('checklist');
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState('');
@@ -169,6 +180,151 @@ export default function Attendance() {
   const attendanceRate = members.length > 0 ? Math.round((attendedCount / members.length) * 100) : 0;
 
   const rateColor = attendanceRate >= 80 ? T.success : attendanceRate >= 60 ? T.warning : T.danger;
+
+  // ─── Native iOS layout ──────────────────────────────────────────────────────
+  if (isNative) {
+    const nativeFilteredMembers = members.filter(m =>
+      !search || `${m.firstName} ${m.lastName}`.toLowerCase().includes(search.toLowerCase())
+    );
+    const nativeAttendedCount = Object.values(attendance).filter(Boolean).length;
+    const nativeRate = members.length > 0 ? Math.round((nativeAttendedCount / members.length) * 100) : 0;
+    const rateColor = nativeRate >= 80 ? N.success : nativeRate >= 60 ? N.warning : N.danger;
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>Attendance</h1>
+
+        {/* Segmented control: Checklist / History */}
+        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '10px 16px 0' }}>
+          {['checklist', 'history'].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: tab === t ? N.elevated : 'transparent', color: tab === t ? N.text1 : N.text2, textTransform: 'capitalize' }}>{t === 'checklist' ? 'Checklist' : 'History'}</button>
+          ))}
+        </div>
+
+        {tab === 'checklist' && (
+          <>
+            {/* iOS-style event picker */}
+            <div style={{ padding: '14px 16px 0' }}>
+              <div style={{ background: N.card, borderRadius: 10, padding: '2px 12px', display: 'flex', alignItems: 'center' }}>
+                <select
+                  value={selectedEvent}
+                  onChange={e => setSelectedEvent(e.target.value)}
+                  disabled={eventsLoading}
+                  style={{ background: 'none', border: 'none', color: selectedEvent ? N.text1 : N.text3, fontSize: 16, flex: 1, outline: 'none', padding: '12px 0', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                >
+                  <option value="">Choose an event…</option>
+                  {events.map(ev => (
+                    <option key={ev.id} value={ev.id} style={{ background: N.card, color: N.text1 }}>
+                      {ev.title} — {new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} style={{ color: N.text3, flexShrink: 0, pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {selectedEvent && (
+              <>
+                {/* Stats row */}
+                <div style={{ padding: '14px 16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  {[
+                    { label: 'Present', value: nativeAttendedCount, color: N.success },
+                    { label: 'Absent', value: members.length - nativeAttendedCount, color: N.danger },
+                    { label: 'Rate', value: `${nativeRate}%`, color: rateColor },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ background: N.card, borderRadius: 14, padding: '14px 12px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color, letterSpacing: -0.5 }}>{value}</div>
+                      <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Search */}
+                <div style={{ padding: '10px 16px 0' }}>
+                  <div style={{ background: N.card, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Search size={16} style={{ color: N.text3, flexShrink: 0 }} />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search" style={{ background: 'none', border: 'none', color: N.text1, fontSize: 16, flex: 1, outline: 'none' }} />
+                  </div>
+                </div>
+
+                {/* Member toggle list */}
+                <div style={{ margin: '14px 16px 0', background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+                  {loading ? (
+                    <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
+                  ) : nativeFilteredMembers.length === 0 ? (
+                    <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>No members found</div>
+                  ) : nativeFilteredMembers.map((m, idx) => {
+                    const isPresent = attendance[m.id] || false;
+                    const aColor = avatarColor((m.firstName || '') + (m.lastName || ''));
+                    const init = `${m.firstName?.[0] || ''}${m.lastName?.[0] || ''}`.toUpperCase();
+                    return (
+                      <div
+                        key={m.id}
+                        style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', minHeight: 56, borderBottom: idx < nativeFilteredMembers.length - 1 ? `1px solid ${N.sep}` : 'none', background: isPresent ? 'rgba(48,209,88,0.06)' : 'transparent' }}
+                      >
+                        <div style={{ width: 40, height: 40, borderRadius: 20, background: aColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 14 }}>
+                          <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{init}</span>
+                        </div>
+                        <span style={{ flex: 1, fontSize: 16, color: N.text1 }}>{m.firstName} {m.lastName}</span>
+                        {saving === m.id ? (
+                          <div style={{ width: 36, height: 36, borderRadius: 18, border: `2px solid ${N.elevated}`, borderTopColor: N.accent, animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                        ) : (
+                          <button onClick={() => toggleAttendance(m.id)} style={{ width: 36, height: 36, borderRadius: 18, background: isPresent ? N.success : N.elevated, border: 'none', cursor: isAdmin ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {isPresent ? <Check size={18} style={{ color: '#fff' }} /> : <span style={{ width: 2 }} />}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {!selectedEvent && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', textAlign: 'center' }}>
+                <CalendarDays size={48} style={{ color: N.text3, marginBottom: 12 }} />
+                <p style={{ fontSize: 14, color: N.text3 }}>Select an event to take attendance</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {tab === 'history' && (
+          <div style={{ marginTop: 14 }}>
+            {historyLoading ? (
+              <div style={{ padding: '40px 16px', textAlign: 'center', color: N.text3, fontSize: 14 }}>Loading…</div>
+            ) : history.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0', textAlign: 'center' }}>
+                <History size={48} style={{ color: N.text3, marginBottom: 12 }} />
+                <p style={{ fontSize: 14, color: N.text3 }}>No attendance history yet</p>
+              </div>
+            ) : (
+              <div style={{ background: N.card, borderRadius: 14, margin: '0 16px', overflow: 'hidden' }}>
+                {history.map((row, idx) => {
+                  const rate = row.total > 0 ? Math.round((row.attended / row.total) * 100) : 0;
+                  const rColor = rate >= 80 ? N.success : rate >= 60 ? N.warning : N.danger;
+                  const dateStr = row.date ? new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                  return (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: idx < history.length - 1 ? `1px solid ${N.sep}` : 'none' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 16, color: N.text1, fontWeight: 600 }}>{row.eventTitle}</div>
+                        <div style={{ fontSize: 13, color: N.text2, marginTop: 2 }}>{dateStr} · {row.attended}/{row.total} attended</div>
+                      </div>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: rColor }}>{rate}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <QRScanModal isOpen={showQR} onClose={() => setShowQR(false)} eventId={selectedEvent} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh', background: T.bg }}>

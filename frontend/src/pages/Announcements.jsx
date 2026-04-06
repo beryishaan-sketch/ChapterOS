@@ -3,6 +3,7 @@ import { Pin, Trash2, Plus, Megaphone, AlertCircle, ChevronDown } from 'lucide-r
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Modal from '../components/Modal';
+import { getIsNative } from '../hooks/useNative';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -106,10 +107,20 @@ const AVATAR_PALETTES = [
 ];
 const avatarPalette = (name) => AVATAR_PALETTES[(name?.charCodeAt(0) || 0) % AVATAR_PALETTES.length];
 
+// ─── Native design tokens ─────────────────────────────────────────────────────
+const N = {
+  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Announcements() {
   const { user } = useAuth();
   const isAdmin = ['admin', 'officer'].includes(user?.role);
+  const isNative = getIsNative();
 
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -169,6 +180,125 @@ export default function Announcements() {
       ))}
     </div>
   );
+
+  // ─── Native iOS layout ────────────────────────────────────────────────────
+  if (isNative) {
+    // Pinned items first, then by date
+    const sorted = [...announcements].sort((a, b) => {
+      if (b.pinned !== a.pinned) return b.pinned - a.pinned;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
+          Announcements
+        </h1>
+
+        {/* Announcement cards */}
+        <div style={{ marginTop: 12 }}>
+          {sorted.length === 0 ? (
+            <div style={{ padding: '48px 20px', textAlign: 'center', color: N.text2, fontSize: 15 }}>
+              No announcements yet
+            </div>
+          ) : (
+            sorted.map(ann => {
+              const palette = avatarPalette(ann.author?.firstName);
+              const inits = initials(ann.author?.firstName, ann.author?.lastName);
+              return (
+                <div key={ann.id} style={{ margin: '0 16px 12px', background: N.card, borderRadius: 14, padding: '16px' }}>
+                  {/* Author row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 18, background: palette.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: palette.color }}>{inits}</span>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: N.text1 }}>
+                        {ann.author?.firstName} {ann.author?.lastName}
+                      </div>
+                      <div style={{ fontSize: 12, color: N.text3 }}>{timeAgo(ann.createdAt)}</div>
+                    </div>
+                    {ann.pinned && (
+                      <span style={{ marginLeft: 'auto', fontSize: 11, color: N.warning, fontWeight: 600 }}>PINNED</span>
+                    )}
+                  </div>
+                  {/* Title */}
+                  <div style={{ fontSize: 17, fontWeight: 600, color: N.text1, marginBottom: 6 }}>{ann.title}</div>
+                  {/* Body */}
+                  <div style={{ fontSize: 15, color: N.text2, lineHeight: 1.5 }}>{ann.body}</div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* FAB — post announcement (admin only) */}
+        {isAdmin && (
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20,
+              width: 56, height: 56, borderRadius: 28, background: N.accent,
+              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)', zIndex: 50,
+            }}
+          >
+            <Plus size={24} style={{ color: '#fff' }} />
+          </button>
+        )}
+
+        {/* Reuse existing post modal */}
+        <Modal isOpen={showModal} onClose={() => { setShowModal(false); setError(''); }} title="Post Announcement">
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {error && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+                background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 8,
+              }}>
+                <AlertCircle size={14} color={T.danger} />
+                <p style={{ fontSize: 13, color: T.danger, margin: 0 }}>{error}</p>
+              </div>
+            )}
+            <div>
+              <label style={labelStyle}>Title</label>
+              <input style={inputStyle} placeholder="Announcement title" value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoFocus />
+            </div>
+            <div>
+              <label style={labelStyle}>Message</label>
+              <textarea
+                style={{ ...inputStyle, height: 128, resize: 'none', lineHeight: 1.6 }}
+                placeholder="Write your announcement..."
+                value={form.body}
+                onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
+              />
+            </div>
+            {user?.role === 'admin' && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={form.pinned}
+                  onChange={e => setForm(f => ({ ...f, pinned: e.target.checked }))}
+                  style={{ accentColor: T.gold, width: 16, height: 16 }}
+                />
+                <span style={{ fontSize: 13, color: T.textSecondary, fontWeight: 600 }}>Pin this announcement</span>
+              </label>
+            )}
+            <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+              <button type="button" onClick={() => setShowModal(false)} style={{ ...btnSecondary, flex: 1, justifyContent: 'center' }}>Cancel</button>
+              <button type="submit" disabled={submitting} style={{ ...btnPrimary, flex: 1, justifyContent: 'center', opacity: submitting ? 0.6 : 1 }}>
+                {submitting ? 'Posting…' : 'Post Announcement'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '0 0 48px' }}>

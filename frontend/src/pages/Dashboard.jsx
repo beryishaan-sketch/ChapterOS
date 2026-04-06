@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, DollarSign, CalendarDays, TrendingUp,
   ChevronRight, UserPlus, BarChart2, Star,
-  Zap, Clock, ArrowRight
+  Zap, Clock, ArrowRight, MessageSquare
 } from 'lucide-react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useHaptic } from '../hooks/useHaptic';
+import { getIsNative } from '../hooks/useNative';
 
 // ── Design tokens ──────────────────────────────────────────────
 const T = {
@@ -137,11 +138,28 @@ const SectionLabel = ({ children, action }) => (
   </div>
 );
 
+// ── Native design tokens ───────────────────────────────────────
+const N = {
+  bg: '#000000',
+  card: '#1C1C1E',
+  elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF',
+  success: '#30D158',
+  warning: '#FF9F0A',
+  danger: '#FF453A',
+  text1: '#FFFFFF',
+  text2: 'rgba(235,235,245,0.6)',
+  text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
 // ── Main Component ─────────────────────────────────────────────
 export default function Dashboard() {
   const { user, org } = useAuth();
   const { impact } = useHaptic();
   const navigate = useNavigate();
+  const isNative = getIsNative();
   const [stats, setStats]       = useState(null);
   const [events, setEvents]     = useState([]);
   const [activity, setActivity] = useState([]);
@@ -168,6 +186,137 @@ export default function Dashboard() {
 
   const healthColor = healthScore >= 75 ? T.success : healthScore >= 50 ? T.warning : T.danger;
   const circumference = 2 * Math.PI * 34; // r=34
+
+  // ── NATIVE BRANCH ────────────────────────────────────────────
+  if (isNative) {
+    const greetingTitle = user?.firstName
+      ? `${greeting()}, ${user.firstName}`
+      : 'Home';
+
+    const upcomingEvents = events.slice(0, 3);
+    const recentActivity = activity.slice(0, 2);
+
+    const nativeQuickActions = [
+      { label: 'Add Event',     icon: CalendarDays, color: N.accent,   to: '/events'    },
+      { label: 'Message',       icon: MessageSquare, color: N.success,  to: '/channels'  },
+      { label: 'Invite Member', icon: UserPlus,     color: N.warning,  to: '/members'   },
+      { label: 'View Dues',     icon: DollarSign,   color: N.danger,   to: '/dues'      },
+    ];
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5, fontFamily: N.font }}>
+          {greetingTitle}
+        </h1>
+        {org?.name && (
+          <p style={{ fontSize: 14, color: N.text2, margin: 0, padding: '0 20px 8px', fontFamily: N.font }}>
+            {org.name}
+          </p>
+        )}
+
+        {/* 2×2 stat grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
+          {[
+            { label: 'Members',       value: loading ? '—' : (stats?.totalMembers ?? '—'),          to: '/members'    },
+            { label: 'Events This Mo', value: loading ? '—' : (stats?.upcomingEvents ?? '—'),        to: '/events'     },
+            { label: 'Active PNMs',   value: loading ? '—' : (stats?.activePNMs ?? '—'),            to: '/recruitment' },
+            { label: 'Dues Rate',     value: loading ? '—' : `${stats?.duesRate ?? 0}%`,            to: '/dues'       },
+          ].map(({ label, value, to }) => (
+            <div
+              key={label}
+              onClick={() => { impact?.('light'); navigate(to); }}
+              style={{ background: N.card, borderRadius: 14, padding: '16px 16px 14px', cursor: 'pointer' }}
+            >
+              <div style={{ fontSize: 30, fontWeight: 700, color: N.text1, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+              <div style={{ fontSize: 13, color: N.text2, marginTop: 4 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* UPCOMING section */}
+        <div style={{ padding: '28px 16px 0' }}>
+          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>UPCOMING</div>
+          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+            {upcomingEvents.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', minHeight: 50, padding: '10px 16px' }}>
+                <span style={{ fontSize: 15, color: N.text2 }}>No upcoming events</span>
+              </div>
+            ) : upcomingEvents.map((e, i) => (
+              <div
+                key={e.id}
+                onClick={() => { impact?.('light'); navigate('/events'); }}
+                style={{
+                  display: 'flex', alignItems: 'center', minHeight: 50, padding: '12px 16px',
+                  borderBottom: i < upcomingEvents.length - 1 ? `1px solid ${N.sep}` : 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 17, color: N.text1 }}>{e.title}</div>
+                  <div style={{ fontSize: 13, color: N.text2, marginTop: 2 }}>{fmtDate(e.date)}</div>
+                </div>
+                <ChevronRight size={17} style={{ color: N.text3 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ANNOUNCEMENTS section — using recent activity as announcements */}
+        <div style={{ padding: '28px 16px 0' }}>
+          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>ANNOUNCEMENTS</div>
+          <div style={{ background: N.card, borderRadius: 14, overflow: 'hidden' }}>
+            {recentActivity.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', minHeight: 50, padding: '10px 16px' }}>
+                <span style={{ fontSize: 15, color: N.text2 }}>No recent activity</span>
+              </div>
+            ) : recentActivity.map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex', alignItems: 'center', minHeight: 50, padding: '12px 16px',
+                  borderBottom: i < recentActivity.length - 1 ? `1px solid ${N.sep}` : 'none',
+                  cursor: 'default',
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 17, color: N.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.message}</div>
+                  <div style={{ fontSize: 13, color: N.text2, marginTop: 2 }}>{timeAgo(item.createdAt)}</div>
+                </div>
+                <ChevronRight size={17} style={{ color: N.text3 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* QUICK ACTIONS section — 2×2 grid */}
+        <div style={{ padding: '28px 16px 0' }}>
+          <div style={{ fontSize: 13, color: N.text3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 4px 8px' }}>QUICK ACTIONS</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {nativeQuickActions.map(({ label, icon: Icon, color, to }) => (
+              <div
+                key={label}
+                onClick={() => { impact?.('light'); navigate(to); }}
+                style={{
+                  background: N.card, borderRadius: 14, padding: '18px 16px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 10, cursor: 'pointer', minHeight: 90,
+                }}
+              >
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon size={20} color={color} strokeWidth={2} />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: N.text1, textAlign: 'center', fontFamily: N.font }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+  // ── END NATIVE BRANCH ────────────────────────────────────────
 
   return (
     <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: T.bgPrimary, minHeight: '100vh' }}>

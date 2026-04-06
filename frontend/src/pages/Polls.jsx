@@ -3,6 +3,7 @@ import { Plus, CheckCircle2, Clock, BarChart2, Trash2, AlertCircle, Vote } from 
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Modal from '../components/Modal';
+import { getIsNative } from '../hooks/useNative';
 
 const T = {
   bg: '#070B14', card: '#0D1424', elevated: '#131D2E', sidebar: '#0A0F1C',
@@ -67,9 +68,19 @@ const timeAgo = (d) => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
+// ─── Native design tokens ─────────────────────────────────────
+const N = {
+  bg: '#000000', card: '#1C1C1E', elevated: '#2C2C2E',
+  sep: 'rgba(255,255,255,0.08)',
+  accent: '#0A84FF', success: '#30D158', warning: '#FF9F0A', danger: '#FF453A',
+  text1: '#FFFFFF', text2: 'rgba(235,235,245,0.6)', text3: 'rgba(235,235,245,0.3)',
+  font: "-apple-system, 'SF Pro Text', system-ui, sans-serif",
+};
+
 export default function Polls() {
   const { user } = useAuth();
   const isAdmin = ['admin', 'officer'].includes(user?.role);
+  const isNative = getIsNative();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -121,6 +132,221 @@ export default function Polls() {
     await client.delete(`/polls/${id}`).catch(() => {});
     setPolls(prev => prev.filter(p => p.id !== id));
   };
+
+  // ─── Native iOS layout ────────────────────────────────────────────────────
+  if (isNative) {
+    const [nativeTab, setNativeTab] = useState('Active');
+    const nativeTabs = ['Active', 'Closed'];
+
+    const nativePolls = polls.filter(p => {
+      const expired = p.expiresAt && new Date(p.expiresAt) < new Date();
+      return nativeTab === 'Active' ? !expired : expired;
+    });
+
+    return (
+      <div style={{ background: N.bg, minHeight: '100vh', paddingBottom: 20, fontFamily: N.font }}>
+        {/* Large title */}
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: N.text1, margin: 0, padding: '16px 20px 4px', letterSpacing: -0.5 }}>
+          Polls
+        </h1>
+
+        {/* Segmented control */}
+        <div style={{ display: 'flex', background: N.card, borderRadius: 9, padding: 2, margin: '8px 16px' }}>
+          {nativeTabs.map(t => (
+            <button key={t} onClick={() => setNativeTab(t)} style={{
+              flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600,
+              background: nativeTab === t ? N.elevated : 'transparent',
+              color: nativeTab === t ? N.text1 : N.text2,
+              fontFamily: N.font,
+            }}>{t}</button>
+          ))}
+        </div>
+
+        {/* Poll cards */}
+        <div style={{ marginTop: 12 }}>
+          {loading ? (
+            <div style={{ padding: '24px 20px', color: N.text2, fontSize: 15 }}>Loading…</div>
+          ) : nativePolls.length === 0 ? (
+            <div style={{ padding: '48px 20px', textAlign: 'center', color: N.text2, fontSize: 15 }}>
+              No {nativeTab.toLowerCase()} polls
+            </div>
+          ) : (
+            nativePolls.map(poll => {
+              const totalVotes = (poll.options || []).reduce((s, o) => s + (o.votes || 0), 0);
+              const myVote = voted[poll.id];
+              const expired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+              const hasVoted = myVote !== undefined;
+
+              // Time remaining label
+              let timeLabel = 'Open';
+              if (expired) {
+                timeLabel = 'Closed';
+              } else if (poll.expiresAt) {
+                const diffMs = new Date(poll.expiresAt) - Date.now();
+                const diffHrs = Math.floor(diffMs / 3600000);
+                if (diffHrs < 24) timeLabel = `${diffHrs}h left`;
+                else timeLabel = `${Math.floor(diffHrs / 24)}d left`;
+              }
+
+              return (
+                <div key={poll.id} style={{ margin: '0 16px 16px', background: N.card, borderRadius: 14, padding: '16px' }}>
+                  {/* Question + meta */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <div style={{ fontSize: 17, fontWeight: 600, color: N.text1, flex: 1, marginRight: 8, lineHeight: 1.4 }}>
+                      {poll.question}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 13, color: N.text3, marginBottom: 14 }}>
+                    {totalVotes} vote{totalVotes !== 1 ? 's' : ''} · {timeLabel}
+                  </div>
+
+                  {/* Options */}
+                  {(poll.options || []).map((opt, i) => {
+                    const pct = totalVotes > 0 ? Math.round(((opt.votes || 0) / totalVotes) * 100) : 0;
+                    const isMyVote = myVote === i;
+                    const canVote = !hasVoted && !expired;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => canVote && handleVote(poll.id, i)}
+                        style={{
+                          width: '100%',
+                          background: hasVoted
+                            ? (isMyVote ? 'rgba(10,132,255,0.15)' : N.elevated)
+                            : N.elevated,
+                          border: hasVoted && isMyVote
+                            ? '1px solid rgba(10,132,255,0.4)'
+                            : '1px solid transparent',
+                          borderRadius: 10,
+                          padding: '12px 14px',
+                          marginBottom: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: canVote ? 'pointer' : 'default',
+                          fontFamily: N.font,
+                        }}
+                      >
+                        <span style={{ fontSize: 15, color: N.text1 }}>
+                          {opt.label || opt.text || `Option ${i + 1}`}
+                        </span>
+                        {hasVoted && (
+                          <span style={{ fontSize: 14, color: isMyVote ? N.accent : N.text2, fontWeight: 600 }}>
+                            {pct}%
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* FAB — create poll (admin only) */}
+        {isAdmin && (
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              position: 'fixed', bottom: 'calc(83px + env(safe-area-inset-bottom))', right: 20,
+              width: 56, height: 56, borderRadius: 28, background: N.accent,
+              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', boxShadow: '0 4px 20px rgba(10,132,255,0.4)', zIndex: 50,
+            }}
+          >
+            <Plus size={24} style={{ color: '#fff' }} />
+          </button>
+        )}
+
+        {/* Reuse existing create modal */}
+        <Modal isOpen={showModal} onClose={() => { setShowModal(false); setError(''); }} title="Create Poll">
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {error && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+                background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 8,
+              }}>
+                <AlertCircle size={14} color={T.danger} />
+                <p style={{ fontSize: 13, color: T.danger, margin: 0 }}>{error}</p>
+              </div>
+            )}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Question
+              </label>
+              <input
+                style={inputStyle}
+                placeholder="What should we decide?"
+                value={form.question}
+                onChange={e => setForm(f => ({ ...f, question: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.text2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Options
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {form.options.map((opt, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      style={{ ...inputStyle, flex: 1 }}
+                      placeholder={`Option ${i + 1}`}
+                      value={opt}
+                      onChange={e => setForm(f => ({ ...f, options: f.options.map((o, j) => j === i ? e.target.value : o) }))}
+                    />
+                    {form.options.length > 2 && (
+                      <button type="button"
+                        onClick={() => setForm(f => ({ ...f, options: f.options.filter((_, j) => j !== i) }))}
+                        style={{
+                          padding: '8px 10px', background: 'rgba(248,113,113,0.08)',
+                          border: '1px solid rgba(248,113,113,0.2)', borderRadius: 8, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center',
+                        }}>
+                        <Trash2 size={14} color={T.danger} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {form.options.length < 6 && (
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, options: [...f.options, ''] }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: T.accent, textAlign: 'left', padding: '2px 0' }}>
+                    + Add option
+                  </button>
+                )}
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Closes In
+              </label>
+              <select
+                style={{ ...inputStyle, cursor: 'pointer' }}
+                value={form.expiresIn}
+                onChange={e => setForm(f => ({ ...f, expiresIn: e.target.value }))}
+              >
+                <option value="24">24 hours</option>
+                <option value="48">48 hours</option>
+                <option value="72">3 days</option>
+                <option value="168">1 week</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+              <button type="button" onClick={() => setShowModal(false)} style={{ ...secondaryBtnStyle, flex: 1, justifyContent: 'center' }}>
+                Cancel
+              </button>
+              <button type="submit" disabled={submitting} style={{ ...primaryBtnStyle, flex: 1, justifyContent: 'center', opacity: submitting ? 0.7 : 1 }}>
+                {submitting ? 'Creating…' : 'Create Poll'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      </div>
+    );
+  }
 
   if (loading) return (
     <div style={{ padding: '24px', minHeight: '100vh', background: T.bg, maxWidth: 680, margin: '0 auto' }}>
