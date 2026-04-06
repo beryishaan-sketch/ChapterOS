@@ -13,7 +13,7 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: isNative ? '#000' : '#070B14' }}>
+    <div style={{ display: 'flex', height: isNative ? '100vh' : undefined, minHeight: isNative ? undefined : '100vh', background: isNative ? '#080C14' : '#070B14' }}>
       {/* Sidebar — desktop only (never on native) */}
       {!isNative && <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />}
 
