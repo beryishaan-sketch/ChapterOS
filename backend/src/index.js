@@ -26,7 +26,7 @@ const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
   'https://chapterhq.org',
   'https://www.chapterhq.org',
-  'https://web-production-29410.up.railway.app',
+  'https://web-production-7aa33.up.railway.app',
   'capacitor://localhost',   // iOS Capacitor WebView
   'http://localhost',        // Android Capacitor WebView
   'http://localhost:5173',   // local dev
