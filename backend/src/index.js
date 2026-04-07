@@ -88,7 +88,11 @@ startDuesReminderCron();
 startWeeklyDigestCron();
 
 // Serve built frontend in production
-const frontendDist = path.join(__dirname, '../../frontend/dist');
+// Try backend/public first (where root build script copies dist), fall back to frontend/dist
+const fs = require('fs');
+const publicDir = path.join(__dirname, '../public');
+const distDir = path.join(__dirname, '../../frontend/dist');
+const frontendDist = fs.existsSync(path.join(publicDir, 'index.html')) ? publicDir : distDir;
 app.use(express.static(frontendDist));
 app.get('*', (req, res) => {
   // Only serve index.html for non-API routes

@@ -6,12 +6,14 @@
 
 /* ── DESIGN TOKENS ─────────────────────────────── */
 :root {
-  --bg-primary:   #070B14;
-  --bg-card:      #0D1424;
-  --bg-elevated:  #131D2E;
+  --bg-primary:   #080B14;
+  --bg-card:      #0F1321;
+  --bg-elevated:  #161B2E;
   --bg-sidebar:   #0A0F1C;
-  --accent:       #4F8EF7;
+  --surface3:     #1E2540;
+  --accent:       #4F6EF7;
   --accent-hover: #6a9ef8;
+  --primary-glow: rgba(79,110,247,0.25);
   --gold:         #F0B429;
   --success:      #34D399;
   --warning:      #FBBF24;
@@ -19,10 +21,10 @@
   --text-1:       #F8FAFC;
   --text-2:       #94A3B8;
   --text-3:       #475569;
-  --border:       rgba(255,255,255,0.07);
-  --border-hover: rgba(255,255,255,0.13);
-  --r-card:       12px;
-  --r-btn:        8px;
+  --border:       rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --r-card:       16px;
+  --r-btn:        14px;
   --transition:   150ms ease;
 }
 
@@ -63,6 +65,12 @@
 }
 
 @layer components {
+
+  /* ─── GRADIENTS ───────────────────────────── */
+
+  .gradient-navy {
+    background: linear-gradient(135deg, #0F1C3F 0%, #080C14 60%, #0a1128 100%);
+  }
 
   /* ─── BUTTONS ─────────────────────────────── */
 
@@ -146,7 +154,7 @@
     background: var(--bg-card);
     border-radius: var(--r-card);
     border: 1px solid var(--border);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    box-shadow: 0 4px 20px rgba(79,110,247,0.12);
   }
 
   .card-hover {
@@ -155,7 +163,7 @@
     transition: all var(--transition);
     &:hover {
       border-color: var(--border-hover);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      box-shadow: 0 8px 32px rgba(79,110,247,0.18);
       transform: translateY(-1px);
     }
     &:active { transform: scale(0.99); }
@@ -275,7 +283,7 @@
 
   .skeleton {
     border-radius: 8px;
-    background: linear-gradient(90deg, #0D1424 25%, #1a2440 50%, #0D1424 75%);
+    background: linear-gradient(90deg, #0F1321 25%, #1E2540 50%, #0F1321 75%);
     background-size: 400% 100%;
     animation: shimmer 1.4s ease-in-out infinite;
   }
@@ -288,7 +296,7 @@
 @layer utilities {
   .shadow-card       { box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
   .shadow-card-hover { box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-  .shadow-glow       { box-shadow: 0 0 24px rgba(79,142,247,0.3); }
+  .shadow-glow       { box-shadow: 0 0 24px rgba(79,110,247,0.35); }
   .shadow-glow-gold  { box-shadow: 0 0 24px rgba(240,180,41,0.25); }
   .shadow-modal      { box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06); }
   .shadow-tab        { box-shadow: 0 -1px 0 rgba(255,255,255,0.06); }
@@ -307,10 +315,14 @@
   .safe-top    { padding-top: env(safe-area-inset-top); }
 
   /* Animations */
-  .animate-fade-in  { animation: fadeIn 0.2s ease-out both; }
-  .animate-slide-up { animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .animate-scale-in { animation: scaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .animate-slide-in { animation: slideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-fade-in    { animation: fadeIn 0.2s ease-out both; }
+  .animate-slide-up   { animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-scale-in   { animation: scaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-slide-in   { animation: slideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-count-up   { animation: countUp 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+  .animate-stagger-in { animation: staggerIn 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+  .fab-pulse-ring     { animation: fabPulse 2s ease-in-out infinite; }
+  .tab-bounce         { animation: tabBounce 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
 
   /* Legacy color helpers — kept for compatibility */
   .bg-navy\/4  { background-color: rgba(15,28,63,0.04); }
@@ -340,4 +352,22 @@
 @keyframes shimmer {
   0%   { background-position: 100% 0 }
   100% { background-position: -100% 0 }
+}
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fabPulse {
+  0%   { transform: scale(1);    opacity: 0.6; }
+  50%  { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1);    opacity: 0.6; }
+}
+@keyframes tabBounce {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
