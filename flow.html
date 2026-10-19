@@ -223,7 +223,7 @@ canvas#game{width:100%;height:100%;display:block;touch-action:none}
 <script>
 (()=>{'use strict';
 const W=390,H=520,TAU=6.283185307179586,SHOT_MAX=5,SPEED=840,STEP=1/120;
-const VERSION='25.0.0-flow';
+const VERSION='26.0.0-flow';
 const $=id=>document.getElementById(id),canvas=$('game'),cx=canvas.getContext('2d',{alpha:false});
 // V12: feedback belongs near the shot; full results belong above the entire phone screen.
 $('arenaWrap').appendChild($('shotReport'));$('app').appendChild($('precisionBar'));document.body.appendChild($('gameEnd'));
@@ -252,7 +252,7 @@ let clutchActive=false,clutchBase=0,clutchTargetShot=0,clutchReady=false;
 let ghostRun=null,ghostChasing=false,runAngles=[],runSteps=[],lastRun=null,watchMode=false,autoReplayIndex=0,autoReplayTimer=0,chosenTrail=read('bs:v3:trail','cyan'),unlockedCrownToday=false;
 
 let shotMaxChain=0,shotPerfect=false,flowShotLog=[],flowGrid=[],flowStreak=0,inputPauseUntil=0,flowSeed='',flowSteps=[],flowGhost=null,flowPrevGhost=null;
-let flowWave=1,flowWaveStart=0,flowSuccessShots=0,flowWaveCleared=0,flowHoldWave=false,flowSnap=null,flowSnapStreak=0,flowFlight=null,flowRating='',flowGained=0;
+let flowWave=1,flowWaveStart=0,flowSuccessShots=0,flowWaveCleared=0,flowHoldWave=false,flowSnap=null,flowSnapStreak=0,flowFlight=null,flowRating='',flowGained=0,flowGhostLine=null;
 let playbackSpeed=1,firstShotSession=false,precisionCode=null,lastShot=null,labBestAngle=null,labBestScore=0,labRecent=[],targets=[],ball=null,particles=[],rings=[],floats=[],shooting=false,aiming=false,aim=null,aimStart=null,finished=false,score=0,best=0,initialBest=0,shots=SHOT_MAX,maxCombo=0,combo=0,hits=0,walls=0,elapsed=0,clock=0,shake=0,shakeX=0,shakeY=0,impulse=0,accum=0,lastFrame=0,shotSeq=0, pendingRound=0,overlayTimeout=0,justCleared=false;
 let sound=read('bs:sound',true),haptics=read('bs:haptics',true),reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let audioContext=null,sparkCount=0;
@@ -313,7 +313,7 @@ function loadLabMemory(){const b=read(bestAngleKey(),null),r=read(recentAngleKey
 function angleLabel(angle){let d=Math.atan2(angle.x,-angle.y)*180/Math.PI;return Math.abs(d)<.07?'Center':Math.abs(d).toFixed(1)+'° '+(d<0?'left':'right')}
 function shotFeedback(info){if(!info)return '';if(info.hits===0)return 'No target hit. Compare the preview to your last angle and adjust.';if(info.walls===0)return `${info.hits} target${info.hits===1?'':'s'} hit. Try a wall bank for a higher multiplier.`;return `${info.hits} targets · ${info.walls} bank${info.walls===1?'':'s'}. ${info.walls>1?'Strong ricochet!':'See if one more bank earns a bigger chain.'}`}
 function renderShotReport(){const el=$('shotReport');if(!lastShot||shooting||finished){el.hidden=true;return}el.hidden=false;$('shotReportTitle').textContent='SHOT '+lastShot.index+' · '+angleLabel(dirCode(lastShot.angle));$('shotReportNumbers').textContent='+'+fmt(lastShot.points);$('shotReportAdvice').textContent=shotFeedback(lastShot)}
-function updateAimReadout(){const el=$('aimReadout');if(!aiming||!aim||shooting||finished){el.hidden=true;return}const d=aimDir(aim.x,aim.y),p=simulatePreview(d,previewLimit());el.hidden=false;$('aimAngle').textContent=angleLabel(d);$('aimBank').textContent=p.impact?(p.impact.kind==='hazard'?'Hazard':(p.impact.kind==='shield'&&p.bounces===0)?'Needs a bank':(p.bounces===0?'Direct hit':p.bounces+' bank'+(p.bounces===1?'':'s')+' · hit')):(mode==='flow'?'Bank shot · trust your angle':'No early hit · adjust the angle')}
+function updateAimReadout(){const el=$('aimReadout');if(!aiming||!aim||shooting||finished){el.hidden=true;return}const d=aimDir(aim.x,aim.y);el.hidden=false;$('aimAngle').textContent=angleLabel(d);if(mode==='flow'){$('aimBank').textContent=flowAimText(flowPreview(d,targets));return}const p=simulatePreview(d,previewLimit());$('aimBank').textContent=p.impact?(p.impact.kind==='hazard'?'Hazard':(p.impact.kind==='shield'&&p.bounces===0)?'Needs a bank':(p.bounces===0?'Direct hit':p.bounces+' bank'+(p.bounces===1?'':'s')+' · hit')):'No early hit · adjust the angle'}
 function randomBoard(){let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',out='';for(let i=0;i<5;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out}
 
 // V13: mastery is per-board, local-only, without coins, timers, paywalls or mandatory streaks.
@@ -335,7 +335,7 @@ function dailyRemainingLabel(){const minutes=dailyMinutesRemaining();return `${M
 function dailyBestScore(){return Math.max(0,Number(read('bs:best:daily:'+dailyCode(),0))||0)}
 function dailyPlayed(){return masteryBook().filter(r=>r.mode==='daily'&&/^D\d{8}$/.test(r.board)).sort((a,b)=>b.board.localeCompare(a.board)).slice(0,7)}
 function playDaily(){targetScore=0;rivalAngles=[];rivalSteps=[];reset('daily',dailyCode());closeDialog();popToast('Today’s five-shot challenge is ready')}
-function key(){return mode==='flow'?(isDailyFlow()?'bs:v25:flowdaily:'+flowSeed:'bs:v25:flow:best'):'bs:best:'+mode+':'+board}
+function key(){return mode==='flow'?(isDailyFlow()?'bs:v26:flowdaily:'+flowSeed:'bs:v26:flow:best'):'bs:best:'+mode+':'+board}
 function runKey(){return 'bs:v3:run:'+mode+':'+board}
 function ghostKey(){return 'bs:v4:ghost:'+mode+':'+board}
 function loadGhost(){const g=read(ghostKey(),null),old=read(runKey(),null);return g&&g.board===board&&g.mode===mode?g:(old&&old.board===board&&old.mode===mode&&old.score===best?old:null)}
@@ -503,7 +503,7 @@ function startClutch(){
 // Flow skill model. The first block the ball touches ends the shot.
 // The layout is seeded. The physics are not random.
 // Blitz, Daily, and Shot Lab keep the earlier chain resolver.
-const FLOW_GOALS={1:1550,2:1850,3:2550,4:1900,5:1200,6:3550,7:1200,8:1550,9:950,10:4000,11:1750,12:1500,13:950};
+const FLOW_GOALS={1:1250,2:1150,3:500,4:950,5:550,6:1200,7:500,8:900,9:500,10:1300,11:800,12:550,13:600,14:600,15:650,16:600,17:1550,18:700};
 function roleFor(wave){
  if(wave<=13)return {1:'learn',2:'bank',3:'goal',4:'pressure',5:'peak',6:'relief',7:'ramp',8:'ramp',9:'ramp',10:'milestone',11:'ramp',12:'ramp',13:'ramp'}[wave];
  return (wave-14)%4===3?'relief':'hard';
@@ -511,8 +511,8 @@ function roleFor(wave){
 function layoutFor(wave){
  if(wave===1)return 'learn';
  if(wave===2)return 'banks';
- if(wave===3)return 'learn';
- if(wave===4)return 'tight';
+ if(wave===3)return 'introShield';
+ if(wave===4)return 'introMix';
  if(wave===5||wave===7)return 'shields';
  if(wave===6||wave===10||roleFor(wave)==='relief')return 'party';
  if(wave===8)return 'armor';
@@ -530,10 +530,12 @@ function shotsFor(wave){
  if(wave>13&&roleFor(wave)==='hard')return 3;
  return 4;
 }
-function flowGoal(){return FLOW_GOALS[flowWave]||(roleFor(flowWave)==='relief'?4000:1450)}
+function flowGoal(){return FLOW_GOALS[flowWave]||(roleFor(flowWave)==='relief'?1550:650)}
 const FLOW_LAYOUTS={
- learn:{r:16,center:true,objects:[['normal',3],['normal',3],['normal',1],['normal',1]]},
- banks:{r:13,objects:[['gold',1],['gold',1],['normal',3],['normal',1],['normal',1]],side:'gold'},
+ learn:{r:18,narrow:true,low:true,objects:[['gold',1],['normal',3],['normal',1]]},
+ banks:{r:17,narrow:true,low:true,bias:{gold:'side'},objects:[['normal',3],['gold',1],['normal',1]]},
+ introShield:{r:17,anchor:'center',low:true,bias:{shield:'side'},objects:[['normal',3],['gold',1],['normal',1],['shield',1]]},
+ introMix:{r:16,anchor:'center',low:true,bias:{gold:'side',armor:'side',hazard:'side'},objects:[['normal',3],['gold',1],['armor',1],['hazard',1]]},
  tight:{r:12,objects:[['normal',3],['normal',1],['normal',1],['normal',1]]},
  shields:{r:13,objects:[['shield',1],['shield',1],['shield',1],['normal',3],['gold',1],['normal',1]],side:'shield-center'},
  party:{r:15,objects:[['normal',3],['gold',3],['normal',2],['normal',1]]},
@@ -542,14 +544,27 @@ const FLOW_LAYOUTS={
  gates:{r:12,objects:[['normal',2],['normal',2],['gold',1],['normal',1],['shield',1]]},
  hazard:{r:12,objects:[['hazard',1],['hazard',1],['shield',1],['normal',3],['gold',1]]}
 };
+function flowBases(kind,size){
+ if(kind==='shield'||kind==='hazard')return Array(size).fill(0);
+ if(kind==='gold')return size===3?[120,120,360]:size===2?[140,280]:[280];
+ if(kind==='armor')return size===3?[70,70,180]:size===2?[80,160]:[160];
+ return size===3?[80,80,160]:size===2?[70,140]:[90];
+}
+function slotBias(plan,kind){
+ if(plan.side==='shield-center'&&kind==='shield')return 'center';
+ if(plan.bias&&plan.bias[kind])return plan.bias[kind];
+ if(plan.anchor==='center')return 'center';
+ return 'any';
+}
 function shuffleSlots(arr,ran){for(let i=arr.length-1;i>0;i--){const j=Math.floor(ran()*(i+1));const t=arr[i];arr[i]=arr[j];arr[j]=t}return arr}
 function makeFlowBoard(code,wave){
  const plan=FLOW_LAYOUTS[layoutFor(wave)];
- const ran=rng(hash('bankshot:flow:v25:'+wave+':'+code));
+ const ran=rng(hash('bankshot:flow:v26:'+wave+':'+code));
  const slots=[];
  for(let r=0;r<4;r++)for(let c=0;c<4;c++){
-  if(plan.center&&(c===0||c===3))continue;
-  slots.push({c,r,x:64+c*86,y:112+r*70});
+  if(plan.narrow&&(c===0||c===3))continue;
+  const y0=plan.low?196:112,ys=plan.low?62:70;
+  slots.push({c,r,x:64+c*86,y:y0+r*ys});
  }
  shuffleSlots(slots,ran);
  const ranked=slots.slice().sort((a,b)=>Math.abs(a.c-1.5)-Math.abs(b.c-1.5)||a.r-b.r);
@@ -559,14 +574,18 @@ function makeFlowBoard(code,wave){
  const out=[];
  plan.objects.forEach((spec,gi)=>{
   const kind=spec[0],size=spec[1];
-  const prefer=(plan.side==='shield-center'&&kind==='shield')?'center':(plan.side==='gold'&&kind==='gold')?'side':'any';
-  const slot=take(prefer);
+  const slot=take(slotBias(plan,kind));
   const color=gi%5;
   const local=size===3?[[-15,8],[15,8],[0,-12]]:size===2?[[-13,0],[13,0]]:[[0,0]];
+  const bases=flowBases(kind,size);
   for(let i=0;i<size;i++){
-   out.push({x:slot.x+local[i][0],y:slot.y+local[i][1],r:plan.r,color,alive:true,group:gi,kind:kind==='gold'?'normal':kind,gold:kind==='gold',bomb:false,hp:kind==='armor'?2:1,maxHp:kind==='armor'?2:1,phase:ran()*TAU});
+   const value=bases[i]||0;
+   const bump=value>=240?4:value>=160?2:0;
+   out.push({x:slot.x+local[i][0],y:slot.y+local[i][1],r:plan.r+bump,value,color,alive:true,group:gi,kind:kind==='gold'?'normal':kind,gold:kind==='gold',bomb:false,hp:kind==='armor'?2:1,maxHp:kind==='armor'?2:1,phase:ran()*TAU});
   }
  });
+ if(layoutFor(wave)==='introShield'){const sh=out.find(t=>t.kind==='shield');if(sh){sh.x=W/2;sh.y=118}}
+ if(layoutFor(wave)==='introMix'){const hz=out.find(t=>t.kind==='hazard');const ar=out.find(t=>t.kind==='armor');if(hz){hz.x=52;hz.y=118}if(ar){ar.x=W-52;ar.y=124}}
  const notches=[];
  const interesting=out.filter(t=>t.gold||t.kind==='normal');
  for(const t of interesting){
@@ -651,7 +670,7 @@ function settleFlow(board,hit,align,flight,streak){
  let gained=0;
  for(const t of group){
   t.alive=false;t.pop=clock;
-  const base=t.gold?230:(t===hit?110:75);
+  const base=t.value>0?t.value:(t.gold?230:(t===hit?110:75));
   gained+=flowPoints(base,banked?wallsHit:0,precise,graze||(wallsHit>0&&!calledBank),streak);
  }
  if(thread)gained+=100;
@@ -673,9 +692,28 @@ function resolveFlow(src,code,streak){
  return {board,gained:0,hits:0,walls:flight.walls,rating:flight.closest<18?'SO CLOSE':'MISS',closest:flight.closest};
 }
 function flowCodes(step){const out=[];for(let deg=-78;deg<=78;deg+=step){const a=deg*Math.PI/180;out.push(angleCode({x:Math.sin(a),y:-Math.cos(a)}))}return [...new Set(out)]}
-let flowFineGrid=null,flowMidGrid=null;
-function angleGrid(step){if(step===2)return flowFineGrid||(flowFineGrid=flowCodes(2));if(step===3)return flowMidGrid||(flowMidGrid=flowCodes(3));return flowCodes(step)}
+let flowFineGrid=null,flowMidGrid=null,flowCoarseGrid=null;
+function angleGrid(step){if(step===2)return flowFineGrid||(flowFineGrid=flowCodes(2));if(step===3)return flowMidGrid||(flowMidGrid=flowCodes(3));if(step===4)return flowCoarseGrid||(flowCoarseGrid=flowCodes(4));return flowCodes(step)}
 function searchFlow(board,streak,grid){let best=null;for(const code of grid){const r=resolveFlow(board,code,streak);if(!best||r.gained>best.gained)best={...r,code}}return best}
+function nudgeCode(code,deg){const v=Number.parseInt(code,36),a=(v/4095)*Math.PI-Math.PI/2+deg*Math.PI/180;return angleCode({x:Math.sin(a),y:-Math.cos(a)})}
+function handShot(board,streak,wave,ran){
+ // Goal tuning only. Live shots use the player's angle, with no added noise.
+ // Intent is the best direct the preview can show (2° early, 4° later). From wave 5
+ // a bank is chosen when it is at least 1.5× that direct. Then ±1.75° (waves 1–4)
+ // or ±3.2° (later) of finger noise is applied. That noise is not in the live physics.
+ const grid=angleGrid(wave<=4?2:4);
+ let direct=null,bank=null;
+ for(const code of grid){
+  const r=resolveFlow(board,code,streak);
+  if(r.walls===0&&r.gained>0&&(!direct||r.gained>direct.gained))direct={...r,code};
+  else if(r.walls>0&&r.gained>0&&(!bank||r.gained>bank.gained))bank={...r,code};
+ }
+ let intent=direct;
+ if(wave>=5&&bank&&(!direct||bank.gained>=direct.gained*1.5))intent=bank;
+ if(!intent)intent=bank||{code:angleCode({x:0,y:-1})};
+ const wobble=wave<=4?1.75:3.2;
+ return resolveFlow(board,nudgeCode(intent.code,(ran()*2-1)*wobble),streak);
+}
 function firstRunFlow(board,streak,wave){
  const fine=angleGrid(2);
  let direct=null;
@@ -695,6 +733,7 @@ function simulateFlowWave(seed,wave,policy){
   let choice;
   if(policy==='skilled')choice=searchFlow(board,streak,angleGrid(2));
   else if(policy==='first')choice=firstRunFlow(board,streak,wave);
+  else if(policy==='hand')choice=handShot(board,streak,wave,ran);
   else {const grid=angleGrid(3);choice=resolveFlow(board,grid[Math.floor(ran()*grid.length)],streak)}
   total+=choice.gained;board=choice.board;streak=choice.gained>0?Math.min(4,streak+1):0;
  }
@@ -704,11 +743,12 @@ function prettyRating(r){return ({'CLEAN BANK':'Clean bank','DOUBLE BANK':'Doubl
 function flowDockLine(){
  if(!lastShot)return 'Wave '+flowWave+' · '+fmt(Math.max(0,flowGoal()-(score-flowWaveStart)))+' to go';
  const name=prettyRating(lastShot.rating);
- if(lastShot.points<=0)return (lastShot.rating==='SO CLOSE'?'So close.':name+'.')+(lastShot.best>0?' Best line was +'+fmt(lastShot.best)+'.':'');
+ const ghost=flowGhostLine&&performance.now()<flowGhostLine.until?' Gold line shows it.':'';
+ if(lastShot.points<=0)return (lastShot.rating==='SO CLOSE'?'So close.':name+'.')+(lastShot.best>0?' Best line was +'+fmt(lastShot.best)+'.'+ghost:'');
  const head=name+' for +'+fmt(lastShot.points)+'.';
  if(lastShot.best==null)return head;
- if(lastShot.best<=lastShot.points)return head+' That was the best line.';
- return head+' Best line was +'+fmt(lastShot.best)+'.';
+ if(lastShot.best<=lastShot.points+40)return head+' That was the best line.';
+ return head+' Best line was +'+fmt(lastShot.best)+'.'+ghost;
 }
 function paintGoal(){
  const fill=$('goalFill'),label=$('goalLabel'),nums=$('goalNums');
@@ -727,10 +767,9 @@ function paintGoal(){
 }
 function teachFlow(wave){
  const tips={
-  2:['bs:v25:tipNotch','White marks on the wall are bank lanes. A bank pays only if you bounce on a mark.'],
-  5:['bs:v25:tipShield','Shields need a bank. A straight shot bounces off and scores nothing.'],
-  8:['bs:v25:tipArmor','Armor takes two centered hits. The number is how many are left.'],
-  12:['bs:v25:tipHazard','Hazards score nothing. The aim line says Hazard before you fire.']
+  2:['bs:v26:tipNotch','White marks on the wall are bank lanes. The aim line continues when you bounce on a mark.'],
+  3:['bs:v26:tipShield','Shields need a bank. A straight shot bounces off and scores nothing.'],
+  4:['bs:v26:tipMix','Armor takes two hits. The ! block scores nothing. Chase the big number.']
  };
  const tip=tips[wave];
  if(!tip||read(tip[0],false)||exporting||watchMode)return;
@@ -775,9 +814,82 @@ function flowFly(dt){
  endShot();
 }
 function previewLimit(){return mode==='flow'?0:Infinity}
+function flowPreview(dir,board){
+ board=board||targets;
+ let x=W/2,y=H-29,vx=dir.x,vy=dir.y;
+ const leg1=[{x,y}],hitAt=(px,py)=>board.find(t=>t.alive&&(px-t.x)**2+(py-t.y)**2<=(t.r+7.6)**2)||null;
+ let bounces=0,onMark=false,notch=null,bounced=false;
+ for(let i=0;i<220;i++){
+  x+=vx*SPEED*STEP;y+=vy*SPEED*STEP;
+  let wall=false;
+  if(x<17.6){x=35.2-x;vx=Math.abs(vx);wall=true}
+  else if(x>W-17.6){x=2*(W-17.6)-x;vx=-Math.abs(vx);wall=true}
+  if(y<18){y=36-y;vy=Math.abs(vy);wall=true}
+  if(wall){
+   bounces++;
+   if(nearNotch(board.notches,x,y)){onMark=true;notch={x,y}}
+   leg1.push({x,y});
+   const immediate=hitAt(x,y);
+   if(immediate)return {leg1,leg2:[],impact:immediate,bounces,onMark,notch};
+   bounced=true;break;
+  }
+  if(i%3===0)leg1.push({x,y});
+  const direct=hitAt(x,y);
+  if(direct){leg1.push({x,y});return {leg1,leg2:[],impact:direct,bounces:0,onMark:false,notch:null}}
+  if(y>H+22)return {leg1,leg2:[],impact:null,bounces:0,onMark:false,notch:null};
+ }
+ const leg2=[];let impact=null;
+ if(bounced){
+  leg2.push({x,y});
+  for(let i=0;i<36;i++){
+   x+=vx*SPEED*STEP;y+=vy*SPEED*STEP;
+   if(x<17.6||x>W-17.6||y<18||y>H+22){leg2.push({x,y});break}
+   if(i%3===0)leg2.push({x,y});
+   const hit=hitAt(x,y);
+   if(hit){leg2.push({x,y});impact=hit;break}
+  }
+ }
+ return {leg1,leg2,impact,bounces,onMark,notch};
+}
+function flowAimText(p){
+ if(!p)return 'Drag to aim';
+ if(p.impact&&p.impact.kind==='hazard')return 'Hazard';
+ if(p.impact&&p.impact.kind==='shield'&&p.bounces===0)return 'Needs a bank';
+ if(p.bounces===0)return p.impact?'Direct hit':'No hit yet';
+ if(p.onMark)return p.impact?'On the mark':'On the mark · miss';
+ return 'Off the mark';
+}
+function strokeAim(path,color,width,alpha,dash){
+ if(!path||path.length<2)return;
+ cx.save();cx.globalAlpha=alpha;cx.strokeStyle=color;cx.lineWidth=width;cx.setLineDash(dash);
+ cx.beginPath();cx.moveTo(path[0].x,path[0].y);for(let i=1;i<path.length;i++)cx.lineTo(path[i].x,path[i].y);cx.stroke();cx.restore();
+}
+function drawFlowAim(dir,board){
+ const p=flowPreview(dir,board);
+ strokeAim(p.leg1,'#d7fbff',2.2,1,[2,7]);
+ cx.save();for(let i=4;i<p.leg1.length;i+=7){cx.fillStyle='#eaffff';cx.beginPath();cx.arc(p.leg1[i].x,p.leg1[i].y,2.2,0,TAU);cx.fill()}cx.restore();
+ strokeAim(p.leg2,'#b7e7ff',1.35,.4,[2,6]);
+ if(p.onMark&&p.notch){cx.save();cx.translate(p.notch.x,p.notch.y);cx.fillStyle='#b6ff6a';cx.shadowColor='#b6ff6a';cx.shadowBlur=12;if(p.notch.y<36)cx.fillRect(-14,-3,28,6);else cx.fillRect(-3,-16,6,32);cx.restore()}
+ else if(p.bounces&&p.leg1.length){const b=p.leg1[p.leg1.length-1];cx.save();cx.fillStyle='#ffd15c';cx.globalAlpha=.85;cx.beginPath();cx.arc(b.x,b.y,3.2,0,TAU);cx.fill();cx.restore()}
+ if(p.impact){const label=flowAimText(p),col=p.impact.kind==='hazard'?'#ff4d8d':p.onMark?'#b6ff6a':'#ffffff';cx.save();cx.strokeStyle=col;cx.lineWidth=2.4;cx.beginPath();cx.arc(p.impact.x,p.impact.y,p.impact.r+7,0,TAU);cx.stroke();cx.fillStyle=col;cx.font='800 11px system-ui';cx.textAlign='center';cx.fillText(label,p.impact.x,p.impact.y-p.impact.r-12);cx.restore()}
+}
+function drawGhostLine(){
+ if(mode!=='flow'||!flowGhostLine||aiming||performance.now()>flowGhostLine.until)return;
+ const p=flowPreview(dirCode(flowGhostLine.code),flowGhostLine.board);
+ strokeAim(p.leg1,'#ffd15c',1.7,.9,[5,7]);
+ strokeAim(p.leg2,'#ffd15c',1.15,.45,[3,6]);
+ if(p.impact){cx.save();cx.strokeStyle='#ffd15c';cx.globalAlpha=.85;cx.lineWidth=1.6;cx.setLineDash([3,5]);cx.beginPath();cx.arc(p.impact.x,p.impact.y,p.impact.r+8,0,TAU);cx.stroke();cx.setLineDash([]);cx.globalAlpha=1;cx.fillStyle='#ffd15c';cx.font='800 10px system-ui';cx.textAlign='center';cx.fillText('Best',p.impact.x,p.impact.y-p.impact.r-12);cx.restore()}
+}
+function drawClassicAim(){
+ const preview=simulatePreview(aiming&&aim?aimDir(aim.x,aim.y):dirCode(precisionCode),previewLimit()),path=preview.path;
+ cx.save();cx.strokeStyle='#d7fbff';cx.lineWidth=2.2;cx.setLineDash([2,7]);cx.beginPath();cx.moveTo(path[0].x,path[0].y);for(const v of path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);
+ for(let i=4;i<path.length;i+=7){const dot=path[i];cx.fillStyle='#eaffff';cx.beginPath();cx.arc(dot.x,dot.y,2.2,0,TAU);cx.fill()}
+ if(preview.impact){const kind=preview.impact.kind;const label=kind==='hazard'?'Hazard':(kind==='shield'&&preview.bounces===0)?'Needs a bank':'Hit';cx.strokeStyle='#ffffff';cx.lineWidth=2;cx.beginPath();cx.arc(preview.impact.x,preview.impact.y,preview.impact.r+6,0,TAU);cx.stroke();cx.fillStyle='#f4f7fb';cx.font='800 11px system-ui';cx.textAlign='center';cx.fillText(label,preview.impact.x,preview.impact.y-preview.impact.r-12)}
+ cx.restore();
+}
 function simulatePreview(dir,maxBounces=Infinity){let x=W/2,y=H-29,vx=dir.x,vy=dir.y,path=[{x,y}],impact=null,bounces=0;for(let i=0;i<250;i++){x+=vx*SPEED*STEP;y+=vy*SPEED*STEP;if(x<17.6){x=35.2-x;vx=Math.abs(vx);bounces++}if(x>W-17.6){x=2*(W-17.6)-x;vx=-Math.abs(vx);bounces++}if(y<18){y=36-y;vy=Math.abs(vy);bounces++}if(bounces>maxBounces){path.push({x,y});break}if(i%3===0)path.push({x,y});for(let t of targets){if(!t.alive)continue;if((x-t.x)**2+(y-t.y)**2<=(t.r+7.6)**2){impact=t;path.push({x,y});return {path,impact,bounces}}}if(y>H+22)break;}return {path,impact,bounces}}
 function aimDir(x,y){let dx=x-W/2,dy=y-(H-29);dy=Math.min(-46,dy);const mag=Math.hypot(dx,dy)||1;return{x:dx/mag,y:dy/mag}}
-function fire(x,y,recordCode){if(shooting||finished||shots===0)return;highlightThisShot=false;shotMaxChain=0;shotPerfect=false;if(!watchMode&&!clutchActive&&!exporting){if(playtest.shots===0)playtest.firstShotSeconds=Math.round((performance.now()-startingTime)/100)/10;recordPlaytest('shots')}let original=recordCode?dirCode(recordCode):aimDir(x,y);let encoded=recordCode||angleCode(original);let dir=dirCode(encoded);runAngles.push(encoded);aiming=false;aim=null;shots--;hits=0;walls=0;combo=0;elapsed=0;playbackSpeed=1;shooting=true;closestMiss=Infinity;ball={x:W/2,y:H-29,vx:dir.x*SPEED,vy:dir.y*SPEED,r:7.6,trail:[],lastWall:-1};if(mode==='flow'){flowSnap=cloneFlow(targets);flowSnapStreak=flowStreak;flowFlight={walls:0,calledBank:false,closest:Infinity,near:new Map(),thread:false,elapsed:0};flowRating='';flowGained=0}setTip('Watch the ball.');sfx('launch');buzz(11);updateHUD()}
+function fire(x,y,recordCode){if(shooting||finished||shots===0)return;highlightThisShot=false;shotMaxChain=0;shotPerfect=false;if(!watchMode&&!clutchActive&&!exporting){if(playtest.shots===0)playtest.firstShotSeconds=Math.round((performance.now()-startingTime)/100)/10;recordPlaytest('shots')}let original=recordCode?dirCode(recordCode):aimDir(x,y);let encoded=recordCode||angleCode(original);let dir=dirCode(encoded);runAngles.push(encoded);aiming=false;aim=null;shots--;hits=0;walls=0;combo=0;elapsed=0;playbackSpeed=1;shooting=true;closestMiss=Infinity;ball={x:W/2,y:H-29,vx:dir.x*SPEED,vy:dir.y*SPEED,r:7.6,trail:[],lastWall:-1};if(mode==='flow'){flowGhostLine=null;flowSnap=cloneFlow(targets);flowSnapStreak=flowStreak;flowFlight={walls:0,calledBank:false,closest:Infinity,near:new Map(),thread:false,elapsed:0};flowRating='';flowGained=0}setTip('Watch the ball.');sfx('launch');buzz(11);updateHUD()}
 function bank(x,y){walls++;addParticles(x,y,'#b9ffb1',5,90);addRing(x,y,'#8ce8a9',5);if(walls<=8)sfx('bank',{banks:walls});if(walls===1)callout('BANK IT!')}
 function points(base){let mul=(1+Math.min(6,walls)*.24+Math.min(14,combo-1)*.14);return Math.round(base*mul*(mode==='flow'?1+.1*Math.min(5,flowStreak):1)/10)*10}
 function collect(t){if(!t.alive)return;
@@ -805,22 +917,22 @@ function finishFlowWave(){
  const bonus=Math.round(over*.25/10)*10;if(bonus>0)score+=bonus;
  if(!watchMode)track('wave_clear',{wave:waveDone,score:earned,earned,goal,shots_used:shotsUsed,overshoot:over,seed:flowSeed,first_run:runSerial===1,run_index:runSerial});
  if(score>best){best=score;store(key(),best)}
- flowWave++;flowWaveStart=score;flowStreak=0;
+ flowWave++;flowWaveStart=score;flowStreak=0;flowGhostLine=null;
  board=flowBoard(flowSeed,flowWave);targets=makeFlowBoard(board,flowWave);ball=null;justCleared=false;shots=shotsFor(flowWave);
  runAngles=[];runSteps=[];lastShot=null;aim=null;aimStart=null;aiming=false;shooting=false;
  addText(W/2,H*.30,'WAVE '+flowWave,'#b6ff6a',true);
  addParticles(W/2,H*.42,'#3ee0ff',24,260);flash();inputPauseUntil=performance.now()+700;
- if(flowWave===10){callout('WAVE 10');sfx('perfect');buzz([12,30,12,30,20]);if(!read('bs:v25:decade',false)){store('bs:v25:decade',true);setTimeout(()=>popToast('Wave 10. A milestone board.'),400)}}
+ if(flowWave===10){callout('WAVE 10');sfx('perfect');buzz([12,30,12,30,20]);if(!read('bs:v26:decade',false)){store('bs:v26:decade',true);setTimeout(()=>popToast('Wave 10. A milestone board.'),400)}}
  else{callout('WAVE CLEAR');sfx('wave');buzz([10,30,10,30,18])}
  if(bonus>0)addText(W/2,H*.42,'Overshoot +'+fmt(bonus),'#ffd15c',true);
  updateHUD();setURL();popToast('Wave '+(flowWave-1)+' cleared');teachFlow(flowWave);
 }
 function endShot(){if(!shooting)return;shooting=false;playbackSpeed=1;ball=null;shotSeq++;runSteps.push(score);if(mode==='flow'&&!exporting&&!watchMode)flowSteps.push(score);
-lastShot={index:runSteps.length,points:Math.max(0,score-(runSteps.length>1?runSteps.at(-2):(mode==='flow'?flowWaveStart:0))),hits,walls,angle:runAngles.at(-1),rating:mode==='flow'?flowRating:'',best:null};if(mode==='flow'&&flowSnap&&!exporting&&!watchMode){try{const bestLine=searchFlow(flowSnap,flowSnapStreak,angleGrid(3));lastShot.best=bestLine?bestLine.gained:null}catch(e){}}
+lastShot={index:runSteps.length,points:Math.max(0,score-(runSteps.length>1?runSteps.at(-2):(mode==='flow'?flowWaveStart:0))),hits,walls,angle:runAngles.at(-1),rating:mode==='flow'?flowRating:'',best:null,bestCode:null};if(mode==='flow'){flowGhostLine=null;if(flowSnap&&!exporting&&!watchMode){try{const bestLine=searchFlow(flowSnap,flowSnapStreak,angleGrid(3));if(bestLine){lastShot.best=bestLine.gained;lastShot.bestCode=bestLine.code;if(bestLine.gained>lastShot.points+40)flowGhostLine={until:performance.now()+1600,board:flowSnap,code:bestLine.code}}}catch(e){}}}
 if(watchMode&&shots>0){autoReplayTimer=setTimeout(()=>{if(watchMode&&!shooting&&!finished)fire(0,0,rivalAngles[autoReplayIndex++])},530)}
 
 if(mode!=='flow'){if(hits===0){addText(W/2,H*.66,closestMiss<15?'SO CLOSE!':'NO HIT — TRY AN ANGLE','#d0defb',true);sfx(closestMiss<15?'near':'miss')}else{addText(W/2,H*.65,'+'+hits+' TARGET'+(hits===1?'':'S')+' HIT','#defff7',true)}}
-if(highlightThisShot&&!watchMode&&!clutchActive&&!exporting){highlightShotIndex=runAngles.length-1;$('clipBtn').hidden=false}if(mode==='flow'){if(!exporting&&!watchMode)flowShotLog.push(shotPerfect?'⭐':flowGained>0?(walls>0?'🟦':'🎯'):'⬛');if(flowGained>0){flowSuccessShots++;flowStreak=Math.min(4,flowStreak+1);if(flowStreak>=2&&!exporting)sfx('streak',{chain:flowStreak})}else{if(flowStreak>=2&&!exporting)popToast('Streak broken');flowStreak=0}}if((shots===0||(mode==='flow'&&score-flowWaveStart>=flowGoal()))&&!exporting){updateHUD();let seq=shotSeq;overlayTimeout=setTimeout(()=>{if(shotSeq===seq&&!shooting)(mode==='flow'?finishFlowWave():endRound())},300)}else{setTip(hits===0?(closestMiss<15?'<b>VERY CLOSE!</b> Your ball passed beside a target. Adjust the angle slightly.':'<b>NO HIT?</b> Point directly toward a glowing cluster and try again.'):walls===0?'<b>GREAT HIT.</b> Try a wall bank to multiply your next shot.':'<b>YOU BANKED IT.</b> Aim at a matching color group for more points.');updateHUD()}}
+if(highlightThisShot&&!watchMode&&!clutchActive&&!exporting){highlightShotIndex=runAngles.length-1;$('clipBtn').hidden=false}if(mode==='flow'){if(!exporting&&!watchMode)flowShotLog.push(shotPerfect?'⭐':flowGained>0?(walls>0?'🟦':'🎯'):'⬛');if(flowGained>0){flowSuccessShots++;flowStreak=Math.min(4,flowStreak+1);if(flowStreak>=2&&!exporting)sfx('streak',{chain:flowStreak})}else{if(flowStreak>=2&&!exporting)popToast('Streak broken');flowStreak=0}}if((shots===0||(mode==='flow'&&score-flowWaveStart>=flowGoal()))&&!exporting){updateHUD();let seq=shotSeq;overlayTimeout=setTimeout(()=>{if(shotSeq===seq&&!shooting)(mode==='flow'?finishFlowWave():endRound())},(mode==='flow'&&flowGhostLine?1500:300))}else{setTip(hits===0?(closestMiss<15?'<b>VERY CLOSE!</b> Your ball passed beside a target. Adjust the angle slightly.':'<b>NO HIT?</b> Point directly toward a glowing cluster and try again.'):walls===0?'<b>GREAT HIT.</b> Try a wall bank to multiply your next shot.':'<b>YOU BANKED IT.</b> Aim at a matching color group for more points.');updateHUD()}}
 function endRound(){if(finished||shooting||shots!==0)return;finished=true;
 if(!watchMode&&!clutchActive){if(mode!=='lab'&&playtest.fullRounds===0&&playtest.firstRoundSeconds===null){playtest.firstRoundSeconds=Math.round((performance.now()-startingTime)/100)/10;savePlaytest()}recordPlaytest(mode==='lab'?'labRounds':'fullRounds');if(mode!=='flow'){lastRun={board,mode,score,angles:runAngles.join(''),steps:[...runSteps],date:utcDay()};store(runKey(),lastRun)}if(mode==='lab'&&runAngles.length===1){
  const attempt={angle:runAngles[0],score,walls:lastShot?.walls||0,hits:lastShot?.hits||0};labRecent=[...labRecent,attempt].slice(-6);store(recentAngleKey(),labRecent);
@@ -858,11 +970,11 @@ cx.strokeStyle='#ffffff0d';cx.lineWidth=1;for(let x=26;x<W;x+=32){cx.beginPath()
 cx.save();cx.translate(shakeX,shakeY);
 cx.strokeStyle='#243044';cx.lineWidth=3;cx.beginPath();cx.moveTo(10,0);cx.lineTo(10,H);cx.moveTo(W-10,0);cx.lineTo(W-10,H);cx.stroke();
 if(mode==='flow'&&targets.notches){cx.fillStyle='#f4f7fb';for(const n of targets.notches){cx.save();cx.translate(n.x,n.y);if(n.y<36)cx.fillRect(-11,-2,22,4);else cx.fillRect(-2,-12,4,24);cx.restore()}}
-for(const t of targets){if(!t.alive)continue;const c=palette[t.color]||'#3ee0ff';cx.save();cx.translate(t.x,t.y);cx.fillStyle=c;cx.beginPath();cx.arc(0,0,t.r,0,TAU);cx.fill();cx.fillStyle='#ffffff66';cx.beginPath();cx.arc(-t.r*.32,-t.r*.34,Math.max(2,t.r*.22),0,TAU);cx.fill();if(t.kind==='shield'){cx.strokeStyle='#f4f7fb';cx.lineWidth=2.4;cx.beginPath();cx.arc(0,0,t.r+4,0,TAU);cx.stroke()}if(t.gold){cx.strokeStyle='#fff6d2';cx.lineWidth=2;cx.beginPath();cx.arc(0,0,t.r-2.2,0,TAU);cx.stroke()}if(t.kind==='hazard'){cx.strokeStyle='#ffd0dc';cx.lineWidth=2;cx.beginPath();cx.arc(0,0,t.r+3,0,TAU);cx.stroke()}cx.fillStyle='#071018';cx.font='800 13px system-ui';cx.textAlign='center';cx.textBaseline='middle';if(t.kind==='hazard')cx.fillText('!',0,1);else if(t.kind==='armor')cx.fillText(String(t.hp),0,1);else if(t.gold)cx.fillText('★',0,1);else if(t.bomb)cx.fillText('✦',0,1);else if(t.kind==='normal'){cx.font='800 11px system-ui';cx.fillText('110',0,1)}else{cx.beginPath();cx.arc(0,0,2.3,0,TAU);cx.fill()}cx.restore()}
+for(const t of targets){if(!t.alive)continue;const c=palette[t.color]||'#3ee0ff';cx.save();cx.translate(t.x,t.y);cx.fillStyle=c;cx.beginPath();cx.arc(0,0,t.r,0,TAU);cx.fill();cx.fillStyle='#ffffff66';cx.beginPath();cx.arc(-t.r*.32,-t.r*.34,Math.max(2,t.r*.22),0,TAU);cx.fill();if(t.kind==='shield'){cx.strokeStyle='#f4f7fb';cx.lineWidth=2.4;cx.beginPath();cx.arc(0,0,t.r+4,0,TAU);cx.stroke()}if(t.gold||t.value>=240){cx.strokeStyle='#ffd15c';cx.lineWidth=t.value>=240?3:2;cx.beginPath();cx.arc(0,0,t.r-2.2,0,TAU);cx.stroke()}if(t.kind==='hazard'){cx.strokeStyle='#ffd0dc';cx.lineWidth=2;cx.beginPath();cx.arc(0,0,t.r+3,0,TAU);cx.stroke()}cx.fillStyle='#071018';cx.textAlign='center';cx.textBaseline='middle';if(t.kind==='hazard'){cx.font='800 16px system-ui';cx.fillText('!',0,1)}else if(t.kind==='armor'){cx.font='800 12px system-ui';cx.fillText(String(t.value||0),0,-5);cx.font='700 8px system-ui';cx.fillText(t.hp>1?t.hp+' hits':'last hit',0,8)}else if(t.bomb){cx.font='800 13px system-ui';cx.fillText('✦',0,1)}else if(t.kind==='normal'){const v=t.value||110;cx.font='800 '+(v>=240?16:v>=160?14:11)+'px system-ui';cx.fillText(String(v),0,1)}else{cx.beginPath();cx.arc(0,0,2.3,0,TAU);cx.fill()}cx.restore()}
 cx.save();cx.strokeStyle='#ffffff22';cx.lineWidth=1.2;cx.setLineDash([3,8]);cx.beginPath();cx.moveTo(20,H-30);cx.lineTo(W-20,H-30);cx.stroke();cx.restore();
-if(!shooting&&!finished){if((aiming&&aim)||(mode==='lab'&&precisionCode&&!clutchActive&&!watchMode)){
+if(!shooting&&!finished){drawGhostLine();if((aiming&&aim)||(mode==='lab'&&precisionCode&&!clutchActive&&!watchMode)){
 if(mode==='lab'&&labBestAngle){const memory=simulatePreview(dirCode(labBestAngle));cx.save();cx.strokeStyle='#ffd15c88';cx.lineWidth=1.6;cx.setLineDash([3,8]);cx.beginPath();cx.moveTo(memory.path[0].x,memory.path[0].y);for(const v of memory.path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);const m=memory.path[Math.min(3,memory.path.length-1)];cx.fillStyle='#ffd15c';cx.font='800 10px system-ui';cx.textAlign='center';cx.fillText('Best',m.x,m.y-13);cx.restore()}
-const preview=simulatePreview(aiming&&aim?aimDir(aim.x,aim.y):dirCode(precisionCode),previewLimit()),path=preview.path;cx.save();cx.strokeStyle='#d7fbff';cx.lineWidth=2.2;cx.setLineDash([2,7]);cx.beginPath();cx.moveTo(path[0].x,path[0].y);for(const v of path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);for(let i=4;i<path.length;i+=7){const dot=path[i];cx.fillStyle='#eaffff';cx.beginPath();cx.arc(dot.x,dot.y,2.2,0,TAU);cx.fill()}if(preview.impact){const kind=preview.impact.kind;const label=kind==='hazard'?'Hazard':(kind==='shield'&&preview.bounces===0)?'Needs a bank':'Hit';cx.strokeStyle='#ffffff';cx.lineWidth=2;cx.beginPath();cx.arc(preview.impact.x,preview.impact.y,preview.impact.r+6,0,TAU);cx.stroke();cx.fillStyle='#f4f7fb';cx.font='800 11px system-ui';cx.textAlign='center';cx.fillText(label,preview.impact.x,preview.impact.y-preview.impact.r-12)}cx.restore()}
+if(mode==='flow'&&aiming&&aim)drawFlowAim(aimDir(aim.x,aim.y),targets);else drawClassicAim()}
 cx.save();cx.shadowColor='#3ee0ff';cx.shadowBlur=16;cx.fillStyle='#f4fbff';cx.beginPath();cx.arc(W/2,H-29,8,0,TAU);cx.fill();cx.restore();cx.strokeStyle='#3ee0ff55';cx.lineWidth=1.5;cx.beginPath();cx.arc(W/2,H-29,16+(reduceMotion?0:Math.sin(clock*3)*1.5),Math.PI,0);cx.stroke()}
 if(ball){for(let i=0;i<ball.trail.length;i++){const tr=ball.trail[i];cx.globalAlpha=.08+.5*(i+1)/ball.trail.length;cx.fillStyle=trailColor();cx.beginPath();cx.arc(tr.x,tr.y,2+i/ball.trail.length*4.2,0,TAU);cx.fill()}cx.globalAlpha=1;cx.save();cx.shadowColor=trailColor();cx.shadowBlur=22;cx.fillStyle='#f7ffff';cx.beginPath();cx.arc(ball.x,ball.y,ball.r,0,TAU);cx.fill();cx.restore()}
 cx.save();cx.globalCompositeOperation='lighter';
@@ -881,7 +993,7 @@ function pointerCoord(e){const r=canvas.getBoundingClientRect();return {x:Math.m
 $('precisionLeft').addEventListener('click',()=>nudgePrecision(-1));
 $('precisionRight').addEventListener('click',()=>nudgePrecision(1));
 $('precisionFire').addEventListener('click',()=>{if(mode==='lab'&&!clutchActive&&!watchMode&&!shooting&&!finished&&shots===1)fire(0,0,precisionCode)});
-canvas.addEventListener('pointerdown',e=>{if(shooting||finished||watchMode||performance.now()<inputPauseUntil)return;if(e.pointerType==='mouse'&&e.button!==0)return;canvas.setPointerCapture(e.pointerId);aiming=true;aimStart={id:e.pointerId,x:e.clientX,y:e.clientY};aim=pointerCoord(e);updateHUD();e.preventDefault()});
+canvas.addEventListener('pointerdown',e=>{if(shooting||finished||watchMode||performance.now()<inputPauseUntil)return;if(e.pointerType==='mouse'&&e.button!==0)return;canvas.setPointerCapture(e.pointerId);aiming=true;flowGhostLine=null;aimStart={id:e.pointerId,x:e.clientX,y:e.clientY};aim=pointerCoord(e);updateHUD();e.preventDefault()});
 canvas.addEventListener('pointermove',e=>{if(!aiming||watchMode)return;aim=pointerCoord(e);updateAimReadout();e.preventDefault()});
 canvas.addEventListener('pointerup',e=>{if(!aiming||watchMode||aimStart?.id!==e.pointerId)return;aiming=false;const start=aimStart;aimStart=null;const distance=Math.hypot(e.clientX-start.x,e.clientY-start.y);if(distance<9){aim=null;updateAimReadout();setTip('<b>DRAG</b> to choose an angle · <b>RELEASE</b> to shoot');popToast('Drag to aim, then release');e.preventDefault();return}const p=pointerCoord(e);fire(p.x,p.y);e.preventDefault()});
 canvas.addEventListener('pointercancel',()=>{aiming=false;aim=null;aimStart=null;updateAimReadout()});
@@ -1152,7 +1264,7 @@ function dailyFlowSeed(){return 'F'+utcDay().replaceAll('-','')}
 function dailyFlowNumber(){return Math.floor((Date.parse(utcDay()+'T00:00:00Z')-FLOW_EPOCH)/864e5)+1}
 function isDailyFlow(){return flowSeed===dailyFlowSeed()}
 function flowBoard(seed,w){return (seed+'W'+w).slice(0,14)}
-function flowGhostKey(){return 'bs:v25:flowghost:'+flowSeed}
+function flowGhostKey(){return 'bs:v26:flowghost:'+flowSeed}
 function flowLabel(){return isDailyFlow()?'DAILY FLOW #'+dailyFlowNumber():'FLOW · SEED '+flowSeed}
 function startFlow(seed,keepTarget=false){flowSeed=String(seed||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,9)||randomBoard();if(!keepTarget){targetScore=0;rivalAngles=[];rivalSteps=[]}flowSteps=[];flowShotLog=[];flowGrid=[];const g=read(flowGhostKey(),null);flowGhost=g&&Number.isFinite(g.score)&&Array.isArray(g.steps)?g:null;reset('flow',flowBoard(flowSeed,1))}
 function flowRecordEnd(){if(mode!=='flow'||watchMode||exporting)return;flowPrevGhost=flowGhost;if(!flowGhost||score>flowGhost.score){flowGhost={seed:flowSeed,score,wave:flowWave,steps:[...flowSteps],date:utcDay()};store(flowGhostKey(),flowGhost)}}
@@ -1196,7 +1308,7 @@ window.BANKSHOT_ANALYTICS={track,addSink:f=>{if(typeof f==='function')analyticsS
 {const o=reset;reset=function(...a){o(...a);if(!exporting&&!watchMode)track('run_start',{board,seed:mode==='flow'?flowSeed:undefined})}}
 {const o=endRound;endRound=function(){const was=finished;const runMs=Math.round(performance.now()-runStartedAt);const goal=mode==='flow'?flowGoal():undefined;const waveScore=mode==='flow'?Math.max(0,score-flowWaveStart):score;const shotsTaken=mode==='flow'?flowSteps.length:runSteps.length;o();if(!was&&finished&&!exporting&&!watchMode)track('run_end',{board,score,wave:mode==='flow'?flowWave:undefined,seed:mode==='flow'?flowSeed:undefined,run_ms:runMs,shots:shotsTaken,goal,wave_score:waveScore,miss_margin:mode==='flow'?Math.max(0,(goal||0)-waveScore):undefined,first_run:runSerial===1,run_index:runSerial})}}
 // Local Flow stats + progression (cosmetic trails, never pay-to-win).
-const flowStatsKey='bs:v25:flowstats';
+const flowStatsKey='bs:v26:flowstats';
 function flowStats(){const s=read(flowStatsKey,{});return {runs:s.runs||0,waves:s.waves||0,bestWave:s.bestWave||0,bestScore:s.bestScore||0,shots:s.shots||0}}
 function flowBestWave(){return flowStats().bestWave}
 function flowShareText(){const link=flowDuelLink(),rows=flowGrid.length?flowGrid:[flowShotLog.join('')];
