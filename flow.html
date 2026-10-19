@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070916">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Bankshot: five-shot arcade, daily scores, and one-shot Shot Lab puzzles to challenge friends.">
+<title>BANKSHOT • V21 Flow</title>
+<style>
+/* V11: single-tap sound level; visible but not intrusive. */
+.toolrow .audioQuick{border:1px solid #56848f;background:linear-gradient(#163c48,#112c40);color:#c4ffed;min-width:52px;width:52px;display:flex;flex-direction:column;justify-content:center;gap:1px;font-size:10px;font-weight:1000;line-height:1;letter-spacing:.15px}
+.audioQuick small{font-size:8px;color:#91dcd4;letter-spacing:.5px}
+.audioQuick[aria-label*="Muted"]{color:#b9c5dc;border-color:#40506c;background:#19223c}
+.audioQuick[aria-label*="Muted"] small{color:#8e99b5}
+.audioHint{font-size:10px;color:#a3b6cc;margin:8px 2px 0;text-align:center}
+/* V10: nonblocking game lesson, legible score rules, and faster resolution. */
+.firstGuide{position:absolute;z-index:5;pointer-events:none;left:50%;bottom:15%;transform:translateX(-50%);background:#071127e6;border:1px solid #a1ebfa9a;border-radius:15px;padding:11px 16px;display:flex;flex-direction:column;align-items:center;min-width:215px;gap:4px;box-shadow:0 12px 27px #03081580;text-align:center;white-space:nowrap}
+.firstGuide[hidden]{display:none}.firstGuide strong{color:#aaffd8;font-size:12px;letter-spacing:1.05px}.firstGuide span{color:#d6f1ff;font-size:11px;font-weight:850}.firstGuide small{color:#92accf;font-size:9px}
+.speedBtn{position:absolute;z-index:8;right:10px;bottom:14px;color:#efffff;background:#0b2a3af0;border:1px solid #8defec9a;border-radius:11px;min-height:42px;padding:8px 12px;box-shadow:0 8px 18px #000a;font-size:12px;font-weight:950;letter-spacing:.3px}.speedBtn[hidden]{display:none}.speedBtn:active{transform:scale(.96)}
+.scoreRules{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:11px}.scoreRules span{border:1px solid #354962;border-radius:9px;padding:7px 4px;background:#131e33;color:#d8e7ff;font-weight:850;font-size:10px;text-align:center;letter-spacing:-.13px}.scoreRules strong{color:#baffc7}
+.feelSurvey{border:1px solid #5a6e90;border-radius:13px;padding:10px;margin:10px 0 0;background:#142036}.feelSurvey[hidden]{display:none}.feelSurvey strong{display:block;font-size:11px;color:#e5f7ff;margin:0 0 8px}.feelOptions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.feelOptions button{font-size:11px;font-weight:850;padding:10px 2px;border:1px solid #7493ad;border-radius:9px;color:#def0ff;background:#223650}.feelOptions button:active{background:#3d6580}
+.qaMetrics{font-size:12px;border:1px solid #3b5575;background:#0b1831;padding:12px;border-radius:12px;line-height:1.6;color:#d9e8ff}.qaMetrics b{color:#bcffcf}.qaMetrics button{width:100%;min-height:40px;border:1px solid #62778e;background:#283951;color:#fff;border-radius:9px;font-weight:850;margin-top:8px}.qaMetrics .smallNote{font-size:10px;color:#98aacb;margin:6px 0 0}
+@media(max-width:365px){.scoreRules span{font-size:9px}.firstGuide{min-width:185px;padding:8px 11px}}
+
+/* V9: Optional 0.5-degree precision controls. Main touch aiming stays unchanged. */
+.precisionBar{border:1px solid #486d7d;background:linear-gradient(105deg,#112b37,#17203a);border-radius:14px;padding:8px 10px;margin:0 0 9px}
+.precisionBar[hidden]{display:none}.precisionHead{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 6px}.precisionHead b{font-size:10px;color:#a7f7f1;letter-spacing:.7px}.precisionHead span{font-size:9px;color:#acbfd4;font-weight:750}.precisionControls{display:grid;grid-template-columns:1fr 1.1fr 1fr 1.05fr;gap:6px;align-items:stretch}.precisionControls button{min-height:42px;border:1px solid #61869d;background:#253951;color:#edffff;border-radius:9px;font-weight:950;font-size:12px;padding:6px 4px}.precisionControls button:active{transform:scale(.97)}.precisionControls button:disabled{opacity:.4}.precisionControls .precisionFire{border:0;background:#affbc1;color:#0a2334}.precisionValue{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;line-height:1.25}.precisionValue strong{color:#ffda91;font-size:11px;white-space:nowrap}.precisionValue small{font-size:9px;color:#93b3c9;white-space:nowrap}
+@media(max-width:370px){.precisionHead span{font-size:8px}.precisionControls{gap:4px}.precisionControls button{font-size:11px}}
+:root{--bg:#070916;--panel:#10172b;--panel2:#161f37;--outline:#34405f;--sub:#8995b2;--cyan:#66f1fb;--mint:#beff8f;--pink:#ff6ea8;--gold:#ffce70;--white:#f7fbff;--shadow:rgba(0,0,0,.45)}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;min-height:100svh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse 90% 45% at 50% -9%,#323265 0%,#0e1228 56%,#070916 100%);color:var(--white);overscroll-behavior-y:contain}
+button,input{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,input:focus-visible{outline:3px solid var(--mint);outline-offset:3px}button:disabled{cursor:not-allowed;opacity:.5}
+.app{max-width:470px;margin:auto;padding:15px 14px max(25px,env(safe-area-inset-bottom));-webkit-user-select:none;user-select:none}.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 1px 17px}.eyebrow{font-weight:900;color:#a0a9ca;letter-spacing:2.2px;font-size:9px}.logo{margin:3px 0 -1px;line-height:1;font-size:clamp(30px,8.7vw,42px);letter-spacing:-2.4px;font-weight:1000;font-style:italic;text-shadow:0 6px 15px #0008}.logo em{font-style:inherit;color:var(--cyan)}.logo b{color:var(--gold)}.tagline{margin-top:5px;font-size:10px;color:#b2bbd3;letter-spacing:1.6px;font-weight:850}
+.toolrow{display:flex;gap:7px;align-self:start}.tool{border:1px solid #3b4668;background:linear-gradient(#222944,#151c34);color:#e0eafa;border-radius:13px;width:40px;height:40px;display:grid;place-items:center;font-size:18px;box-shadow:0 4px 9px #0003}.tool:active,.tab:active,.action:active{transform:scale(.97)}
+.modebar{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;margin-bottom:11px;background:#10182b;border:1px solid #303a55;border-radius:16px}.tab{background:transparent;color:#a9b4d0;border:0;border-radius:11px;min-height:38px;font-weight:900;letter-spacing:.7px;font-size:12px}.tab.active{background:linear-gradient(150deg,#315f71,#205164 66%,#1d465d);box-shadow:inset 0 1px #7effff5d,0 5px 12px #0005;color:#f0ffff}
+.scores{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:11px}.stat{border:1px solid #34415f;border-radius:16px;padding:11px 10px 10px;background:linear-gradient(155deg,#222b4b,#12192d);box-shadow:0 4px 19px #0003}.stat label{display:block;color:#a2b2cf;font-weight:850;font-size:9px;letter-spacing:1.2px;white-space:nowrap}.stat strong{display:block;font-size:clamp(22px,6.4vw,31px);font-weight:1000;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1.25}.stat small{display:block;color:#8796b7;font-size:10px;margin-top:-2px}.stat .bestval{color:var(--gold)}.stat .streakval{color:var(--mint)}
+.arenaWrap{position:relative;border-radius:23px;border:1px solid #58749c;box-shadow:0 25px 55px #000a,0 0 35px #4fecff13;overflow:hidden;background:#10162c;isolation:isolate}canvas#game{display:block;width:100%;height:auto;aspect-ratio:390/520;touch-action:none;-webkit-touch-callout:none;cursor:crosshair}.gameHud{pointer-events:none;position:absolute;z-index:4;inset:12px 12px auto;display:flex;align-items:center;justify-content:space-between;gap:6px}.hudpill{font-size:10px;font-weight:900;letter-spacing:.8px;background:#071027c7;border:1px solid #91a5d259;color:#d7e7fe;border-radius:999px;padding:7px 10px;backdrop-filter:blur(6px)}.hudpill.warm{color:#d9ffd3;border-color:#b5fb9c44}
+.flash{pointer-events:none;z-index:3;position:absolute;inset:0;background:#fff;opacity:0}.flash.on{animation:flash .18s ease-out}@keyframes flash{from{opacity:.13}to{opacity:0}}
+.callout{position:absolute;top:38%;left:50%;z-index:5;transform:translate(-50%,-50%);white-space:nowrap;font-size:25px;color:#fff;font-weight:1000;letter-spacing:-1px;text-shadow:0 3px 0 #010a24,0 0 20px #57dcff;pointer-events:none;opacity:0}.callout.pop{animation:callout .85s cubic-bezier(.12,.88,.26,1)}@keyframes callout{0%{opacity:0;transform:translate(-50%,-30%) scale(.65)}22%{opacity:1;transform:translate(-50%,-60%) scale(1.14)}65%{opacity:1;transform:translate(-50%,-65%) scale(1)}100%{opacity:0;transform:translate(-50%,-82%) scale(.97)}}
+.playFooter{margin-top:12px}.shotsRow{display:flex;align-items:center;justify-content:space-between;gap:5px;margin:0 3px 8px}.leftShots{display:flex;align-items:center;gap:8px}.tiny{font-size:10px;font-weight:900;letter-spacing:1px;color:#a7b4cf}.dots{display:flex;gap:5px}.dot{height:14px;width:14px;border-radius:50%;background:radial-gradient(circle at 27% 22%,#fff,#ffe5a2 33%,#fc9343 75%);box-shadow:0 0 10px #ffaa4d66;border:1px solid #fff2b3}.dot.used{background:#28324b;border:1px solid #3d4965;box-shadow:none}.how{font-size:10px;color:#a4b5d4;font-weight:750;white-space:nowrap}
+.progress{height:5px;border-radius:100px;background:#202d47;overflow:hidden;margin-bottom:9px}.progress>div{height:100%;width:0%;background:linear-gradient(90deg,#5de5fc,#bcffa1);border-radius:inherit;transition:width .2s}.tip{font-size:12px;color:#a8b5cf;text-align:center;min-height:20px;font-weight:670;margin:6px 0 8px}.tip b{color:#eaffff}
+.buttons{display:grid;grid-template-columns:1fr 1.4fr;gap:9px;margin-top:6px}.action{border-radius:14px;min-height:52px;font-weight:1000;font-size:13px;letter-spacing:.2px;border:1px solid #384764;background:#1a2541;color:#e4f0ff;box-shadow:0 7px 16px #0002;transition:transform .1s,opacity .1s}.action.main{border:0;background:linear-gradient(118deg,#73f2fb,#acffc3);color:#102239;box-shadow:0 7px 25px #5df1d13b}.action.wide{grid-column:1/-1}.subcopy{font-size:11px;color:#8290ae;text-align:center;line-height:1.5;margin:15px 6px 0}.subcopy strong{color:#b8d4e8}
+.boardStrip{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #273550;background:#101729;border-radius:11px;padding:10px 12px}.boardStrip span{font-size:10px;color:#a2b0cb;letter-spacing:.7px;font-weight:800}.boardStrip b{font-weight:950;letter-spacing:1.5px;color:#d6faff}.linklike{border:0;background:transparent;color:#8ce5ee;font-weight:850;font-size:11px;padding:4px}.boardBtns{display:flex;gap:8px;align-items:center}.boardBtns .linklike:first-child{color:#c5ffaa}.boardStrip{flex-wrap:wrap}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:19px;z-index:10;background:linear-gradient(180deg,#070b1cc9,#070b19f5);backdrop-filter:blur(8px)}.overlay.show{display:flex}.endPanel{text-align:center;width:100%;max-width:330px;padding:12px 10px}.overline{font-size:11px;color:#b1d5e0;letter-spacing:2px;font-weight:1000}.trophy{font-size:48px;filter:drop-shadow(0 3px 17px #ffca5865)}.endPanel h2{margin:10px 0 1px;font-size:clamp(25px,6vw,34px);letter-spacing:-1.5px;line-height:1.05;font-weight:1000}.endScore{color:var(--cyan);font-size:clamp(51px,15vw,68px);font-weight:1000;line-height:1.15;letter-spacing:-3px;text-shadow:0 0 25px #7eefff65}.endSub{margin:5px auto 12px;line-height:1.55;color:#bdc9df;font-size:12px}.endActions{display:grid;gap:9px}.endActions .action{min-height:48px}
+.backdrop{position:fixed;inset:0;background:#050815df;z-index:30;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px)}.backdrop.show{display:flex}.dialog{width:100%;max-width:420px;border-radius:23px;padding:24px;background:linear-gradient(144deg,#202b4b,#0f182d 75%);border:1px solid #536783;box-shadow:0 24px 80px #000a;position:relative}.dialog h3{font-size:26px;letter-spacing:-1.2px;margin:5px 35px 7px 0}.dialog p,.dialog li{font-size:13px;color:#b5c5df;line-height:1.6}.dialog ol{padding-left:18px}.dialog .micro{font-weight:1000;font-size:10px;color:var(--cyan);letter-spacing:1.8px}.close{position:absolute;right:13px;top:10px;border:0;background:transparent;color:#acc6e6;font-size:27px;padding:2px 8px}.dialog input{width:100%;background:#080f24;border:1px solid #4c6486;color:#fff;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:3px;padding:12px;border-radius:12px;outline:none;margin:7px 0 12px;text-align:center}.dialog .action{width:100%;margin-top:6px}.heroScore{text-align:center;font-size:49px;font-weight:1000;color:var(--gold);margin:5px 0}.prefRow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;gap:8px;border-bottom:1px solid #35415a}.switch{min-width:63px;border:1px solid #446080;border-radius:999px;background:#1b2b45;color:#b9d4eb;padding:9px 12px;font-size:11px;font-weight:900}
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 22px);left:50%;transform:translateX(-50%);z-index:55;background:#c9ffee;color:#082439;padding:11px 15px;border-radius:999px;font-size:12px;font-weight:950;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;box-shadow:0 9px 32px #0009}.toast.show{opacity:1}
+@media(min-width:650px){.app{padding-top:28px}.logo{font-size:40px}}
+@media(max-height:730px) and (max-width:450px){.app{padding-top:8px}.top{margin-bottom:8px}.scores{margin-bottom:7px}.stat{padding:7px 9px}.modebar{margin-bottom:7px}.logo{font-size:29px}.tagline{font-size:9px}.playFooter{margin-top:7px}.subcopy{margin-top:8px}}
+@media(prefers-reduced-motion:reduce){.callout.pop,.flash.on{animation:none}*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+/* V3: Daily crown & rival replay */
+.dailyRibbon{display:flex;align-items:center;justify-content:space-between;gap:7px;margin:-2px 2px 10px;border:1px solid #495374;border-radius:14px;padding:9px 10px;background:linear-gradient(115deg,#22284a,#1c2441 62%,#172d37);box-shadow:inset 0 1px #ffffff18}
+.dailyLeft{display:flex;align-items:center;gap:8px;min-width:0}.crownIcon{font-size:24px;filter:drop-shadow(0 0 9px #ffbc7299)}.dailyText{display:flex;flex-direction:column;gap:2px;min-width:0}.dailyText strong{font-size:11px;letter-spacing:.3px;white-space:nowrap}.dailyText small{color:#aab9d5;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dailyRight{display:flex;gap:5px;align-items:center}.smallAction{background:#2c4454;color:#dcfbff;border:1px solid #547687;border-radius:10px;min-height:33px;padding:0 10px;font-size:10px;font-weight:1000;white-space:nowrap}.smallAction.gold{background:linear-gradient(120deg,#ffd77a,#ffa45d);color:#2b1e12;border:0}.smallAction[hidden]{display:none}
+.rivalStrip{border-radius:13px;border:1px solid #587084;background:linear-gradient(100deg,#192844,#152f3c);padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:9px}.rivalStrip[hidden]{display:none}.rivalStrip b{font-size:11px;color:#c0fff7}.rivalStrip span{font-weight:1000;font-size:15px;color:#ffe08d}.rivalStrip button{border:0;background:#ecf6ff17;color:#e8f7ff;border-radius:8px;font-weight:800;font-size:10px;padding:7px}
+.crownModalTop{text-align:center;margin-bottom:12px}.crownModalTop strong{font-size:48px;display:block;line-height:1.1}.crownModalTop small{display:block;color:#b3bfd5;margin-top:5px}.crownDays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:12px 0}.crownDay{background:#0c1427;border:1px solid #364b69;border-radius:10px;padding:8px 0;text-align:center}.crownDay span{display:block;font-size:10px;color:#a0afcd;font-weight:850}.crownDay strong{display:block;font-size:19px;margin-top:3px;color:#65718b}.crownDay.got{background:#3b2a29;border-color:#f7b462}.crownDay.got strong{color:#ffe08d}.crownDay.today{outline:2px solid #82f7e4;outline-offset:1px}.miniCaption{font-size:11px!important;color:#a9b6cd!important}.milestones{display:flex;align-items:center;justify-content:space-around;margin:13px 0 4px;gap:6px}.milestones span{text-align:center;color:#dbe8fb;font-size:11px;font-weight:850}.milestones b{display:block;font-size:17px;margin-bottom:3px}.infoBanner{margin:8px 0;padding:9px;border-radius:10px;background:#24314b;font-size:12px;color:#cfe2f7;line-height:1.5}.trailPreview{display:inline-block;width:13px;height:13px;border-radius:100%;vertical-align:middle;margin-right:5px}.rivalBeat{color:#c8ffe4;font-weight:950}
+@media(max-width:360px){.dailyText small{font-size:9px}.smallAction{padding:0 7px}.crownIcon{font-size:20px}}
+/* V4: score-based personal ghost chase. Local only, never a verified wager. */
+.ghostStrip{margin-bottom:10px;padding:10px 12px;border:1px solid #486d73;background:linear-gradient(120deg,#16303d,#1c2344);border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ghostStrip[hidden]{display:none}.ghostLeft{min-width:0;flex:1}.ghostLabel{font-size:10px;font-weight:1000;letter-spacing:1.2px;color:#b5fded}.ghostPace{font-size:11px;color:#c1d3e8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ghostScore{font-size:19px;font-weight:1000;color:#fff3c3;white-space:nowrap}.ghostButton{border:1px solid #79dab8;background:#173b3d;color:#c5ffe8;border-radius:10px;padding:8px 10px;white-space:nowrap;font-weight:1000;font-size:10px} .ghostButton:disabled{opacity:.5}
+/* End-of-round actions must remain reachable on short mobile viewports. */
+.overlay.show{overflow-y:auto;align-items:flex-start;overscroll-behavior:contain}
+.endPanel{margin:auto 0;padding:10px 6px}
+@media(max-height:730px){.endPanel .trophy{font-size:32px}.endPanel h2{font-size:25px}.endPanel .endScore{font-size:48px}.endActions{gap:6px}.endActions .action{min-height:41px}}
+/* V6: playable one-shot asynchronous friend challenges, using the identical deterministic board state. */
+.clutchStrip{margin:0 0 10px;padding:10px 12px;border:1px solid #ffcc796c;border-radius:14px;background:linear-gradient(100deg,#453320,#222840);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.clutchStrip[hidden]{display:none}.clutchStrip b{font-size:11px;letter-spacing:.8px;color:#ffdb99}.clutchStrip small{display:block;color:#e1d6c9;font-size:10px;margin-top:3px}.clutchStrip strong{white-space:nowrap;color:#fff2c7;font-size:18px}
+.clutchButton{font-size:11px;font-weight:900;background:#59462b;color:#ffe5b2;border:1px solid #927145;border-radius:9px;padding:7px}
+.clutchNote{font-size:11px;line-height:1.4;color:#e8dbba;margin:5px 0 10px}
+@media(max-height:710px){.clutchStrip{padding:7px 10px;margin-bottom:6px}.clutchNote{margin:2px 0 5px}}
+/* V5: Personal improvement is a first-class solo mode: clear attainable feedback, no fake rankings. */
+.paceStrip{margin:0 0 10px;border:1px solid #536483;background:#162039;border-radius:13px;padding:9px 11px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 9px;align-items:center}
+.paceStrip[hidden]{display:none}.paceLeft{min-width:0}.paceTag{color:#a9e9ff;font-size:10px;font-weight:1000;letter-spacing:.8px}.paceText{font-size:11px;color:#dceaff;line-height:1.35;margin-top:3px}.paceValue{font-size:17px;font-weight:1000;color:#fff4b7;white-space:nowrap}.paceTrack{grid-column:1/-1;height:5px;background:#293650;border-radius:9px;overflow:hidden}.paceFill{height:100%;width:0%;background:linear-gradient(90deg,#72d3ff,#b3ffac);transition:width .18s}
+.shotRecap{margin:9px 0 10px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}.shotRecap .shotBox{background:#13223a;border:1px solid #3c526d;border-radius:9px;padding:7px 2px;color:#e4eeff}.shotRecap .shotBox.bestShot{border-color:#ffc76a;background:#403323}.shotRecap .shotBox label{display:block;font-size:9px;color:#a7b6ca;font-weight:900}.shotRecap .shotBox strong{display:block;font-size:11px;letter-spacing:-.3px;margin-top:2px}.shotRecap .shotBox.bestShot strong{color:#ffe5a0}
+.endCoach{font-size:11px;line-height:1.4;color:#c7e6fa;min-height:28px;margin:6px 0 8px}
+#newBoardEnd{min-height:40px;border-color:#55708c;background:#182945}
+@media(max-height:710px){.shotRecap{margin:5px 0}.shotRecap .shotBox{padding:4px 2px}.endCoach{margin:3px 0}.endPanel .endSub{margin:3px auto 6px}.endPanel h2{margin-top:5px}.endPanel .trophy{font-size:37px}}
+/* V7: Optional one-shot puzzle variation, NOT a separate game. */
+.modebar{grid-template-columns:1fr 1fr 1fr}.modebar .tab{font-size:11px;min-width:0;letter-spacing:0;padding:0 2px}
+.labStrip{display:none;align-items:center;justify-content:space-between;gap:8px;border:1px solid #6a7fa1;background:linear-gradient(110deg,#192b4c,#222544);border-radius:13px;padding:10px 12px;margin:0 0 10px}
+.labStrip strong{font-size:12px;letter-spacing:.5px;color:#bceafc}.labStrip small{display:block;color:#bcc9e5;font-size:10px;margin-top:3px;line-height:1.4}.labStrip .labCount{text-align:right;white-space:nowrap;color:#fff5ce;font-weight:950;font-size:17px}.labStrip .labCount span{display:block;color:#a6b8da;font-size:9px;letter-spacing:.6px}
+.lab-mode .labStrip{display:flex}.app:not(.daily-mode) .dailyRibbon{display:none}.lab-mode .ghostStrip{display:none!important}
+.lab-mode .stat{padding:10px 8px}
+@media(max-width:355px){.modebar .tab{font-size:10px}.labStrip{padding:7px 9px}}
+
+/* V8: competence feedback without a second game or extrinsic currency loop */
+.shotReport{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:5px 9px;padding:8px 10px;border:1px solid #406b78;border-radius:12px;background:linear-gradient(115deg,#17313a,#18243d);margin:0 0 9px;box-shadow:inset 0 1px #8ce8e020}
+.shotReport[hidden]{display:none}.shotReport span{font-size:10px;font-weight:950;letter-spacing:.8px;color:#9dece5}.shotReport strong{text-align:right;font-size:16px;font-weight:1000;color:#d8ffb4;font-variant-numeric:tabular-nums}.shotReport small{grid-column:1/-1;font-size:11px;line-height:1.3;color:#c4d8e6;font-weight:650}
+.aimReadout{position:absolute;top:53px;left:50%;transform:translateX(-50%);z-index:4;pointer-events:none;display:flex;align-items:center;gap:8px;background:#071329d9;border:1px solid #527f95;border-radius:999px;white-space:nowrap;padding:6px 11px;color:#edffff;font-size:10px;box-shadow:0 5px 20px #0007}
+.aimReadout[hidden]{display:none}.aimReadout b{color:#b6ffff;font-size:11px}.aimReadout span{color:#b8cde3;font-weight:800}
+@media(max-width:360px){.aimReadout{top:48px;gap:4px;padding:5px 8px;font-size:9px}.aimReadout b{font-size:10px}}
+
+/* V12 — evidence-informed focus-first mobile game design.  See V12 UX research brief. */
+:root{--bg:#070d19;--panel:#0d1a2a;--panel2:#121f31;--outline:#25435b;--sub:#93aac3;--cyan:#67eff6;--mint:#adffd0;--gold:#ffcd77;--white:#effaff}
+html,body{height:100%;min-height:100%;background:#07101e}body{background:radial-gradient(ellipse 70% 46% at 50% 38%,#122943 0%,#071222 69%,#050c17 100%);overflow-x:hidden}
+.app{max-width:530px;min-height:100svh;min-height:100dvh;margin:auto;padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 8px);display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:9px}
+.top{margin:0;flex:none;display:flex;align-items:center;min-height:46px;gap:8px}
+.brand{font-weight:1000;font-size:clamp(20px,5.5vw,27px);letter-spacing:-1.3px;line-height:1;font-style:italic;white-space:nowrap;text-shadow:0 2px 14px #6beaff10}
+.brand span{color:#71edf4}.brand i{color:#ffc66a;font-style:normal}
+.topControls{display:flex;align-items:center;margin-left:auto;gap:6px}
+.modeToggle,.topControls .tool,#roundMoreBtn,.precisionToggle{border:1px solid #305168;background:#102238;color:#d3e9f8;border-radius:12px;min-height:44px;transition:background .15s,transform .1s;box-shadow:none}
+.modeToggle{display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;font-weight:900;font-size:11px;letter-spacing:.4px;white-space:nowrap}
+.modeToggle span:last-child{font-size:16px;color:#75e6f0}.topControls .tool{width:44px;height:44px;min-width:44px;font-size:19px}
+.topControls .audioQuick{display:grid;place-content:center;padding:0;min-width:44px;width:44px;background:#112b3b;color:#bafaf6;font-size:20px;font-weight:800;border-color:#315563}
+.topControls .audioQuick small{display:none}.topControls .menuToggle{font-size:20px}
+.visuallyHidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
+.liveScoreBar{flex:none;min-height:52px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.06fr);align-items:center;column-gap:10px;padding:5px 4px 6px;border-bottom:1px solid #2b3f53;box-shadow:0 10px 24px -23px #8cf4ff}
+.liveScoreBar>div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.liveScoreBar span{font-size:9px;letter-spacing:1.1px;font-weight:900;color:#97abc4;white-space:nowrap}
+.liveScoreBar strong{line-height:1.07;font-size:clamp(22px,6vw,28px);font-weight:950;letter-spacing:-.75px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
+.liveScore strong{color:#f5ffff}.liveBest strong{color:#ffda8f;font-size:clamp(17px,5vw,21px)}
+.liveShots{text-align:right}.liveShots strong{color:#a8fdd1;font-size:14px;letter-spacing:.5px;white-space:nowrap;overflow:visible}
+/* Maintain the exact 390:520 simulation geometry as the arena resizes. */
+.arenaWrap{flex:none;align-self:center;width:min(100%,calc((100dvh - 199px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px);aspect-ratio:390/520;min-width:0;max-width:100%;overflow:hidden;border:1px solid #38627d;border-radius:20px;box-shadow:0 12px 36px #0009,0 0 38px #45ebf111;background:#0c192b}
+canvas#game{width:100%;height:100%;aspect-ratio:390/520;touch-action:none}
+.gameHud{inset:11px 13px auto}.gameHud #boardChip{font-size:9px;letter-spacing:.6px;padding:5px 0;background:transparent;border:0;color:#779cb9;backdrop-filter:none}.gameHud #statusChip{display:none}
+.firstGuide{bottom:14%;padding:8px 15px;border-radius:999px;background:#071a2bdb;border:1px solid #77d8d988;box-shadow:0 4px 21px #000a;min-width:auto;max-width:90%;white-space:nowrap;transform:translateX(-50%)}
+.firstGuide strong,.firstGuide small{display:none}.firstGuide span{font-size:11px;color:#e9feff;letter-spacing:.1px}
+.aimReadout{top:8px;left:50%;font-size:10px;padding:6px 8px;background:#0b2539d6;border-color:#47758c;max-width:62%;overflow:hidden}
+.speedBtn{bottom:10px;right:10px;min-height:36px;padding:6px 9px;font-size:11px;background:#122c3ddc;border-radius:10px}
+.bottomDock{flex:none;display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:0 0 0 10px;color:#d0deef}
+.dockHint{font-size:11px;font-weight:850;letter-spacing:.4px;color:#c9d8eb;white-space:nowrap}.dockHint span{color:#52bac9;margin:0 3px}
+#roundMoreBtn{width:44px;height:44px;display:grid;place-items:center;font-size:19px;letter-spacing:1px;color:#adbed1}
+/* Older screens still update state and keep features, but no longer compete with active shooting. */
+.modebar,.scores,.dailyRibbon,.rivalStrip,.ghostStrip,.clutchStrip,.labStrip,.paceStrip,.playFooter,.subcopy{display:none!important}
+/* Put important shot feedback where its cause happens, without reflowing the board. */
+.shotReport{z-index:7;position:absolute;left:12px;right:12px;bottom:51px;margin:0;padding:8px 10px;pointer-events:none;grid-template-columns:auto 1fr;background:#081c2ae8;border:1px solid #427483b5;box-shadow:0 8px 28px #0008}
+.shotReport[hidden]{display:none}.shotReport strong{font-size:15px}.shotReport small{font-size:10px;line-height:1.25;grid-column:1/-1}
+.precisionToggle{display:none;min-height:44px;padding:8px 15px;font-size:11px;letter-spacing:.6px;font-weight:900;color:#c9fdf4;flex:none}
+.app.lab-mode .precisionToggle{display:block}
+.app.lab-mode.precision-expanded .precisionBar{display:block!important}
+.app.lab-mode.precision-expanded .arenaWrap{width:min(100%,calc((100dvh - 308px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px)}
+.precisionBar{display:none!important;order:4;margin:0;border-radius:14px;padding:8px;background:#10273b;border:1px solid #345a70}
+.app.lab-mode.precision-expanded .precisionBar{display:block!important}
+.app.lab-mode.precision-expanded .precisionBar .precisionHead span{display:none}
+.precisionControls button{min-height:44px}.precisionControls .precisionValue{font-size:11px}
+/* After finishing, reward the result in a dedicated full-screen overlay, not inside a small playfield. */
+.overlay{position:fixed;inset:0;overflow-y:auto;overscroll-behavior:contain;display:none;justify-content:center;align-items:safe center;padding:calc(env(safe-area-inset-top) + 20px) 18px calc(env(safe-area-inset-bottom) + 20px);z-index:40;background:linear-gradient(180deg,#060e1aed,#050c16fa);backdrop-filter:blur(10px)}
+.overlay.show{display:flex}.endPanel{max-width:400px;margin:auto;padding:20px 4px 12px}.endPanel .trophy{font-size:43px}.endPanel h2{font-size:clamp(26px,6vw,34px)}
+.endPanel .endScore{font-size:clamp(56px,15vw,76px);margin:10px 0;color:#8af9eb}.endPanel .endSub{font-size:12px}.endActions{margin-top:15px;gap:11px}
+.endActions .action{min-height:52px}.endActions .action.main{font-size:15px;background:linear-gradient(120deg,#6debfd,#a1ffd4)}
+.endCoach{font-size:12px;margin:12px 0;color:#b7d0e5;line-height:1.5}
+.dialog{max-height:calc(100dvh - 44px);overflow-y:auto;background:linear-gradient(155deg,#122d43,#101829 80%);border-color:#3b6078;border-radius:22px}.dialog h3{font-size:24px}.dialog .close{min-width:44px;min-height:44px}
+.menuActions{display:grid;gap:9px;margin:15px 0}.menuActions button{width:100%;min-height:52px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;border:1px solid #36566a;background:#17283a;border-radius:13px;text-align:left;color:#e2f7ff;font-size:13px;font-weight:850}
+.menuActions button b{color:#83eee6;font-size:12px}.menuActions button.primary{background:#123b49;border-color:#58aaae}
+.menuNote{font-size:11px;line-height:1.5;color:#91a9bd}
+@media(max-width:355px){.app{padding-left:8px;padding-right:8px;gap:6px}.top{gap:4px}.brand{font-size:19px}.topControls{gap:4px}.modeToggle{padding:0 8px;font-size:10px}.topControls .tool{min-width:40px;width:40px;height:44px}.liveScoreBar{column-gap:6px}.liveScoreBar span{letter-spacing:.3px;font-size:8px}.dockHint{font-size:10px}.arenaWrap{width:min(100%,calc((100dvh - 181px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px)}}
+@media(max-height:690px){.app{gap:5px;padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:calc(env(safe-area-inset-bottom) + 4px)}.arenaWrap{width:min(100%,calc((100dvh - 171px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px)}.liveScoreBar{min-height:44px}.top{min-height:44px}.firstGuide{bottom:12%}.dockHint{font-size:10px}.app.lab-mode.precision-expanded .arenaWrap{width:min(100%,calc((100dvh - 270px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px)}}
+@media(min-width:700px){.app{max-width:520px;padding-top:16px;padding-bottom:16px;justify-content:center;gap:12px}.arenaWrap{width:min(100%,min(440px,calc((100dvh - 215px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75)))}.brand{font-size:26px}}
+@media(prefers-reduced-motion:reduce){.modeToggle,.topControls .tool,#roundMoreBtn{transition:none}}
+/* V13: progression exists between games, never across the active playfield. */
+.masteryResult{border:1px solid #386175;border-radius:13px;background:#112737;padding:10px 14px;margin:3px auto 10px;max-width:330px;display:grid;gap:6px;text-align:left}
+.masteryResult[hidden]{display:none}.masteryResult strong{font-size:12px;letter-spacing:.8px;color:#fff3cb}.masteryResult small{font-size:11px;color:#b9d2e3;line-height:1.3}
+.masteryTrack{background:#25384d;height:5px;border-radius:10px;overflow:hidden}.masteryTrack div{height:100%;width:0;background:linear-gradient(90deg,#65dbf1,#a6ffd5);transition:width .2s}
+.practiceShelf{display:grid;gap:8px;margin:12px 0}.practiceShelf button{width:100%;display:flex;justify-content:space-between;align-items:center;min-height:52px;background:#152b3e;color:#f1fbff;border:1px solid #305a70;border-radius:12px;padding:9px 11px;font-weight:900;gap:10px;text-align:left}
+.practiceShelf small{display:block;color:#aec4d7;font-size:11px;font-weight:600;margin-top:3px}.practiceShelf em{font-style:normal;color:#ffde9c;font-size:12px;white-space:nowrap}
+/* The launch tutorial stays a small, one-line hint above the launcher. */
+.firstGuide{bottom:12%;padding:8px 12px}.firstGuide span{font-size:11px;font-weight:900;letter-spacing:.4px}
+/* One visual message only while aiming: direct hit, bank, or no target. */
+.aimReadout{max-width:70%;white-space:nowrap}.aimReadout span{font-size:9px}
+@media(max-height:700px){.masteryResult{padding:7px 10px;margin:1px auto 5px;gap:4px}.masteryResult small{font-size:10px}}
+/* V14: Daily detail is a modal, never permanently added to the active playfield. */
+.backdrop{z-index:60}
+.dailyOverview{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:15px 0}
+.dailyMetric{background:#0d2438;border:1px solid #33546c;border-radius:13px;padding:13px 10px;min-width:0}
+.dailyMetric span{display:block;color:#99b6c9;font-weight:800;letter-spacing:.65px;font-size:10px;margin-bottom:4px}
+.dailyMetric strong{font-size:24px;font-weight:950;color:#b1fff1;font-variant-numeric:tabular-nums}
+.dailyDate{color:#a8c4d8;font-size:12px;line-height:1.6}
+.dailyHistory{display:grid;gap:7px;margin:12px 0}
+.dailyHistoryItem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#122738;padding:10px;border:1px solid #315268;border-radius:10px;font-size:12px}
+.dailyHistoryItem strong{color:#ffe2a5}
+.dailyBetaNotice{background:#13202d;border:1px solid #425566;padding:12px;border-radius:12px;color:#c7d5e4;font-size:12px;line-height:1.55;margin:12px 0}
+.dailyMenuCta{background:#214b52!important;border-color:#74a9a0!important}
+.dialog{max-height:calc(100svh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
+/* V17: competitive features live only in end-state or menu, never on the aiming board. */
+.onlineBox{border:1px solid #436478;border-radius:13px;padding:11px;margin:10px 0;background:linear-gradient(125deg,#112b3c,#0d1b30);color:#d6eff9;font-size:12px;line-height:1.5}
+.onlineBox strong{color:#b8fff0}.onlineBox button{border:0;border-radius:9px;padding:10px 13px;background:#7bebd6;color:#102738;font-size:12px;font-weight:900;min-height:43px;margin-top:9px;width:100%}
+.onlineBox .subtle{color:#a8bace;font-size:11px;margin-top:5px}.onlineRows{display:grid;gap:7px;margin-top:9px}.onlineRow{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #314f64;border-radius:10px;padding:10px;background:#14283c;font-size:13px}
+.onlineRow b{color:#baffef}.onlineBox[hidden]{display:none!important}
+.app.flow-mode .arenaWrap{border-color:#6a9b92}.app.flow-mode .hudpill{color:#bfffe7}.app.flow-mode #liveBest{color:#b4ffcf}
+</style>
+</head>
+<body>
+<main class="app" id="app">
+<header class="top" aria-label="Game controls">
+  <div class="eyebrow visuallyHidden"></div>
+  <div class="brand" aria-label="BANKSHOT">BANK<span>SHOT</span><i>.</i></div>
+  <div class="topControls">
+    <button type="button" class="modeToggle" id="modeToggle" aria-label="Change game mode"><span id="modeToggleText">⚡ BLITZ</span><span aria-hidden="true">⌄</span></button>
+    <button class="tool audioQuick" id="audioQuick" type="button" aria-label="Arcade sound settings">♫<small>ARCADE</small></button>
+    <button class="tool menuToggle" id="settingsBtn" type="button" aria-label="Open menu">☰</button>
+    <button class="visuallyHidden" id="helpBtn" type="button">How to play</button>
+  </div>
+</header>
+<div class="liveScoreBar" aria-label="Current round status">
+  <div class="liveScore"><span>SCORE</span><strong id="liveScore">0</strong></div>
+  <div class="liveBest"><span id="liveBestLabel">PERSONAL BEST</span><strong id="liveBest">0</strong></div>
+  <div class="liveShots"><span id="liveShotsLabel">SHOTS LEFT</span><strong id="liveShots">● ● ● ● ●</strong></div>
+</div>
+<nav class="modebar" aria-label="Game mode"><button class="tab active" id="blitzTab">⚡ BLITZ</button><button class="tab" id="dailyTab">✦ DAILY</button><button class="tab" id="labTab">🧠 SHOT LAB</button></nav>
+<div class="dailyRibbon"><div class="dailyLeft"><div class="crownIcon">👑</div><div class="dailyText"><strong id="dailyHeadline">DAILY CROWN · DAY 1</strong><small id="dailyDetail">A new shared board every UTC day</small></div></div><div class="dailyRight"><button class="smallAction" id="crownBtn">7-DAY CASE</button><button class="smallAction gold" id="goDailyBtn">PLAY ↗</button></div></div><div class="rivalStrip" id="rivalStrip" hidden><div><b id="rivalLabel">FRIEND'S SCORE</b><div style="font-size:10px;color:#b7c5dd" id="rivalProgress">Beat their five-shot run</div></div><span id="rivalTarget">0</span><button id="watchRivalBtn">▶ WATCH</button></div><div class="ghostStrip" id="ghostStrip" hidden><div class="ghostLeft"><div class="ghostLabel" id="ghostLabel">👻 CHASE YOUR GHOST</div><div class="ghostPace" id="ghostPace">Beat your best run on this board</div></div><div class="ghostScore" id="ghostScore">0</div><button class="ghostButton" id="ghostBtn">↻ CHASE</button></div><div class="clutchStrip" id="clutchStrip" hidden><div><b>⚡ CLUTCH SHOT</b><small id="clutchDetail">Same setup. One shot to beat theirs.</small></div><strong id="clutchGoal">+0</strong><button class="clutchButton" id="clutchFullBtn">FULL GAME ↗</button></div><div class="scores"><div class="stat"><label>YOUR SCORE</label><strong id="score">0</strong><small id="scoreSub">5 shots to go</small></div><div class="stat"><label>PERSONAL BEST</label><strong class="bestval" id="best">0</strong><small id="bestSub">On this board</small></div><div class="stat"><label>MAX CHAIN</label><strong class="streakval" id="chain">×0</strong><small id="chainSub">This round</small></div></div>
+<div class="labStrip" id="labStrip"><div><strong>🧠 TODAY’S ONE-SHOT PUZZLE</strong><small>One shot per try. Find a better bank angle.<br>Unlimited retries · the same board for everyone today.</small></div><div class="labCount" id="labAttempts">0<span>ATTEMPTS</span></div></div>
+<div class="paceStrip" id="paceStrip" hidden aria-live="polite"><div class="paceLeft"><div class="paceTag" id="paceTag">PERSONAL TARGET</div><div class="paceText" id="paceText">Beat your best on this board.</div></div><div class="paceValue" id="paceValue">0</div><div class="paceTrack"><div class="paceFill" id="paceFill"></div></div></div>
+<section class="arenaWrap" id="arenaWrap" aria-label="BANKSHOT game arena"><canvas id="game" aria-label="Drag from anywhere to aim and lift your finger to launch your shot"></canvas><div class="gameHud"><span class="hudpill" id="boardChip">BOARD · B7K9</span><span class="hudpill warm" id="statusChip">READY TO FIRE</span></div><div class="aimReadout" id="aimReadout" hidden aria-live="off"><b id="aimAngle">STRAIGHT</b><span id="aimBank">PATH PREVIEW</span></div><div class="firstGuide" id="firstGuide" hidden><strong>SHOOT</strong><span>DRAG TO AIM · RELEASE</span><small>Follow the dotted trajectory</small></div><button type="button" class="speedBtn" id="speedBtn" hidden aria-label="Speed up the ball">2× SPEED »</button><div class="flash" id="flash"></div><div class="callout" id="callout"></div><div class="overlay" id="gameEnd"><div class="endPanel"><div class="trophy" id="endIcon">🏆</div><div class="overline" id="endOverline">RUN COMPLETE</div><h2 id="endTitle">NICE SHOT.</h2><div class="endScore" id="endScore">0</div><div class="masteryResult" id="masteryResult" hidden aria-live="polite"><strong id="masteryRank">BOARD MASTERY</strong><div class="masteryTrack"><div id="masteryFill"></div></div><small id="masteryNext">Next milestone</small></div><p class="endSub" id="endText"></p><div class="shotRecap" id="shotRecap" aria-label="Points scored on each shot"></div><div class="endCoach" id="endCoach"></div><div class="clutchNote" id="clutchEndNote" hidden>Four setup shots are replayed from the challenge. Only your final shot counts in this duel.</div><div class="feelSurvey" id="feelSurvey" hidden><strong>QUICK PLAYTEST · What decided your score?</strong><div class="feelOptions"><button type="button" data-feeling="aiming">My aiming</button><button type="button" data-feeling="both">Both</button><button type="button" data-feeling="luck">Mostly luck</button></div></div><div class="onlineBox" id="dailyOnlineResult" hidden><strong>DAILY LEADERBOARD</strong><div id="dailyOnlineStatus">Compare your five shots with real verified scores.</div><button type="button" id="dailySubmit">SIGN IN WITH APPLE · SUBMIT SCORE</button></div><div class="endActions"><button class="action main" id="replayEnd">↻ PLAY AGAIN</button><button class="action" id="shareEnd">↗ CHALLENGE A FRIEND</button><button class="action" id="newBoardEnd">✦ TRY NEW BOARD</button></div></div></div></section>
+<div class="bottomDock"><div class="dockHint" id="dockHint">DRAG TO AIM <span>·</span> RELEASE TO SHOOT</div><button type="button" id="roundMoreBtn" aria-label="More game actions" title="More actions">•••</button></div>
+<button type="button" id="precisionToggle" class="precisionToggle" aria-expanded="false" hidden>⌖ PRECISION AIM <span>⌄</span></button>
+<div class="playFooter"><div class="scoreRules" aria-label="Scoring rules"><span>🎯 <strong>HIT</strong> targets</span><span>↗ <strong>BANK</strong> +24%/wall</span><span>🔗 <strong>CHAIN</strong> matching</span></div><div class="shotsRow"><div class="leftShots"><span class="tiny">SHOTS LEFT</span><div class="dots" id="shotDots" aria-label="Shots remaining"></div></div><span class="how" id="countText">5 / 5</span></div><div class="shotReport" id="shotReport" hidden aria-live="polite"><span id="shotReportTitle">SHOT 1</span><strong id="shotReportNumbers">+0</strong><small id="shotReportAdvice"></small></div><div class="precisionBar" id="precisionBar" hidden><div class="precisionHead"><b>🎯 PRECISION TUNING</b><span>Nudge your last angle · or drag to aim</span></div><div class="precisionControls"><button type="button" id="precisionLeft" aria-label="Aim half a degree left">−0.5°</button><div class="precisionValue"><strong id="precisionAngle">CENTER</strong><small>aim angle</small></div><button type="button" id="precisionRight" aria-label="Aim half a degree right">+0.5°</button><button type="button" class="precisionFire" id="precisionFire">FIRE ↗</button></div></div><div class="progress"><div id="shotProgress"></div></div><div class="tip" id="tip"><b>DRAG</b> to aim · <b>RELEASE</b> to shoot</div><div class="buttons"><button class="action" id="restartBtn">↻ RESTART</button><button class="action main" id="shareBtn">↗ BEAT MY SCORE</button></div><div class="boardStrip"><span id="boardInfo">YOUR BOARD <b id="boardCode">B7K9</b></span><div class="boardBtns"><button class="linklike" id="newBoardBtn">✦ NEW</button><button class="linklike" id="enterCodeBtn">FRIEND CODE ↗</button></div></div></div>
+<p class="subcopy" id="modeSubcopy"><strong>Bank it.</strong> Wall ricochets boost your score. Connect matching colors for huge chains. Five shots to prove yourself.</p>
+</main>
+<div class="backdrop" id="dialogBackdrop"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><button class="close" id="closeDialog" aria-label="Close dialog">×</button><div class="micro" id="dialogEyebrow"></div><h3 id="dialogTitle"></h3><div id="dialogBody"></div></div></div>
+<div class="toast" id="toast">Ready</div>
+<script>
+(()=>{'use strict';
+const W=390,H=520,TAU=6.283185307179586,SHOT_MAX=5,SPEED=840,STEP=1/120;
+const VERSION='21.0.0-flow-experiment';
+const $=id=>document.getElementById(id),canvas=$('game'),cx=canvas.getContext('2d',{alpha:false});
+// V12: feedback belongs near the shot; full results belong above the entire phone screen.
+$('arenaWrap').appendChild($('shotReport'));$('app').appendChild($('precisionBar'));document.body.appendChild($('gameEnd'));
+const palette=['#69ecfb','#ff74b4','#ffc86a','#bc99ff','#b7ff92'];
+const param=new URLSearchParams(location.search);
+const utcDay=(d=new Date())=>d.toISOString().slice(0,10);
+const dailyCode=()=> 'D'+utcDay().replaceAll('-','');
+ const labCode=()=> 'L'+utcDay().replaceAll('-','');
+const getDays=()=>Array.from({length:7},(_,i)=>{let d=new Date(Date.now()-(6-i)*86400000);return utcDay(d)});
+const crownKey=()=> 'bs:v3:crowns';
+const dailyMedalTarget=10000; // An explicit beta calibration target, not a global percentile.
+
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+let mode=['daily','lab','flow','blitz'].includes(param.get('mode'))?param.get('mode'):'flow';
+let board=(param.get('board')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14)||'B7K9';
+if(mode==='daily'&&!param.get('beat')&&param.get('clutch')!=='1')board=dailyCode();
+if(mode==='lab'&&!param.get('board'))board=labCode();
+let targetScore=param.get('clutch')==='1'?0:Math.max(0,Math.min(1e9,Number(param.get('beat'))||0));
+// Rival links contain a compact recording of five angles and per-shot scores.
+// These are user-supplied claims, NOT cryptographically verified multiplayer scores.
+const decodeAngles=s=> /^[0-9a-z]{15}$/i.test(s||'') ? Array.from({length:5},(_,i)=>s.slice(i*3,i*3+3).toLowerCase()).filter(x=>Number.parseInt(x,36)<=4095) : [];
+const decodeSteps=s=> /^[0-9a-z]+(\.[0-9a-z]+){4}$/i.test(s||'') ? s.split('.').map(x=>Number.parseInt(x,36)).filter(x=>Number.isSafeInteger(x)&&x>=0&&x<1e9) : [];
+let rivalAngles=decodeAngles(param.get('replay')),rivalSteps=decodeSteps(param.get('steps'));
+const incomingClutch=param.get('clutch')==='1'&&rivalAngles.length===5;let clutchReplay=incomingClutch?[...rivalAngles]:[];
+let clutchActive=false,clutchBase=0,clutchTargetShot=0,clutchReady=false;
+let ghostRun=null,ghostChasing=false,runAngles=[],runSteps=[],lastRun=null,watchMode=false,autoReplayIndex=0,autoReplayTimer=0,chosenTrail=read('bs:v3:trail','cyan'),unlockedCrownToday=false;
+
+let flowWave=1,flowWaveStart=0,flowSuccessShots=0,flowWaveCleared=0;
+let playbackSpeed=1,firstShotSession=false,precisionCode=null,lastShot=null,labBestAngle=null,labBestScore=0,labRecent=[],targets=[],ball=null,particles=[],rings=[],floats=[],shooting=false,aiming=false,aim=null,aimStart=null,finished=false,score=0,best=0,initialBest=0,shots=SHOT_MAX,maxCombo=0,combo=0,hits=0,walls=0,elapsed=0,clock=0,shake=0,shakeX=0,shakeY=0,impulse=0,accum=0,lastFrame=0,shotSeq=0, pendingRound=0,overlayTimeout=0,justCleared=false;
+let sound=read('bs:sound',true),haptics=read('bs:haptics',true),reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let audioContext=null,sparkCount=0;
+// These counters are local diagnostics. SFX do not affect score, physics, or board RNG.
+let sfxCounts={launch:0,bank:0,hit:0,mega:0,miss:0,near:0,record:0,finish:0},audioMaster=null;
+let audioMode=read('bs:v11:audioMode',sound?'arcade':'off');
+if(!['off','soft','arcade'].includes(audioMode))audioMode='arcade';
+sound=audioMode!=='off';
+let closestMiss=Infinity,lastAudioEvent='',lastAudioAt=-100;
+function audioLevel(){return audioMode==='off'?0:audioMode==='soft'?.32:.72}
+function updateAudioQuick(){const b=$('audioQuick');b.innerHTML=audioMode==='off'?'♪<small>OFF</small>':audioMode==='soft'?'♪<small>SOFT</small>':'♫<small>ARCADE</small>';b.setAttribute('aria-label',audioMode==='off'?'Muted audio, tap for soft volume':audioMode==='soft'?'Soft arcade audio, tap for full volume':'Arcade audio, tap to mute')}
+function setAudioMode(next){audioMode=next;sound=audioMode!=='off';store('bs:v11:audioMode',next);store('bs:sound',sound);updateAudioQuick();if(audioMaster)audioMaster.gain.setTargetAtTime(audioLevel(),audioContext.currentTime,.015);if(sound)sfx('ui',{force:true});popToast(audioMode==='off'?'Sound muted':audioMode==='soft'?'Sound: soft':'Sound: arcade')}
+function initAudio(){if(!sound)return null;try{if(!audioContext){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;audioContext=new C();const limiter=audioContext.createDynamicsCompressor();limiter.threshold.value=-18;limiter.knee.value=16;limiter.ratio.value=6;limiter.attack.value=.002;limiter.release.value=.13;audioMaster=audioContext.createGain();audioMaster.gain.value=audioLevel();audioMaster.connect(limiter);limiter.connect(audioContext.destination)}if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});return audioContext}catch{return null}}
+// Keep enough headroom for simultaneous impacts. Attack should be clear on small phone speakers.
+function synth(freq,duration=.1,type='sine',amount=.09,slide=1,start=0){
+ const a=initAudio();if(!a||!audioMaster||!sound)return;const when=a.currentTime+start;
+ const osc=a.createOscillator(),env=a.createGain();osc.type=type;osc.frequency.setValueAtTime(Math.max(55,freq),when);
+ osc.frequency.exponentialRampToValueAtTime(Math.max(55,freq*slide),when+duration);
+ env.gain.setValueAtTime(.0001,when);env.gain.exponentialRampToValueAtTime(Math.max(.0002,amount),when+.007);
+ env.gain.exponentialRampToValueAtTime(.0001,when+duration);
+ osc.connect(env);env.connect(audioMaster);osc.start(when);osc.stop(when+duration+.015);
+}
+function transient(duration=.06,amount=.11,filterHz=1300){
+ const a=initAudio();if(!a||!audioMaster||!sound)return;const len=Math.ceil(a.sampleRate*duration),b=a.createBuffer(1,len,a.sampleRate),data=b.getChannelData(0);
+ // Simple noise transient for a physical, crisp impact; not used in game RNG.
+ for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*Math.exp(-i/len*7);
+ const src=a.createBufferSource();src.buffer=b;const filter=a.createBiquadFilter();filter.type='bandpass';filter.frequency.value=filterHz;filter.Q.value=.65;
+ const g=a.createGain();g.gain.value=amount;src.connect(filter);filter.connect(g);g.connect(audioMaster);src.start();src.stop(a.currentTime+duration+.01)
+}
+function sfx(event,{chain=1,banks=0,force=false}={}){
+ if(!sound||watchMode||(!force&&event==='ui'&&document.hidden))return;
+ const a=initAudio();if(!a)return;
+ sfxCounts[event]=(sfxCounts[event]||0)+1;
+ // Sound design is deliberately event-driven. No background music, no random reward sounds.
+ switch(event){
+ case 'launch':synth(175,.15,'triangle',.16,1.85);synth(640,.12,'sine',.09,.44);transient(.05,.095,1950);break;
+ case 'bank':synth(Math.min(680,300+banks*44),.065,'triangle',.085,1.28);transient(.028,.055,2750);break;
+ case 'hit':{
+  // A five-note pentatonic scale ensures bigger chains sound upward and musical.
+  const notes=[392,440,523.25,587.33,659.25,783.99,880,1046.5];
+  const note=notes[Math.min(notes.length-1,Math.floor((chain-1)/2))];
+  synth(note,.11,'triangle',.095,1.13);synth(note/2,.08,'sine',.07,.86);
+  if(chain>=4)synth(note*1.5,.14,'sine',.055,1.08,.055);
+  break;}
+ case 'mega':synth(523.25,.17,'triangle',.085,1.05);synth(783.99,.21,'sine',.085,1.10,.08);synth(1046.5,.24,'triangle',.08,1.02,.16);break;
+ case 'near':synth(430,.11,'triangle',.045,.95);synth(510,.14,'sine',.06,1.01,.09);break;
+ case 'miss':synth(280,.15,'sine',.04,.78);break;
+ case 'record':synth(523.25,.17,'triangle',.1,1.03);synth(659.25,.17,'triangle',.1,1.03,.12);synth(783.99,.22,'triangle',.1,1.03,.24);synth(1046.5,.3,'sine',.07,1.03,.38);break;
+ case 'finish':synth(440,.12,'triangle',.07,1.03);synth(554.37,.16,'sine',.06,1.05,.13);break;
+ case 'ui':synth(620,.055,'sine',.06,1.08);break;
+ }
+ lastAudioEvent=event;lastAudioAt=performance.now();
+}
+
+function read(k,fallback){try{const v=localStorage.getItem(k);return v===null?fallback:JSON.parse(v)}catch{return fallback}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+// Local-only playtest counters. Not a D1 retention tracker and never transmitted.
+const playtestKey='bs:v10:playtest';
+const startingTime=performance.now();
+const blankPlaytest=()=>({opens:0,firstOpen:new Date().toISOString(),shots:0,fullRounds:0,labRounds:0,replays:0,firstRoundSeconds:null,firstReplaySeconds:null,fastUses:0,modeChanges:0,shares:0,feedback:'',firstShotSeconds:null,lastActiveUTC:''});
+let playtest=read(playtestKey,blankPlaytest());
+if(!playtest||typeof playtest!=='object')playtest=blankPlaytest();
+playtest.opens=(playtest.opens||0)+1;
+function savePlaytest(){playtest.lastActiveUTC=utcDay();store(playtestKey,playtest)}
+savePlaytest();
+function recordPlaytest(field,by=1){playtest[field]=(playtest[field]||0)+by;savePlaytest()}
+function reportPlaytest(){return 'BANKSHOT V15 LOCAL PLAYTEST\nOpenings: '+(playtest.opens||0)+'\nShots: '+(playtest.shots||0)+'\nFive-shot rounds: '+(playtest.fullRounds||0)+'\nShot Lab rounds: '+(playtest.labRounds||0)+'\nRematches: '+(playtest.replays||0)+'\nFirst complete round: '+(playtest.firstRoundSeconds??'not measured')+'s'+'\nFirst replay: '+(playtest.firstReplaySeconds??'not measured')+'s'+'\nBoard mastery rounds: '+(playtest.masteryRounds||0)+'\nMedal upgrades: '+(playtest.masteryUpgrades||0)+'\nSpeed-ups: '+(playtest.fastUses||0)+'\nMode switches: '+(playtest.modeChanges||0)+'\nShare requests: '+(playtest.shares||0)+'\nFirst shot: '+(playtest.firstShotSeconds===null?'not yet':playtest.firstShotSeconds+'s')+'\nScore explanation: '+(playtest.feedback||'no answer')+'\nResults are local to this browser, not unique users or verified retention.'}
+function updateFirstGuide(){const guide=$('firstGuide');const show=!shooting&&!finished&&!aiming&&!watchMode&&playtest.shots===0;guide.hidden=!show}
+function updateSpeedUI(){const btn=$('speedBtn');btn.hidden=!shooting||elapsed<1.05||watchMode;btn.textContent=playbackSpeed>1?'1× NORMAL':'2× SPEED »';btn.setAttribute('aria-label',playbackSpeed>1?'Return to normal speed':'Speed up the ball')}
+function hash(input){let x=2166136261;for(let c of input){x^=c.charCodeAt(0);x=Math.imul(x,16777619)}return x>>>0}
+function rng(seed){let x=seed>>>0;return ()=>{x+=0x6D2B79F5;let z=x;z=Math.imul(z^(z>>>15),z|1);z^=z+Math.imul(z^(z>>>7),z|61);return ((z^(z>>>14))>>>0)/4294967296}}
+let visualRand=rng(104931);
+function bestAngleKey(){return 'bs:v8:lab:best:'+board}
+function recentAngleKey(){return 'bs:v8:lab:recent:'+board}
+function loadLabMemory(){const b=read(bestAngleKey(),null),r=read(recentAngleKey(),[]);labBestAngle=b&&typeof b.angle==='string'&&/^[0-9a-z]{3}$/.test(b.angle)&&Number.parseInt(b.angle,36)<=4095?b.angle:null;labBestScore=b&&Number.isFinite(b.score)?b.score:0;labRecent=Array.isArray(r)?r.filter(z=>z&&typeof z.angle==='string'&&Number.isFinite(z.score)).slice(-6):[];precisionCode=labRecent.length?labRecent.at(-1).angle:(labBestAngle||'1kw')}
+function angleLabel(angle){let d=Math.atan2(angle.x,-angle.y)*180/Math.PI;return Math.abs(d)<.07?'CENTER':Math.abs(d).toFixed(1)+'° '+(d<0?'LEFT':'RIGHT')}
+function shotFeedback(info){if(!info)return '';if(info.hits===0)return 'No target hit. Compare the preview to your last angle and adjust.';if(info.walls===0)return `${info.hits} target${info.hits===1?'':'s'} hit. Try a wall bank for a higher multiplier.`;return `${info.hits} targets · ${info.walls} bank${info.walls===1?'':'s'}. ${info.walls>1?'Strong ricochet!':'See if one more bank earns a bigger chain.'}`}
+function renderShotReport(){const el=$('shotReport');if(!lastShot||shooting||finished){el.hidden=true;return}el.hidden=false;$('shotReportTitle').textContent='SHOT '+lastShot.index+' · '+angleLabel(dirCode(lastShot.angle));$('shotReportNumbers').textContent='+'+fmt(lastShot.points);$('shotReportAdvice').textContent=shotFeedback(lastShot)}
+function updateAimReadout(){const el=$('aimReadout');if(!aiming||!aim||shooting||finished){el.hidden=true;return}const d=aimDir(aim.x,aim.y),p=simulatePreview(d);el.hidden=false;$('aimAngle').textContent=angleLabel(d);$('aimBank').textContent=p.impact?(p.bounces===0?'DIRECT HIT':p.bounces+' BANK'+(p.bounces===1?'':'S')+' → HIT'):'NO EARLY HIT · ADJUST ANGLE'}
+function randomBoard(){let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',out='';for(let i=0;i<5;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out}
+
+// V13: mastery is per-board, local-only, without coins, timers, paywalls or mandatory streaks.
+const masteryKey='bs:v13:boardMastery';
+const masteryTiers={blitz:[4000,10000,20000],daily:[4000,10000,20000],lab:[1000,4000,8000]};
+const masteryNames=['BRONZE','SILVER','GOLD'];
+function tierFor(value,kind=mode){const ts=masteryTiers[kind]||masteryTiers.blitz;return ts.reduce((rank,threshold)=>rank+(value>=threshold?1:0),0)}
+function masteryBook(){const v=read(masteryKey,[]);return Array.isArray(v)?v.filter(x=>x&&/^[A-Z0-9]{2,14}$/.test(x.board)&&['blitz','daily','lab'].includes(x.mode)&&Number.isFinite(x.best)).slice(0,48):[]}
+function saveMastery(){if(watchMode||clutchActive||mode==='flow')return;const book=masteryBook();const old=book.find(x=>x.board===board&&x.mode===mode);const entry={board,mode,best:Math.max(score,old?.best||0),runs:Math.min(99999,(old?.runs||0)+1),date:utcDay()};
+ const newer=[entry,...book.filter(x=>!(x.board===board&&x.mode===mode))].slice(0,48);store(masteryKey,newer);recordPlaytest('masteryRounds');if(tierFor(entry.best,mode)>tierFor(old?.best||0,mode))recordPlaytest('masteryUpgrades');}
+function renderMasteryResult(){const el=$('masteryResult');if(watchMode||clutchActive||mode==='flow'){el.hidden=true;return}el.hidden=false;
+ const tier=tierFor(best,mode),ts=masteryTiers[mode]||masteryTiers.blitz,rank=tier?masteryNames[tier-1]:'UNRANKED',next=ts[tier],previous=tier?ts[tier-1]:0;
+ $('masteryRank').textContent=tier===3?'✦ GOLD BOARD MASTERED':`${tier?'✦ '+rank:'✦ FIRST GOAL: BRONZE'} · ${board}`;
+ $('masteryNext').textContent=tier===3?`Best: ${fmt(best)} · Try a new board or raise your record.`:`${fmt(Math.max(0,next-best))} points to ${masteryNames[tier]} (${fmt(next)}) · Best: ${fmt(best)}`;
+ $('masteryFill').style.width=(tier===3?100:Math.min(100,Math.max(0,100*(best-previous)/(next-previous))))+'%';}
+
+function dailyMinutesRemaining(){const t=Date.now();return Math.ceil((86400000-(t%86400000))/60000)}
+function dailyRemainingLabel(){const minutes=dailyMinutesRemaining();return `${Math.floor(minutes/60)}h ${String(minutes%60).padStart(2,'0')}m`}
+function dailyBestScore(){return Math.max(0,Number(read('bs:best:daily:'+dailyCode(),0))||0)}
+function dailyPlayed(){return masteryBook().filter(r=>r.mode==='daily'&&/^D\d{8}$/.test(r.board)).sort((a,b)=>b.board.localeCompare(a.board)).slice(0,7)}
+function playDaily(){targetScore=0;rivalAngles=[];rivalSteps=[];reset('daily',dailyCode());closeDialog();popToast('Today’s five-shot challenge is ready')}
+function key(){return mode==='flow'?'bs:v21:flow:best':'bs:best:'+mode+':'+board}
+function runKey(){return 'bs:v3:run:'+mode+':'+board}
+function ghostKey(){return 'bs:v4:ghost:'+mode+':'+board}
+function loadGhost(){const g=read(ghostKey(),null),old=read(runKey(),null);return g&&g.board===board&&g.mode===mode?g:(old&&old.board===board&&old.mode===mode&&old.score===best?old:null)}
+function updateGhostUI(){const strip=$('ghostStrip');if(mode==='lab'||clutchActive||!ghostRun||watchMode||targetScore>0){strip.hidden=true;return}strip.hidden=false;$('ghostScore').textContent=fmt(ghostRun.score);$('ghostLabel').textContent=ghostChasing?'👻 GHOST CHALLENGE LIVE':'👻 YOUR BEST RUN';const n=runSteps.length;if(ghostChasing&&n>0&&Array.isArray(ghostRun.steps)&&ghostRun.steps.length===5){const diff=score-ghostRun.steps[Math.min(4,n-1)];$('ghostPace').textContent=`After shot ${n}: ${diff>=0?'+':'−'}${fmt(Math.abs(diff))} ${diff>=0?'AHEAD':'BEHIND'} your ghost`;}else{$('ghostPace').textContent='Five identical shots to beat your personal best'}$('ghostBtn').textContent=ghostChasing?'↻ RESTART':'↻ CHASE';$('ghostBtn').disabled=shooting||watchMode}
+function personalTarget(){if(mode==='lab')return Math.max(500,best>0?best+Math.max(100,Math.round(best*.1)):500);return best>0?best+Math.max(250,Math.round(best*.1)):5000}
+function updatePaceUI(){
+ const strip=$('paceStrip');if(watchMode||finished||clutchActive||mode==='lab'){strip.hidden=true;return}
+ strip.hidden=false;
+ const playerPB=best>0;
+ const goal=personalTarget();
+ const committed=runSteps.length;
+ let reference=null;
+ if(playerPB&&ghostRun&&Array.isArray(ghostRun.steps)&&ghostRun.steps.length===5&&committed){reference=ghostRun.steps[committed-1]}
+ let label='YOUR NEXT PERSONAL BEST',message='',value='';
+ if(targetScore>0){label='FRIEND CHALLENGE';value=fmt(targetScore);message=score>targetScore?'You have beaten their target!':`${fmt(Math.max(0,targetScore-score+1))} more to beat your friend`}
+ else if(reference!==null){const delta=score-reference;label='PACE VS YOUR BEST';value=(delta>=0?'+':'−')+fmt(Math.abs(delta));message=delta>=0?`Ahead after shot ${committed} — stay sharp`:`Behind after shot ${committed} — big chains can turn it around`}
+ else if(score>goal){label='NEW PERSONAL BEST IN REACH';value=fmt(score);message='Finish your five-shot run to lock in this score'}
+ else{value=fmt(goal);message=playerPB?`${fmt(Math.max(0,goal-score))} points to your next record`:`${fmt(Math.max(0,goal-score))} points to your first milestone`}
+ $('paceTag').textContent=label;$('paceText').textContent=message;$('paceValue').textContent=value;
+ $('paceFill').style.width=Math.min(100,Math.max(0,score/Math.max(1,targetScore||goal)*100))+'%';
+}
+function shotRecapHtml(){const prior=runSteps.map((v,i)=>Math.max(0,v-(i?runSteps[i-1]:0)));const peak=Math.max(...prior,0);return prior.map((n,i)=>`<div class="shotBox ${n===peak&&peak>0?'bestShot':''}"><label>SHOT ${i+1}</label><strong>+${fmt(n)}</strong></div>`).join('')}
+function endCoachingText(record){if(watchMode)return 'Their replay is complete. Your five shots are next.';
+ if(clutchActive){const yours=score-clutchBase,delta=yours-clutchTargetShot;return delta>0?`CLUTCH WIN by ${fmt(delta)}! Your final shot: ${fmt(yours)}. Their final shot: ${fmt(clutchTargetShot)}.`:delta===0?`A TIE! Both final shots scored ${fmt(yours)}. Try a sharper bank.`:`${fmt(-delta+1)} more points to win the clutch. Your shot: ${fmt(yours)} · theirs: ${fmt(clutchTargetShot)}.`;}
+ const d=runSteps.map((v,i)=>v-(i?runSteps[i-1]:0)), top=Math.max(...d), shot=d.indexOf(top)+1;
+ if(targetScore){if(score>targetScore)return `Victory by ${fmt(score-targetScore)} points. Send the rematch.`;return `${fmt(targetScore-score+1)} points to beat your rival. Try another angle.`}
+ if(record)return mode==='lab'?`One shot, new best by ${fmt(score-initialBest)}! Try another angle to push it higher.`:`New record by ${fmt(score-initialBest)}! Shot ${shot} scored ${fmt(top)} points.`;
+ if(initialBest>0)return mode==='lab'?`Only ${fmt(Math.max(0,initialBest-score+1))} points from a new one-shot record. Explore a different ricochet.`:`Just ${fmt(Math.max(0,initialBest-score+1))} to surpass your best. Shot ${shot} brought ${fmt(top)} points.`;
+ return mode==='lab'?`One shot scored ${fmt(top)}. Bank off a different wall and see what changes.`:`Shot ${shot} was your strongest (+${fmt(top)}). Try the same board to improve.`;
+}
+function progress(){return read(crownKey(),{})}
+function stampCrown(){if(mode!=='daily'||board!==dailyCode()||watchMode||score<dailyMedalTarget)return false;let p=progress(),d=utcDay();if(p[d])return false;p[d]=true;store(crownKey(),p);unlockedCrownToday=true;return true}
+function crownsEarned(){return Object.values(progress()).filter(Boolean).length}
+function streakCount(){let p=progress(),s=0,d=new Date();for(let i=0;i<730;i++){let date=utcDay(new Date(d.getTime()-i*86400000));if(p[date])s++;else if(i!==0)break;else if(i===0)continue;}return s}
+function trailName(){return {cyan:'ICE',mint:'MINT',violet:'VIOLET',gold:'GOLD'}[chosenTrail]||'ICE'}
+function trailColor(){return {cyan:'#92f5ff',mint:'#baff9f',violet:'#d49aff',gold:'#ffcf72'}[chosenTrail]||'#92f5ff'}
+function unlockTrail(t){return t==='cyan'|| (t==='mint'&&crownsEarned()>=1)||(t==='violet'&&crownsEarned()>=3)||(t==='gold'&&crownsEarned()>=7)}
+function updateCrownUI(){let p=progress(),count=crownsEarned(),today=!!p[utcDay()];$('dailyHeadline').textContent=today?'CROWN CLAIMED TODAY':'DAILY · SCORE '+fmt(dailyMedalTarget);$('dailyDetail').textContent=today?`Nice work! ${count} crown${count===1?'':'s'} earned · return tomorrow`:`One daily board · earn trails at 1 / 3 / 7 crowns`;$('goDailyBtn').textContent=mode==='daily'&&board===dailyCode()?'PLAYING':mode==='daily'?'PLAY TODAY':'PLAY ↗';$('goDailyBtn').disabled=mode==='daily'&&board===dailyCode();const show=targetScore>0;$('rivalStrip').hidden=!show;if(show){$('rivalTarget').textContent=fmt(targetScore);$('rivalLabel').textContent='RIVAL TO BEAT';$('watchRivalBtn').style.display=rivalAngles.length===5?'':'none';$('rivalProgress').textContent=runSteps.length&&rivalSteps.length===5?'Your shot '+runSteps.length+': '+fmt(runSteps.at(-1))+' vs '+fmt(rivalSteps[runSteps.length-1]):(mode==='lab'?'One shot · same board · all skill':'Five shots · same board · all skill')}}
+function angleCode(dir){let a=Math.atan2(dir.x,-dir.y),v=Math.max(0,Math.min(4095,Math.round((a+Math.PI/2)/Math.PI*4095)));return v.toString(36).padStart(3,'0')}
+function dirCode(code){let v=Number.parseInt(code,36),a=(v/4095)*Math.PI-Math.PI/2;return {x:Math.sin(a),y:-Math.cos(a)}}
+function updatePrecisionUI(){
+ const show=mode==='lab'&&!clutchActive&&!watchMode;
+ $('precisionBar').hidden=!show;
+ if(!show)return;
+ if(!precisionCode)precisionCode='1kw';
+ $('precisionAngle').textContent=angleLabel(dirCode(precisionCode));
+ const locked=shooting||finished||shots===0;
+ $('precisionLeft').disabled=locked||Number.parseInt(precisionCode,36)===0;
+ $('precisionRight').disabled=locked||Number.parseInt(precisionCode,36)===4095;
+ $('precisionFire').disabled=locked;
+}
+function nudgePrecision(orientation){
+ if(mode!=='lab'||clutchActive||watchMode||shooting||finished||shots!==1)return;
+ // 4095 steps over 180 degrees. 11 steps ~= 0.48 degree.
+ const n=Math.max(0,Math.min(4095,Number.parseInt(precisionCode||'1kw',36)+orientation*11));
+ precisionCode=n.toString(36).padStart(3,'0');
+ updatePrecisionUI();
+ popToast('Aim '+angleLabel(dirCode(precisionCode)));
+}
+
+// In WKWebView, location is file://. Only a configured HTTPS public playable game
+// is a real challenge link; never invent or share a file:// URL.
+function playableChallengeBase(){
+ const injected=window.BANKSHOT_CHALLENGE_BASE_URL;
+ if(typeof injected==='string'&&/^https:\/\//.test(injected))return injected;
+ return ['https:','http:'].includes(location.protocol)?location.href:null;
+}
+function makeChallengeLink(run=currentShareRun(),isClutch=false){
+ const base=playableChallengeBase();if(!base)return null;
+ try{const u=new URL(base);if(!['https:','http:'].includes(u.protocol))return null;
+   u.search='';u.hash='';u.searchParams.set('mode',run?.mode||mode);u.searchParams.set('board',run?.board||board);
+   if(isClutch){if(run?.angles?.length!==15)return null;u.searchParams.set('clutch','1');u.searchParams.set('replay',run.angles)}
+   else if(run?.score!=null){u.searchParams.set('beat',String(run.score));if(run.angles?.length===15&&run.steps?.length===5){u.searchParams.set('replay',run.angles);u.searchParams.set('steps',run.steps.map(n=>n.toString(36)).join('.'))}}
+   return u.toString();
+ }catch{return null}
+}
+function freshSoloBoard(){
+ const old=board;let next=randomBoard();for(let i=0;i<8&&next===old;i++)next=randomBoard();
+ if(next===old)next=(old==='P5Q2X'?'Q4A9R':'P5Q2X');
+ targetScore=0;rivalAngles=[];rivalSteps=[];closeDialog();reset('blitz',next);
+ popToast('New board '+next+' · ready to shoot');return next;
+}
+function currentShareRun(){if(mode==='flow')return null;return (lastRun&&lastRun.board===board&&lastRun.mode===mode)?lastRun:read(runKey(),null)}
+
+function playSound(freq=440,dur=.09,wave='sine',volume=.06,slide=.72){synth(freq,dur,wave,volume,slide)}
+function buzz(pattern=12){
+ if(!haptics)return;
+ try{
+  const native=window.webkit?.messageHandlers?.bankshotHaptics;
+  if(native){
+   // Only launch and meaningful chain celebrations call this function.
+   native.postMessage(Array.isArray(pattern)?'combo':pattern<=9?'hit':'launch');
+  }else navigator.vibrate?.(pattern);
+ }catch{}
+}
+function popToast(t){let el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(el.timer);el.timer=setTimeout(()=>el.classList.remove('show'),1900)}
+function flash(){if(reduceMotion)return;const el=$('flash');el.classList.remove('on');void el.offsetWidth;el.classList.add('on')}
+function callout(s){const el=$('callout');el.textContent=s;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
+function setTip(s){$('tip').innerHTML=s}
+function addParticles(x,y,color,n=14,speed=210){if(reduceMotion)n=Math.ceil(n/3);const rand=()=>visualRand();for(let i=0;i<n;i++){let a=rand()*TAU,v=speed*(.35+rand()*.85),life=.24+rand()*.34;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-25,age:0,life,r:1.5+rand()*3.1,color});}if(particles.length>210)particles.splice(0,particles.length-210)}
+function addRing(x,y,color,r=10){rings.push({x,y,color,r,age:0,life:.4})}
+function addText(x,y,s,color='#fff',big=false){floats.push({x,y,s,color,big,age:0,life:big?1.05:.8})}
+function hitFlash(x,y,color,number=12){addParticles(x,y,color,number);addRing(x,y,color);shake=Math.min(7,shake+(reduceMotion?0:1.0))}
+function makeBoard(code){const ran=rng(hash('bankshot:board:v2:'+code));let groups=[];const colorsGrid=[];for(let r=0;r<8;r++){colorsGrid[r]=[];for(let c=0;c<7;c++){const nearby=[];if(r>0)nearby.push(colorsGrid[r-1][c]);if(c>0)nearby.push(colorsGrid[r][c-1]);colorsGrid[r][c]=(nearby.length&&ran()<.56)?nearby[Math.floor(ran()*nearby.length)]:Math.floor(ran()*palette.length)}}
+for(let r=0;r<8;r++)for(let c=0;c<7;c++){if(ran()<(r>1&&r<6?.17:.24))continue;const x=31+c*54+(r%2?7:0)+(ran()-.5)*7;const y=86+r*42+(ran()-.5)*8;if(x>W-25||x<25)continue;groups.push({id:r*7+c,x,y,r:12.8+ran()*1.65,color:colorsGrid[r][c],bomb:ran()<.08,alive:true,phase:ran()*TAU})}
+return groups}
+function setURL(){try{if(location.protocol!=='http:'&&location.protocol!=='https:')return;let u=new URL(location.href);u.searchParams.delete('beat');u.searchParams.delete('replay');u.searchParams.delete('steps');u.searchParams.delete('clutch');if(clutchActive&&clutchReplay.length===5){u.searchParams.set('clutch','1');u.searchParams.set('replay',clutchReplay.join(''))}if(targetScore)u.searchParams.set('beat',targetScore);if(targetScore&&rivalAngles.length===5){u.searchParams.set('replay',rivalAngles.join(''));if(rivalSteps.length===5)u.searchParams.set('steps',rivalSteps.map(n=>n.toString(36)).join('.'))}u.searchParams.set('mode',mode);u.searchParams.set('board',board);history.replaceState(null,'',u)}catch{}}
+function updateHUD(){
+renderShotReport();updateAimReadout();updatePrecisionUI();updateFirstGuide();updateSpeedUI();
+$('score').textContent=fmt(score);$('best').textContent=fmt(best);$('chain').textContent='×'+maxCombo;
+$('clutchStrip').hidden=!clutchActive;if(clutchActive){$('clutchGoal').textContent='+'+fmt(clutchTargetShot);$('clutchDetail').textContent='One final shot to beat your friend’s '+fmt(clutchTargetShot)}
+$('score').closest('.stat').querySelector('label').textContent=clutchActive?'SETUP + YOUR SHOT':'YOUR SCORE';$('shareBtn').textContent=clutchActive?'↻ FULL FIVE SHOTS':currentShareRun()?'↗ BEAT MY SCORE':'↗ SHARE THIS BOARD';
+$('scoreSub').textContent=clutchActive?'Four-shot setup is inherited':(mode==='flow'?'Wave '+flowWave+' · no timer':mode==='lab'?'One shot to discover':shots+' shot'+(shots===1?'':'s')+' to go');$('bestSub').textContent=mode==='daily'?(clutchActive&&board!==dailyCode()?'Shared daily board':'Today’s board'):(mode==='lab'?'Your one-shot best':'On this board');$('chainSub').textContent='This round';$('boardChip').textContent=mode==='flow'?'∞ FLOW · WAVE '+flowWave:mode==='daily'?'✦ DAILY SHOT':mode==='lab'?'🧠 SHOT LAB':'# '+board;
+$('countText').textContent=shots+' / '+(mode==='lab'?1:SHOT_MAX);
+const shotLimit=mode==='lab'?1:SHOT_MAX;$('shotDots').innerHTML=Array.from({length:shotLimit},(_,i)=>'<i class="dot '+(i>=shots?'used':'')+'"></i>').join('');$('shotProgress').style.width=(100*(shotLimit-shots)/shotLimit)+'%';
+$('boardCode').textContent=board;$('blitzTab').classList.toggle('active',mode==='blitz');$('dailyTab').classList.toggle('active',mode==='daily');$('labTab').classList.toggle('active',mode==='lab');$('app').classList.toggle('lab-mode',mode==='lab');$('app').classList.toggle('daily-mode',mode==='daily');$('app').classList.toggle('flow-mode',mode==='flow');$('app').querySelector('.eyebrow').textContent=mode==='flow'?'NO TIMER · KEEP YOUR RUN ALIVE':mode==='lab'?'ONE SHOT. INFINITE ANGLES.':'THE FIVE-SHOT CHALLENGE';if(mode==='lab'){$('labAttempts').innerHTML=fmt(read('bs:v7:lab:attempts:'+board,0))+'<span>ATTEMPTS</span>';$('modeSubcopy').innerHTML='<strong>Think before you shoot.</strong> One shared puzzle each day. Find the best angle, retry freely, then challenge a friend.'}else{$('modeSubcopy').innerHTML=mode==='flow'?'<strong>FLOW BETA.</strong> Earn enough points in each five-shot wave to continue. No timer. Local records only.':'<strong>Bank it.</strong> Wall ricochets boost your score. Connect matching colors for huge chains. Five shots to prove yourself.'}
+$('boardInfo').firstChild.textContent=mode==='flow'?'CURRENT WAVE ':mode==='daily'?(clutchActive&&board!==dailyCode()?'SHARED DAILY ':'TODAY’S BOARD '):(mode==='lab'?'ONE-SHOT PUZZLE ':'YOUR BOARD ');
+updateCrownUI();updateGhostUI();updatePaceUI();$('statusChip').textContent=watchMode?'▶ WATCHING RIVAL':finished?'ROUND OVER':shooting?'● BALL IN PLAY':aiming?'● LINING UP':targetScore?'TARGET '+fmt(targetScore):clutchActive?'⚡ ONE SHOT':'● READY';
+ // Single-glance live HUD; all secondary achievements remain available in the menu.
+ $('liveScore').textContent=fmt(score);
+ $('liveBestLabel').textContent=clutchActive?'THEIR FINAL SHOT':targetScore?'FRIEND TO BEAT':mode==='flow'?'FLOW RECORD':mode==='daily'?'DAILY BEST':'PERSONAL BEST';
+ $('liveBest').textContent=fmt(clutchActive?clutchTargetShot:targetScore||best);
+ $('liveShotsLabel').textContent=mode==='lab'?'ONE SHOT':clutchActive?'FINAL SHOT':'SHOTS LEFT';
+ $('liveShots').textContent=(mode==='lab'||clutchActive)?(shooting?'●':'●'):(Array.from({length:SHOT_MAX},(_,i)=>i<shots?'●':'○').join(' '));
+ $('modeToggleText').textContent=clutchActive?'⚡ CLUTCH':mode==='flow'?'∞ FLOW':mode==='lab'?'⌖ SHOT LAB':mode==='daily'?'✦ DAILY':'⚡ BLITZ';
+ $('dockHint').textContent=watchMode?'WATCHING FRIEND':finished?'RUN COMPLETE':shooting?'BALL IN PLAY':mode==='flow'?'WAVE '+flowWave+' · '+fmt(Math.max(0,flowGoal()-(score-flowWaveStart)))+' POINTS TO ADVANCE':mode==='daily'?'DAILY · SAME BOARD FOR EVERYONE':mode==='lab'?'ONE SHOT · FIND YOUR ANGLE':clutchActive?'BEAT THEIR FINAL SHOT':playtest.shots===0?'FIVE SHOTS · ONE FINGER':'DRAG TO AIM · RELEASE TO SHOOT';
+ $('precisionToggle').hidden=mode!=='lab'||clutchActive||watchMode;
+ if(mode!=='lab'){$('app').classList.remove('precision-expanded');$('precisionToggle').setAttribute('aria-expanded','false')}
+
+}
+function reset(newMode=mode,newBoard=board,preserveGhost=false,keepDailyBoard=false){
+clearTimeout(overlayTimeout);clearTimeout(autoReplayTimer);unlockedCrownToday=false;aimStart=null;clutchActive=false;clutchReady=false;ghostChasing=preserveGhost;watchMode=false;autoReplayIndex=0;mode=newMode;flowWave=1;flowWaveStart=0;flowSuccessShots=0;flowWaveCleared=0;board=String(newBoard).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14)||'B7K9';if(mode==='daily'&&!targetScore&&!keepDailyBoard)board=dailyCode();
+targets=makeBoard(board);lastShot=null;loadLabMemory();ball=null;playbackSpeed=1;elapsed=0;particles=[];rings=[];floats=[];shooting=false;aiming=false;aim=null;finished=false;score=0;shots=mode==='lab'?1:SHOT_MAX;maxCombo=0;combo=0;hits=0;walls=0;runAngles=[];runSteps=[];elapsed=0;shotSeq++;shake=0;justCleared=false;best=read(key(),0);initialBest=best;ghostRun=loadGhost();$('gameEnd').classList.remove('show');$('gameEnd').setAttribute('aria-hidden','true');setTip(playtest.shots===0?'<b>STEP 1.</b> Drag toward glowing targets · release to shoot':'<b>DRAG</b> to aim · <b>RELEASE</b> to shoot');updateHUD();setURL()}
+// Replay four real shots to reproduce the exact remaining targets. The fifth is simulated
+// offscreen to derive its actual target score; all fifth-shot changes are then undone.
+// No points, board awards, personal records or crowns are persisted for a one-shot duel.
+function fastForwardShot(code){
+ fire(0,0,code);
+ for(let n=0;n<1000&&shooting;n++)tick(STEP);
+ if(shooting)throw new Error('Clutch setup did not resolve in 1000 physics ticks');
+}
+function startClutch(){
+ if(clutchReplay.length!==5)return false;
+ reset(mode,board,false,true);
+ clutchActive=true;clutchReady=false;
+ const oldSound=sound,oldHaptics=haptics;sound=false;haptics=false;
+ try{
+  for(let i=0;i<4;i++)fastForwardShot(clutchReplay[i]);
+  clutchBase=score;
+  const state={targets:targets.map(t=>({...t})),shots,score,maxCombo,runAngles:[...runAngles],runSteps:[...runSteps],justCleared};
+  fastForwardShot(clutchReplay[4]);
+  clutchTargetShot=Math.max(0,score-clutchBase);
+  clearTimeout(overlayTimeout);shotSeq++;
+  targets=state.targets;shots=state.shots;score=state.score;maxCombo=0;
+  runAngles=state.runAngles;runSteps=state.runSteps;justCleared=state.justCleared;
+  ball=null;shooting=false;elapsed=0;finished=false;hits=0;walls=0;combo=0;
+  particles=[];rings=[];floats=[];shake=0;aiming=false;aim=null;$('callout').classList.remove('pop');$('flash').classList.remove('on');
+  clutchReady=true;
+ }catch(e){clutchActive=false;console.warn('Clutch setup unavailable',e);reset(mode,board);return false}
+ finally{sound=oldSound;haptics=oldHaptics}
+ $('gameEnd').classList.remove('show');$('gameEnd').setAttribute('aria-hidden','true');
+ setTip('<b>ONE SHOT.</b> Beat their final shot. Drag to aim · release to fire.');
+ updateHUD();setURL();popToast('⚡ Clutch loaded. Your shot!');return true;
+}
+function simulatePreview(dir){let x=W/2,y=H-29,vx=dir.x,vy=dir.y,path=[{x,y}],impact=null,bounces=0;for(let i=0;i<250;i++){x+=vx*SPEED*STEP;y+=vy*SPEED*STEP;if(x<17.6){x=35.2-x;vx=Math.abs(vx);bounces++}if(x>W-17.6){x=2*(W-17.6)-x;vx=-Math.abs(vx);bounces++}if(y<18){y=36-y;vy=Math.abs(vy);bounces++}if(i%3===0)path.push({x,y});for(let t of targets){if(!t.alive)continue;if((x-t.x)**2+(y-t.y)**2<=(t.r+7.6)**2){impact=t;path.push({x,y});return {path,impact,bounces}}}if(y>H+22)break;}return {path,impact,bounces}}
+function aimDir(x,y){let dx=x-W/2,dy=y-(H-29);dy=Math.min(-46,dy);const mag=Math.hypot(dx,dy)||1;return{x:dx/mag,y:dy/mag}}
+function fire(x,y,recordCode){if(shooting||finished||shots===0)return;if(!watchMode&&!clutchActive){if(playtest.shots===0)playtest.firstShotSeconds=Math.round((performance.now()-startingTime)/100)/10;recordPlaytest('shots')}let original=recordCode?dirCode(recordCode):aimDir(x,y);let encoded=recordCode||angleCode(original);let dir=dirCode(encoded);runAngles.push(encoded);aiming=false;aim=null;shots--;hits=0;walls=0;combo=0;elapsed=0;playbackSpeed=1;shooting=true;closestMiss=Infinity;ball={x:W/2,y:H-29,vx:dir.x*SPEED,vy:dir.y*SPEED,r:7.6,trail:[],lastWall:-1};setTip('<b>WATCH</b> your chain go!');sfx('launch');buzz(11);updateHUD()}
+function bank(x,y){walls++;addParticles(x,y,'#b9ffb1',5,90);addRing(x,y,'#8ce8a9',5);if(walls<=8)sfx('bank',{banks:walls});if(walls===1)callout('BANK IT!')}
+function points(base){let mul=(1+Math.min(6,walls)*.24+Math.min(14,combo-1)*.14);return Math.round(base*mul/10)*10}
+function collect(t){if(!t.alive)return;
+const queue=[t];let chainHits=0;
+while(queue.length){let cur=queue.shift();if(!cur.alive)continue;cur.alive=false;combo++;hits++;chainHits++;maxCombo=Math.max(maxCombo,combo);
+let got=points(cur.bomb?190:(cur===t?120:85));score+=got;hitFlash(cur.x,cur.y,palette[cur.color],cur.bomb?23:12);addText(cur.x,cur.y-20,'+'+fmt(got),palette[cur.color]);
+const radius=cur.bomb?72:52;
+for(const n of targets){if(!n.alive)continue;if(n.color!==cur.color&&!cur.bomb)continue;const dx=n.x-cur.x,dy=n.y-cur.y;if(dx*dx+dy*dy<radius*radius)queue.push(n)}
+}
+if(chainHits>=3){callout(chainHits>=8?'MEGA CHAIN!':chainHits>=5?'SUPER CHAIN!':'COLOR CHAIN!');if(chainHits>=5)flash();}if(walls>=2&&hits===chainHits)callout('TRICK SHOT!');
+sfx('hit',{chain:combo});if(chainHits>=5)sfx('mega');buzz(chainHits>=5?[12,28,12]:8);
+updateHUD();
+if(targets.every(z=>!z.alive)&&!justCleared){justCleared=true;let bonus=2000+shots*500;score+=bonus;callout('PERFECT CLEAR!');addText(W/2,200,'+'+fmt(bonus),'#ffde80',true);updateHUD()}
+}
+
+// V21 research experiment. Untimed progression inspired by *principles*, not cloned content.
+// This is local solo only, not a ranked or verified multiplayer mode.
+function flowGoal(){return Math.min(12500,2600+(flowWave-1)*1200)}
+function finishFlowWave(){
+ if(mode!=='flow'||finished||shooting||shots!==0)return;
+ const earned=score-flowWaveStart;
+ if(earned<flowGoal()){endRound();return}
+ flowWaveCleared++;
+ if(score>best){best=score;store(key(),best)}
+ flowWave++;flowWaveStart=score;
+ let next=randomBoard();for(let i=0;i<8&&next===board;i++)next=randomBoard();
+ board=next;targets=makeBoard(board);ball=null;justCleared=false;shots=SHOT_MAX;
+ // Competitive five-shot replay snapshots are deliberately NOT used for Flow.
+ runAngles=[];runSteps=[];lastShot=null;
+ aim=null;aimStart=null;aiming=false;shooting=false;
+ addText(W/2,H*.30,'WAVE '+flowWave,'#baffd0',true);
+ sfx('finish');buzz([8,14,8]);
+ setTip('<b>WAVE '+flowWave+'.</b> '+fmt(flowGoal())+' points in five shots to keep your run alive.');
+ updateHUD();setURL();popToast('Wave '+(flowWave-1)+' cleared! Keep going');
+}
+function endShot(){if(!shooting)return;shooting=false;playbackSpeed=1;ball=null;shotSeq++;runSteps.push(score);
+lastShot={index:runSteps.length,points:Math.max(0,score-(runSteps.length>1?runSteps.at(-2):0)),hits,walls,angle:runAngles.at(-1)};
+if(watchMode&&shots>0){autoReplayTimer=setTimeout(()=>{if(watchMode&&!shooting&&!finished)fire(0,0,rivalAngles[autoReplayIndex++])},530)}
+
+if(hits===0){addText(W/2,H*.66,closestMiss<15?'SO CLOSE!':'NO HIT — TRY AN ANGLE','#d0defb',true);sfx(closestMiss<15?'near':'miss')}else{addText(W/2,H*.65,'+'+hits+' TARGET'+(hits===1?'':'S')+' HIT','#defff7',true)}
+if(mode==='flow'&&hits>0)flowSuccessShots++;if(shots===0){let seq=shotSeq;overlayTimeout=setTimeout(()=>{if(shotSeq===seq&&!shooting)(mode==='flow'?finishFlowWave():endRound())},650)}else{setTip(hits===0?(closestMiss<15?'<b>VERY CLOSE!</b> Your ball passed beside a target. Adjust the angle slightly.':'<b>NO HIT?</b> Point directly toward a glowing cluster and try again.'):walls===0?'<b>GREAT HIT.</b> Try a wall bank to multiply your next shot.':'<b>YOU BANKED IT.</b> Aim at a matching color group for more points.');updateHUD()}}
+function endRound(){if(finished||shooting||shots!==0)return;finished=true;
+if(!watchMode&&!clutchActive){if(mode!=='lab'&&playtest.fullRounds===0&&playtest.firstRoundSeconds===null){playtest.firstRoundSeconds=Math.round((performance.now()-startingTime)/100)/10;savePlaytest()}recordPlaytest(mode==='lab'?'labRounds':'fullRounds');lastRun={board,mode,score,angles:runAngles.join(''),steps:[...runSteps],date:utcDay()};store(runKey(),lastRun);if(mode==='lab'&&runAngles.length===1){
+ const attempt={angle:runAngles[0],score,walls:lastShot?.walls||0,hits:lastShot?.hits||0};labRecent=[...labRecent,attempt].slice(-6);store(recentAngleKey(),labRecent);
+ if(!labBestAngle||score>labBestScore){labBestAngle=runAngles[0];labBestScore=score;store(bestAngleKey(),{angle:labBestAngle,score:labBestScore})}
+}
+if(score>best){best=score;store(key(),best)}saveMastery();if(!ghostRun||score>ghostRun.score){ghostRun={...lastRun};store(ghostKey(),ghostRun)}stampCrown();}
+const record=!clutchActive&&score>initialBest;let clutchWin=clutchActive&&(score-clutchBase)>clutchTargetShot;let win=targetScore>0&&score>targetScore;let tied=targetScore>0&&score===targetScore;
+$('endIcon').textContent=clutchActive?(clutchWin?'⚡':'🎯'):watchMode?'🎬':win?'👑':record?'🏆':score>=4000?'⚡':'🎯';$('endOverline').textContent=clutchActive?'ONE SHOT DUEL COMPLETE':watchMode?'FRIEND REPLAY':mode==='lab'?'SHOT LAB COMPLETE':mode==='daily'?'DAILY SHOT COMPLETE':mode==='flow'?'FLOW RUN COMPLETE':'FIVE SHOTS COMPLETE';$('endTitle').textContent=clutchActive?(clutchWin?'YOU WON THE CLUTCH!':score-clutchBase===clutchTargetShot?'CLUTCH DRAW!':'RUN IT BACK!'):watchMode?'THAT WAS THEIR RUN':win?'YOU BEAT THEM!':record?'NEW PERSONAL BEST!':tied?'IT’S A TIE!':mode==='lab'?'TRY A NEW ANGLE!':mode==='flow'?'RUN IT BACK!':'RUN COMPLETE';$('endScore').textContent=fmt(score);renderMasteryResult();
+$('endText').textContent=clutchActive?`Your shot +${fmt(score-clutchBase)} · their shot +${fmt(clutchTargetShot)}`:(watchMode?'Your turn to beat it! · ':'')+(unlockedCrownToday?'👑 DAILY CROWN UNLOCKED · ':'')+(targetScore?'Friend’s target: '+fmt(targetScore)+' · ':'')+(mode==='flow'?'Waves cleared: '+flowWaveCleared+' · Goal missed: '+fmt(flowGoal())+' · ':'')+'Max chain ×'+maxCombo+' · '+board;
+ $('shotReport').hidden=true;$('aimReadout').hidden=true;$('shotRecap').innerHTML=clutchActive?`<div class="shotBox" style="grid-column:span 3"><label>SHARED SETUP</label><strong>${fmt(clutchBase)}</strong></div><div class="shotBox bestShot" style="grid-column:span 2"><label>YOUR FINAL SHOT</label><strong>+${fmt(score-clutchBase)}</strong></div>`:shotRecapHtml();$('endCoach').textContent=mode==='flow'?`You cleared ${flowWaveCleared} wave${flowWaveCleared===1?'':'s'}. Keep more shots productive to reach the next threshold.`:mode==='lab'&&!watchMode&&!clutchActive&&runAngles.length===1
+ ? (record?`NEW BEST! ${angleLabel(dirCode(runAngles[0]))} earned ${fmt(score)}. Now try a nearby angle.`:
+ `Your ${angleLabel(dirCode(runAngles[0]))} shot earned ${fmt(score)}. Best: ${fmt(labBestScore)} at ${labBestAngle?angleLabel(dirCode(labBestAngle)):'unknown'}. Move the aim slightly to improve.`)
+ :endCoachingText(record);$('clutchEndNote').hidden=!clutchActive;const showFeel=!watchMode&&!clutchActive&&!playtest.feedback&&playtest.fullRounds>=4;$('feelSurvey').hidden=!showFeel;
+$('shareEnd').textContent=mode==='flow'?'⚡ PLAY FIVE-SHOT BLITZ':clutchActive?'▶ PLAY FULL BOARD':'↗ CHALLENGE A FRIEND';$('replayEnd').textContent=clutchActive?'↻ RETRY CLUTCH':watchMode?'▶ YOUR TURN':mode==='lab'?'↻ TRY NEW ANGLE':ghostChasing?'↻ CHASE AGAIN':'↻ BEAT THIS SCORE';$('newBoardEnd').textContent=mode==='flow'?'∞ NEW FLOW RUN':mode==='daily'?'✦ DAILY DETAILS':mode==='lab'?'⚡ PLAY FULL FIVE SHOTS':'✦ TRY NEW BOARD';renderOnlineResult();$('gameEnd').classList.add('show');$('gameEnd').setAttribute('aria-hidden','false');setTip('↗ Share your score or play again!');
+let stats=read('bs:stats',{runs:0,highest:0,total:0});if(!watchMode&&!clutchActive&&mode!=='lab'){stats.runs++;stats.highest=Math.max(stats.highest,score);stats.total+=score;store('bs:stats',stats)}if(mode==='lab'&&!watchMode&&!clutchActive){const k='bs:v7:lab:attempts:'+board;store(k,read(k,0)+1)}updateCrownUI();
+sfx(record||win||clutchWin?'record':'finish');if(record||win||clutchWin)buzz([12,28,12]);updateHUD()}
+function tick(dt){clock+=dt;shake=Math.max(0,shake-dt*16);shakeX=reduceMotion?0:(visualRand()-.5)*shake;shakeY=reduceMotion?0:(visualRand()-.5)*shake;
+for(let p of particles){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.max(.01,1-2.3*dt);p.vy*=Math.max(.01,1-2.3*dt)}particles=particles.filter(p=>p.age<p.life);
+for(let p of rings)p.age+=dt;rings=rings.filter(p=>p.age<p.life);
+for(let p of floats){p.age+=dt;p.y-=dt*32}floats=floats.filter(p=>p.age<p.life);
+if(!shooting||!ball)return;elapsed+=dt;if(elapsed>=1.05&&playbackSpeed===1&&!watchMode&&$('speedBtn').hidden)updateSpeedUI();const b=ball;
+const ox=b.x,oy=b.y;b.x+=b.vx*dt;b.y+=b.vy*dt;
+if(b.x<17.6){b.x=35.2-b.x;b.vx=Math.abs(b.vx);bank(b.x,b.y)}else if(b.x>W-17.6){b.x=2*(W-17.6)-b.x;b.vx=-Math.abs(b.vx);bank(b.x,b.y)}
+if(b.y<18){b.y=36-b.y;b.vy=Math.abs(b.vy);bank(b.x,b.y)}
+for(let t of targets){if(!t.alive)continue;let dx=b.x-t.x,dy=b.y-t.y,limit=b.r+t.r,d2=dx*dx+dy*dy;closestMiss=Math.min(closestMiss,Math.max(0,Math.sqrt(d2)-limit));if(d2>limit*limit)continue;let d=Math.sqrt(d2),nx=d>0?dx/d:0,ny=d>0?dy/d:-1;let dot=b.vx*nx+b.vy*ny;
+if(dot<0){b.vx-=2*dot*nx;b.vy-=2*dot*ny}
+const sp=Math.hypot(b.vx,b.vy)||SPEED;b.vx=b.vx/sp*SPEED;b.vy=b.vy/sp*SPEED;
+b.x=t.x+nx*(limit+1);b.y=t.y+ny*(limit+1);collect(t);break}
+if(Math.floor(elapsed*110)%2===0){b.trail.push({x:b.x,y:b.y});if(b.trail.length>27)b.trail.shift()}
+if(b.y>H+22||elapsed>6.25||targets.every(z=>!z.alive)){endShot()}
+}
+function draw(){let dpr=Math.min(window.devicePixelRatio||1,2.25);const w=Math.max(1,Math.floor(canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(canvas.clientHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}cx.setTransform(w/W,0,0,h/H,0,0);
+const bg=cx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#1c2a4e');bg.addColorStop(.5,'#0f1833');bg.addColorStop(1,'#0a1229');cx.fillStyle=bg;cx.fillRect(0,0,W,H);
+const bloom=cx.createRadialGradient(W/2,180,10,W/2,250,370);bloom.addColorStop(0,'#5e86ff17');bloom.addColorStop(1,'#09122900');cx.fillStyle=bloom;cx.fillRect(0,0,W,H);
+cx.strokeStyle='#c1d9ff09';cx.lineWidth=1;for(let x=16;x<W;x+=24){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke()}for(let y=14;y<H;y+=24){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke()}
+cx.save();cx.translate(shakeX,shakeY);cx.strokeStyle='#92b8e045';cx.lineWidth=2;cx.beginPath();cx.moveTo(12,0);cx.lineTo(12,H);cx.moveTo(W-12,0);cx.lineTo(W-12,H);cx.stroke();
+for(let t of targets){if(!t.alive)continue;let c=palette[t.color],p=reduceMotion?1:1+Math.sin(clock*2.15+t.phase)*.034;cx.save();cx.translate(t.x,t.y);cx.scale(p,p);cx.shadowBlur=9;cx.shadowColor=c;cx.fillStyle=c+'20';cx.beginPath();cx.arc(0,0,t.r+7,0,TAU);cx.fill();cx.shadowBlur=5;cx.fillStyle=c;cx.beginPath();cx.arc(0,0,t.r,0,TAU);cx.fill();cx.shadowBlur=0;const highlight=cx.createRadialGradient(-5,-6,1,0,0,t.r);highlight.addColorStop(0,'#ffffffcc');highlight.addColorStop(.36,'#ffffff50');highlight.addColorStop(1,'#00000024');cx.fillStyle=highlight;cx.beginPath();cx.arc(0,0,t.r,0,TAU);cx.fill();cx.strokeStyle='#ffffff90';cx.lineWidth=1.1;cx.beginPath();cx.arc(0,0,t.r-2.5,.3,2.4);cx.stroke();if(t.bomb){cx.fillStyle='#14233b';cx.font='900 16px system-ui';cx.textAlign='center';cx.textBaseline='middle';cx.fillText('✦',0,1)}cx.restore()}
+cx.save();cx.strokeStyle='#b9dcfa3c';cx.lineWidth=1.4;cx.setLineDash([4,9]);cx.beginPath();cx.moveTo(20,H-30);cx.lineTo(W-20,H-30);cx.stroke();cx.restore();
+if(!shooting&&!finished){if((aiming&&aim)||(mode==='lab'&&precisionCode&&!clutchActive&&!watchMode)){
+if(mode==='lab'&&labBestAngle){const memory=simulatePreview(dirCode(labBestAngle));cx.save();cx.strokeStyle='#ffce7063';cx.lineWidth=1.75;cx.setLineDash([3,8]);cx.beginPath();cx.moveTo(memory.path[0].x,memory.path[0].y);for(let v of memory.path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);const m=memory.path[Math.min(3,memory.path.length-1)];cx.fillStyle='#ffe3a7';cx.font='900 10px system-ui';cx.textAlign='center';cx.fillText('★ BEST',m.x,m.y-13);cx.restore()}
+let preview=simulatePreview(aiming&&aim?aimDir(aim.x,aim.y):dirCode(precisionCode)),path=preview.path;cx.save();cx.strokeStyle='#b4f7ffbc';cx.lineWidth=2.3;cx.setLineDash([4,8]);cx.beginPath();cx.moveTo(path[0].x,path[0].y);for(let v of path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);for(let i=4;i<path.length;i+=7){let p=path[i];cx.fillStyle='#c9fdff'+Math.min(240,120+i*2).toString(16).padStart(2,'0');cx.beginPath();cx.arc(p.x,p.y,2.1,0,TAU);cx.fill()}if(preview.impact){cx.strokeStyle='#ffffffea';cx.lineWidth=2;cx.shadowBlur=14;cx.shadowColor=palette[preview.impact.color];cx.beginPath();cx.arc(preview.impact.x,preview.impact.y,preview.impact.r+7,0,TAU);cx.stroke();cx.fillStyle='#f6ffff';cx.font='900 10px system-ui';cx.textAlign='center';cx.fillText('HIT',preview.impact.x,preview.impact.y-preview.impact.r-12)}cx.restore()}
+cx.shadowColor='#59f1fc';cx.shadowBlur=24;cx.fillStyle='#d9ffff';cx.beginPath();cx.arc(W/2,H-29,11,0,TAU);cx.fill();cx.shadowBlur=0;cx.fillStyle='#1d455e';cx.beginPath();cx.arc(W/2,H-29,5.3,0,TAU);cx.fill();cx.lineWidth=2;cx.strokeStyle='#96efff72';cx.beginPath();cx.arc(W/2,H-29,20+(reduceMotion?0:Math.sin(clock*3.5)*2),Math.PI,0);cx.stroke()}
+if(ball){for(let i=0;i<ball.trail.length;i++){let t=ball.trail[i],alpha=.015+.42*(i+1)/ball.trail.length;cx.fillStyle=trailColor();cx.globalAlpha=alpha;cx.beginPath();cx.arc(t.x,t.y,2.1+i/ball.trail.length*5.6,0,TAU);cx.fill()}cx.fillStyle='#f8ffff';cx.shadowBlur=25;cx.shadowColor='#8cf6ff';cx.beginPath();cx.arc(ball.x,ball.y,ball.r,0,TAU);cx.fill();cx.shadowBlur=0;cx.fillStyle='#c2faff';cx.beginPath();cx.arc(ball.x-2,ball.y-2,2.2,0,TAU);cx.fill()}
+for(let r of rings){let a=r.age/r.life;cx.strokeStyle=r.color;cx.globalAlpha=(1-a)*.8;cx.lineWidth=2.4*(1-a)+.5;cx.beginPath();cx.arc(r.x,r.y,r.r+24*a,0,TAU);cx.stroke()}cx.globalAlpha=1;
+for(let p of particles){let a=1-p.age/p.life;cx.fillStyle=p.color;cx.globalAlpha=a;cx.beginPath();cx.arc(p.x,p.y,p.r*(.35+a*.65),0,TAU);cx.fill()}cx.globalAlpha=1;
+for(let p of floats){let a=1-p.age/p.life;cx.save();cx.textAlign='center';cx.textBaseline='middle';cx.font='1000 '+(p.big?20:13)+'px system-ui';cx.fillStyle=p.color;cx.shadowBlur=5;cx.shadowColor='#0a122d';cx.globalAlpha=Math.min(1,a*2.5);cx.fillText(p.s,p.x,p.y);cx.restore()}
+// Instructions live in the bottom dock and a contextual first-shot hint; no board clutter.
+cx.restore()}
+function frame(now){let dt=lastFrame?Math.min((now-lastFrame)/1000,.06):.016;lastFrame=now;accum+=dt*(watchMode?2.25:playbackSpeed);let n=0;while(accum>=STEP&&n<8){tick(STEP);accum-=STEP;n++}if(n===8)accum=0;draw();requestAnimationFrame(frame)}
+$('audioQuick').addEventListener('click',()=>setAudioMode(audioMode==='arcade'?'off':audioMode==='off'?'soft':'arcade'));
+// Unlock Web Audio only on a real interaction. iOS Safari does not permit autoplay.
+window.addEventListener('pointerdown',()=>{if(sound)initAudio()},{capture:true,passive:true});
+$('speedBtn').addEventListener('click',()=>{if(!shooting||watchMode)return;playbackSpeed=playbackSpeed===1?2:1;if(playbackSpeed>1)recordPlaytest('fastUses');updateSpeedUI()});
+$('feelSurvey').querySelectorAll('[data-feeling]').forEach(btn=>btn.addEventListener('click',()=>{if(playtest.feedback)return;playtest.feedback=btn.dataset.feeling;savePlaytest();$('feelSurvey').hidden=true;popToast('Thanks — recorded on this device')}));
+function pointerCoord(e){const r=canvas.getBoundingClientRect();return {x:Math.max(0,Math.min(W,(e.clientX-r.left)/r.width*W)),y:Math.max(0,Math.min(H,(e.clientY-r.top)/r.height*H))}}
+$('precisionLeft').addEventListener('click',()=>nudgePrecision(-1));
+$('precisionRight').addEventListener('click',()=>nudgePrecision(1));
+$('precisionFire').addEventListener('click',()=>{if(mode==='lab'&&!clutchActive&&!watchMode&&!shooting&&!finished&&shots===1)fire(0,0,precisionCode)});
+canvas.addEventListener('pointerdown',e=>{if(shooting||finished||watchMode)return;if(e.pointerType==='mouse'&&e.button!==0)return;canvas.setPointerCapture(e.pointerId);aiming=true;aimStart={id:e.pointerId,x:e.clientX,y:e.clientY};aim=pointerCoord(e);updateHUD();e.preventDefault()});
+canvas.addEventListener('pointermove',e=>{if(!aiming||watchMode)return;aim=pointerCoord(e);updateAimReadout();e.preventDefault()});
+canvas.addEventListener('pointerup',e=>{if(!aiming||watchMode||aimStart?.id!==e.pointerId)return;aiming=false;const start=aimStart;aimStart=null;const distance=Math.hypot(e.clientX-start.x,e.clientY-start.y);if(distance<9){aim=null;updateAimReadout();setTip('<b>DRAG</b> to choose an angle · <b>RELEASE</b> to shoot');popToast('Drag to aim, then release');e.preventDefault();return}const p=pointerCoord(e);fire(p.x,p.y);e.preventDefault()});
+canvas.addEventListener('pointercancel',()=>{aiming=false;aim=null;aimStart=null;updateAimReadout()});
+function openDialog(type){$('dialogBackdrop').classList.add('show');const eyebrow=$('dialogEyebrow'),title=$('dialogTitle'),body=$('dialogBody');eyebrow.textContent='BANKSHOT';body.innerHTML='';
+if(type==='modes'){eyebrow.textContent='CHOOSE A GAME';title.textContent='How do you want to play?';body.innerHTML=`<p class="menuNote">Every mode uses the same skill-based shooting system. Pick the one that fits your mood.</p><div class="menuActions"><button id="chooseBlitz" class="primary">⚡ Five-shot score chase <b>SOLO</b></button><button id="chooseDaily" class="dailyMenuCta">✦ Daily challenge <b>TODAY</b></button><button id="chooseLab">⌖ One-shot precision puzzle <b>SHOT LAB</b></button><button id="chooseFlow">∞ Endless Flow <b>LOCAL BETA</b></button></div><p class="menuNote">The Daily has a fixed board and personal best today. Check the Daily screen for online rankings.</p>`;
+ body.querySelector('#chooseBlitz').onclick=()=>{closeDialog();$('blitzTab').click()};
+ body.querySelector('#chooseDaily').onclick=()=>openDialog('daily');
+ body.querySelector('#chooseLab').onclick=()=>{closeDialog();$('labTab').click()};body.querySelector('#chooseFlow').onclick=()=>{closeDialog();targetScore=0;rivalAngles=[];rivalSteps=[];reset('flow',randomBoard());popToast('Flow beta · clear five-shot waves to survive')};
+}
+if(type==='hub'){eyebrow.textContent='ARCADE MENU';title.textContent='BANKSHOT';body.innerHTML=`<p class="menuNote">${mode==='lab'?'One-shot puzzle':'Five-shot arcade'} · Board <b>${board}</b> · Personal best <b>${fmt(best)}</b></p><div class="menuActions"><button class="primary" id="hubModes">⚡ Change game <b>4 MODES</b></button><button id="hubRestart">↻ Restart this board <b>REPLAY</b></button><button id="hubShare">↗ ${clutchActive?'Play full five shots':'Share challenge'} <b>FRIENDS</b></button><button id="hubJoin">⌁ Enter friend code <b>JOIN</b></button><button id="hubNew">✦ Try a fresh board <b>NEW</b></button><button id="hubMastery">✦ My mastered boards <b>MY BOARDS</b></button><button id="hubDaily" class="dailyMenuCta">✦ Daily challenge & results <b>TODAY</b></button><button id="hubCrown">♛ Daily crowns & rewards <b>PROGRESS</b></button><button id="hubHelp">? How to play <b>RULES</b></button><button id="hubSettings">⚙ Sound & settings <b>OPTIONS</b></button></div><p class="menuNote">Daily online rankings require server verification; friend codes are informal.</p>`;
+ for(let [id,fn] of Object.entries({hubModes:()=>openDialog('modes'),hubRestart:()=>{closeDialog();if(shots<(mode==='lab'?1:SHOT_MAX))recordPlaytest('replays');if(clutchActive)startClutch();else reset();playSound(440,.08,'triangle',.03)},hubShare:()=>{closeDialog();if(clutchActive){clutchActive=false;targetScore=0;rivalAngles=[];rivalSteps=[];reset(mode,board);popToast('Play all five shots')}else openDialog('share')},hubJoin:()=>openDialog('join'),hubNew:()=>freshSoloBoard(),hubMastery:()=>openDialog('mastery'),hubDaily:()=>openDialog('daily'),hubCrown:()=>openDialog('crown'),hubHelp:()=>openDialog('help'),hubSettings:()=>openDialog('settings')}))body.querySelector('#'+id).onclick=fn;
+}
+if(type==='privacy'){
+ eyebrow.textContent='PRIVACY';title.textContent='Your data';
+ body.innerHTML='<p>Solo scores, settings and mastery are saved on your device. Online Daily competition is optional: you sign in with Apple, and our server stores your board, shot angles, recalculated score and an Apple account identifier. Public leaderboards show only a pseudonym and score.</p><p>Online scores can be deleted in Settings → DELETE ONLINE SCORES & ACCOUNT. Hosting and security traffic is handled by Cloudflare.</p><p class="menuNote">Full privacy and support information is available from the links below when online services are configured.</p><p id="privacyLinks"></p>';
+ const links=window.BANKSHOT_PUBLIC_LINKS; const dest=body.querySelector('#privacyLinks'); if(links&&dest){for(const key of ['privacy','support']){const anchor=document.createElement('a');anchor.href=links[key];anchor.textContent=key==='privacy'?'Privacy Policy':'Contact Support';anchor.style.cssText='display:inline-block;color:#8dfbf7;padding:9px 12px;margin:3px;border:1px solid #425a70;border-radius:10px';anchor.target='_blank';anchor.rel='noopener noreferrer';dest.appendChild(anchor);}}
+}
+if(type==='leaderboard'){
+ eyebrow.textContent='ONLINE COMPETITION';title.textContent='Today’s leaderboard';
+ body.innerHTML=`<p class="dailyDate">Board <b>${dailyCode()}</b> · The same board, five shots each (UTC).</p><div class="onlineBox"><strong>SERVER-VERIFIED SCORES</strong><div class="subtle" id="liveStatus">Checking online rankings…</div><div class="onlineRows" id="liveRanks"></div></div><button class="action main" id="playFromLeaderboard">▶ PLAY TODAY’S BOARD</button>`;
+ body.querySelector('#playFromLeaderboard').onclick=playDaily;
+ fetchLeaderboard(dailyCode()).then(data=>{
+  if(!body.querySelector('#liveStatus'))return;
+  body.querySelector('#liveStatus').textContent=data.rankings.length?'Scores are recalculated on the server.':'No verified runs yet. You could be first.';
+  const rows=body.querySelector('#liveRanks');rows.replaceChildren();
+  data.rankings.forEach(rec=>{const row=document.createElement('div');row.className='onlineRow';
+   const label=document.createElement('span');label.textContent=`#${rec.rank}  ${rec.player}`;
+   const val=document.createElement('b');val.textContent=fmt(rec.score);row.append(label,val);rows.appendChild(row)});
+ }).catch(error=>{const e=body.querySelector('#liveStatus');if(e)e.textContent=error.message||'Online rankings unavailable. Try later.'});
+}
+if(type==='mastery'){
+ eyebrow.textContent='YOUR PRACTICE LIBRARY';title.textContent='My boards';
+ const entries=masteryBook();
+ body.innerHTML=`<p class="menuNote">Beat scores on boards you've already played. Records save on this device; missing a day doesn't erase progress.</p><div class="practiceShelf">${entries.length?entries.slice(0,16).map((e,i)=>`<button type="button" data-practice="${i}"><span>${e.board}<small>${e.mode.toUpperCase()} · ${e.runs} completed round${e.runs===1?'':'s'} · Best ${fmt(e.best)}</small></span><em>${['—','BRONZE','SILVER','GOLD'][tierFor(e.best,e.mode)]} ↗</em></button>`).join(''):'<p class="menuNote">Complete a round to save your first board here.</p>'}</div><p class="menuNote">Medal score goals are beta values we're still balancing with human tests.</p>`;
+ body.querySelectorAll('[data-practice]').forEach(btn=>btn.onclick=()=>{const e=entries[Number(btn.dataset.practice)];if(!e)return;targetScore=0;rivalAngles=[];rivalSteps=[];reset(e.mode,e.board,false,true);closeDialog();popToast('Your '+e.board+' board is ready')});
+}
+if(type==='daily'){
+ eyebrow.textContent='DAILY · LOCAL BETA';title.textContent='Today’s challenge';
+ const rows=dailyPlayed(),top=dailyBestScore(),todayRow=rows.find(x=>x.board===dailyCode());
+ body.innerHTML=`<p class="dailyDate"><b>${utcDay()} UTC</b> · Board ${dailyCode()}<br>Everyone running this version plays the same deterministic five-shot board today. New board in <b>${dailyRemainingLabel()}</b>.</p>
+ <div class="dailyOverview"><div class="dailyMetric"><span>YOUR BEST TODAY</span><strong>${fmt(top)}</strong></div><div class="dailyMetric"><span>YOUR COMPLETED RUNS</span><strong>${todayRow?.runs||0}</strong></div></div>
+ <p class="menuNote">Earn today’s cosmetic crown at <b>${fmt(dailyMedalTarget)}</b> points. Your best is saved on this device.</p>
+ <button class="action main" id="dailyPlay">${top>0?'↻ BEAT TODAY’S BEST':'▶ PLAY TODAY’S FIVE SHOTS'}</button>
+ <h4 style="margin:20px 0 8px">Your recent Daily results</h4>
+ <div class="dailyHistory">${rows.length?rows.map(e=>`<div class="dailyHistoryItem"><span>${e.board.slice(1,5)}-${e.board.slice(5,7)}-${e.board.slice(7,9)} · ${e.runs} run${e.runs===1?'':'s'}</span><strong>${fmt(e.best)}</strong></div>`).join(''):'<p class="menuNote">Play your first Daily round to start a history.</p>'}</div>
+ <div class="dailyBetaNotice"><strong>ONLINE RANKINGS</strong><br>Verified scores appear only when the Cloudflare service is configured and reachable. Local personal bests stay available offline.</div>
+ <button class="action" id="dailyCrownDetails">♛ MY DAILY CROWNS</button>`;
+ body.innerHTML += '<button class="action" id="dailyOnlineButton">🌐 VERIFIED GLOBAL LEADERBOARD</button>';
+ body.querySelector('#dailyOnlineButton').onclick=()=>openDialog('leaderboard');
+ body.querySelector('#dailyPlay').onclick=playDaily;body.querySelector('#dailyCrownDetails').onclick=()=>openDialog('crown');
+}
+if(type==='crown'){
+let p=progress(),cnt=crownsEarned(),days=getDays(),today=p[utcDay()];eyebrow.textContent='DAILY CROWN';title.textContent='Your crown case';body.innerHTML=`<div class="crownModalTop"><strong>👑 ${cnt}</strong><small>${cnt} total earned · ${streakCount()} day streak<br>Score ${fmt(dailyMedalTarget)}+ on the daily board to earn today's crown.</small></div><div class="crownDays">${days.map(d=>`<div class="crownDay ${p[d]?'got':''} ${d===utcDay()?'today':''}"><span>${['SUN','MON','TUE','WED','THU','FRI','SAT'][new Date(d+'T12:00:00Z').getUTCDay()]}</span><strong>${p[d]?'👑':'·'}</strong></div>`).join('')}</div><div class="milestones"><span><b>🟢</b>1 crown<br>MINT TRAIL</span><span><b>🟣</b>3 crowns<br>VIOLET TRAIL</span><span><b>🟡</b>7 crowns<br>GOLD TRAIL</span></div><p class="miniCaption">New board at 00:00 UTC. Replay as often as you want. No paid entries, prizes, or fake opponent scores.</p><button class="action main" id="crownPlay">${today?'REPLAY DAILY BOARD':'GO FOR TODAY’S CROWN'}</button>`;body.querySelector('#crownPlay').onclick=()=>{targetScore=0;rivalAngles=[];rivalSteps=[];reset('daily',dailyCode());closeDialog()}
+}
+if(type==='help'){title.textContent='How to play';body.innerHTML='<ol><li><strong>Drag anywhere</strong> in the arena to line up a shot. Lift your finger to fire.</li><li>Hit glowing targets to score. Connecting <strong>matching colors</strong> sets off a chain.</li><li>Bank the ball off walls for a <strong>24% bigger multiplier per bounce</strong> (up to six).</li><li><strong>Blitz</strong> and <strong>Daily</strong> give you five shots. <strong>Shot Lab</strong> gives you one shot on today’s shared puzzle, with unlimited retries.</li><li>Same board code = same starting puzzle.</li><li>After setting a personal best, <strong>chase your ghost</strong> on exactly that board and see if you can improve your shot-by-shot pace.</li><li>After your run, challenge a friend to beat <strong>only your fifth shot</strong> using the exact same first four shots. The challenge is informal until server verification ships.</li></ol><p>✦ Stars are wildcards: hitting one detonates nearby colors.</p>'}
+if(type==='settings'){title.textContent='Your settings';let stats=read('bs:stats',{runs:0,highest:0,total:0});body.innerHTML=`<div class="prefRow"><div><strong>Arcade audio</strong><div style="color:#a7b4cf;font-size:12px">Distinct launch, bank, chain and record sounds. Use ♪ at top to select off, soft, or full.</div></div><button class="switch" id="soundToggle">${sound?'ON':'OFF'}</button></div><div class="prefRow"><div><strong>Haptics</strong><div style="color:#a7b4cf;font-size:12px">${('vibrate' in navigator||!!window.webkit?.messageHandlers?.bankshotHaptics)?'Optional native iPhone taps or browser vibration where supported':'Not available in this browser'}</div></div><button class="switch" id="hapticToggle" ${('vibrate' in navigator||!!window.webkit?.messageHandlers?.bankshotHaptics)?'':'disabled'}>${('vibrate' in navigator||!!window.webkit?.messageHandlers?.bankshotHaptics)?(haptics?'ON':'OFF'):'N/A'}</button></div><p><b>Rounds played:</b> ${fmt(stats.runs)} &nbsp; <b>Best round:</b> ${fmt(stats.highest)}</p><p><b>Shot trail</b> · Unlock colors with Daily Crowns</p><div class="prefRow" style="flex-wrap:wrap;justify-content:start;gap:6px">${[['cyan','ICE',0],['mint','MINT',1],['violet','VIOLET',3],['gold','GOLD',7]].map(([k,n,c])=>`<button class="switch" data-trail="${k}" ${c>crownsEarned()?'disabled':''}>${c>crownsEarned()?'🔒 ':''}${n}${k===chosenTrail?' ✓':''}</button>`).join('')}</div><div class="qaMetrics"><b>🧪 LOCAL PLAYTEST REPORT</b><div id="qaSummary"></div><button id="copyPlaytest">COPY PLAYTEST RESULTS</button><button id="resetPlaytest">RESET PLAYTEST COUNTERS</button><p class="smallNote">Stored only in this browser, never uploaded. Reset between testers using the same phone; this does not reset game scores.</p></div><button type="button" class="action" id="privacyInfo">PRIVACY AND YOUR DATA</button><p>Solo records stay on this device. Verified Daily scores require optional Apple sign-in. Friend codes are not verified.</p>`;body.querySelector('#qaSummary').textContent=`${playtest.shots||0} shots · ${playtest.fullRounds||0} five-shot rounds · ${playtest.replays||0} rematches`;
+
+if(window.webkit?.messageHandlers?.bankshotOnline){
+ const opt=document.createElement('div');opt.className='onlineBox';
+ opt.innerHTML='<strong>ONLINE ACCOUNT</strong><p class="subtle">Sign in with Apple only when submitting a Daily score. Solo progress stays on your device.</p><button id="deleteOnline">DELETE ONLINE SCORES & ACCOUNT</button><div class="subtle" id="deleteStatus"></div>';
+ body.appendChild(opt);
+ opt.querySelector('#deleteOnline').onclick=async()=>{
+  if(!confirm('Permanently delete all BANKSHOT online scores associated with your Apple account? Local scores on this device will remain.'))return;
+  const b=opt.querySelector('#deleteOnline');b.disabled=true;
+  try{const result=await onlineBridge('deleteAccount');opt.querySelector('#deleteStatus').textContent=result?.manualAppleRevocation?'Online scores deleted. To finish revoking Apple access, open iPhone Settings → your name → Sign in with Apple → BANKSHOT → Stop Using Apple Account.':'Online account, scores, and Apple authorization deleted.';}
+  catch(e){opt.querySelector('#deleteStatus').textContent=e.message||'Account deletion unavailable';b.disabled=false;}
+ };
+}
+body.querySelector('#privacyInfo').onclick=()=>openDialog('privacy');
+body.querySelector('#copyPlaytest').onclick=()=>copyText(reportPlaytest());
+body.querySelector('#resetPlaytest').onclick=()=>{playtest=blankPlaytest();playtest.opens=1;savePlaytest();updateHUD();closeDialog();openDialog('settings');popToast('Local counters reset')};body.querySelectorAll('[data-trail]').forEach(el=>el.onclick=()=>{if(!unlockTrail(el.dataset.trail))return;chosenTrail=el.dataset.trail;store('bs:v3:trail',chosenTrail);closeDialog();openDialog('settings');popToast(trailName()+' trail equipped')});body.querySelector('#soundToggle').onclick=e=>{setAudioMode(sound?'off':'arcade');e.target.textContent=sound?'ON':'OFF'};body.querySelector('#hapticToggle').onclick=e=>{haptics=!haptics;store('bs:haptics',haptics);e.target.textContent=haptics?'ON':'OFF'}}
+if(type==='join'){title.textContent='Play a friend’s board';body.innerHTML='<p>Enter a board code for five shots, or paste a Clutch Code for a one-shot duel. Challenges are informal, not verified.</p><textarea id="joinCode" maxlength="2048" rows="3" style="font-size:14px;letter-spacing:.2px;width:100%;background:#0b1d30;border:1px solid #51738a;border-radius:12px;color:#fff;padding:12px" placeholder="PASTE BOARD CODE, CLUTCH CODE, OR FULL INVITE" autocomplete="off" spellcheck="false" aria-label="Friend board code or invite"></textarea><button class="action main" id="joinGo">PLAY THIS BOARD</button>';let input=body.querySelector('#joinCode');body.querySelector('#joinGo').onclick=()=>{let raw=input.value.trim();const linkMatch=raw.match(/https?:\/\/[^\s<>]+/i);
+ if(linkMatch){try{const u=new URL(linkMatch[0]);const b=(u.searchParams.get('board')||'').toUpperCase();
+  if(/^[A-Z0-9]{2,14}$/.test(b)){
+    const angles=decodeAngles(u.searchParams.get('replay'));
+    if(u.searchParams.get('clutch')==='1'&&angles.length===5){clutchReplay=angles;targetScore=0;rivalAngles=[];rivalSteps=[];reset('blitz',b);closeDialog();startClutch();return}
+    targetScore=Math.max(0,Math.min(1e9,Number(u.searchParams.get('beat'))||0));rivalAngles=angles;rivalSteps=decodeSteps(u.searchParams.get('steps'));
+    reset(u.searchParams.get('mode')==='lab'?'lab':u.searchParams.get('mode')==='daily'?'daily':'blitz',b,false,true);closeDialog();popToast('Friend challenge loaded');return
+  }}catch{}}
+ const m=raw.match(/\b([A-Z0-9]{2,14})-([0-9A-Z]{15})\b/i);if(m){const angles=decodeAngles(m[2]);if(angles.length===5){targetScore=0;rivalAngles=[];rivalSteps=[];clutchReplay=angles;reset('blitz',m[1]);closeDialog();startClutch();return}}let extracted=raw.match(/(?:BOARD(?:\s+CODE)?|PUZZLE)\s*:\s*([A-Z0-9]{2,14})/i);let value=(extracted?.[1]||raw).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14);if(!value)return popToast('Enter a board code');targetScore=0;rivalAngles=[];rivalSteps=[];reset('blitz',value);closeDialog();popToast('Friend’s board loaded')};input.onkeydown=e=>{if(e.key==='Enter')body.querySelector('#joinGo').click()}}
+if(type==='share'){if(clutchActive){closeDialog();return popToast('Complete five full shots to create a challenge')}let r=currentShareRun();eyebrow.textContent='FRIEND CHALLENGE';title.textContent=r?'Think they can beat you?':'Share this board';body.innerHTML=`<div class="heroScore">${r?fmt(r.score):'🎯'}</div><p style="text-align:center">Same board. Same targets. ${mode==='lab'?'One shot each.':'Five shots each.'}<br>Challenge code: <b style="color:#fff">${board}</b></p><button class="action main" id="shareNow">↗ ${makeChallengeLink(r)?'SEND PLAYABLE CHALLENGE LINK':'SEND CHALLENGE CODE'}</button>${r?'<button class="action" id="shareCard">▣ SHARE SCORECARD IMAGE</button>':''}${r?.angles?.length===15?'<button class="action" id="clutchShare">⚡ SEND A CLUTCH SHOT</button><button class="action" id="clutchCopy">COPY CLUTCH CODE</button>':''}<button class="action" id="copyCode">COPY BOARD CODE</button>${r?.angles?.length===15?`<p style="font-size:10px;text-align:center;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text;color:#c8daed">ONE-SHOT CODE: <b>${r.board}-${r.angles}</b></p>`:''}<p style="font-size:11px">${!r?'Invite them to play this board; finish your round to share a score.':mode==='lab'?'One-shot board and score; unverified until server play.':'Includes your five-shot replay and score.'} ${makeChallengeLink(r)?'Your link opens the same playable board; scores remain unverified.':'Live challenge links require deploying the bundled Cloudflare web game. Until then, send the code and your friend can enter it in FRIEND CODE.'}</p>`;body.querySelector('#shareNow').onclick=shareChallenge;let cardBtn=body.querySelector('#shareCard');if(cardBtn)cardBtn.onclick=shareScorecard;let clutchButton=body.querySelector('#clutchShare');if(clutchButton)clutchButton.onclick=shareClutch;let copyClutch=body.querySelector('#clutchCopy');if(copyClutch)copyClutch.onclick=()=>copyText(`${r.board}-${r.angles}`);body.querySelector('#copyCode').onclick=()=>copyText(board)}
+}
+function closeDialog(){$('dialogBackdrop').classList.remove('show')}
+function challengeMessage(){
+ const run=currentShareRun(),points=run?.score??score,gameBoard=run?.board||board;
+ const link=makeChallengeLink(run),codeLine='Board code: '+gameBoard;
+ const intro=run?`BANKSHOT 🎯 I scored ${fmt(points)} in ${run.mode==='lab'?'ONE':'FIVE'} shot${run.mode==='lab'?'':'s'}. Can you beat me?`:`BANKSHOT 🎯 Your challenge: ${mode==='lab'?'ONE':'FIVE'} shot${mode==='lab'?'':'s'} on my board.`;
+ const access=link?`\nPlay the exact board: ${link}`:'\nOpen BANKSHOT → Menu → Friend Code, and enter the board code.';
+ return `${intro}\n${codeLine}${access}\nInformal challenge · score not verified.`;
+}
+function watchRival(){if(rivalAngles.length!==5)return popToast('This friend sent a score, not a replay');let a=[...rivalAngles];reset(mode,board);watchMode=true;autoReplayIndex=1;updateHUD();setTip('<b>WATCHING</b> your rival’s five-shot run · 2× speed');fire(0,0,a[0]);popToast('Rival replay started')}
+async function copyText(text){const native=window.webkit?.messageHandlers?.bankshotCopy; if(native){native.postMessage(String(text).slice(0,12000));popToast('Copied to iPhone clipboard');return}try{await navigator.clipboard.writeText(text);popToast('Copied!')}catch{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();const done=document.execCommand('copy');ta.remove();popToast(done?'Copied!':'Copy unavailable · use the share option') }}
+function clutchMessage(){
+ const r=currentShareRun();if(!r||r.angles?.length!==15||r.steps?.length!==5)return '';
+ const final=Math.max(0,r.steps[4]-r.steps[3]);const link=makeChallengeLink(r,true);
+ return `BANKSHOT ⚡ ONE SHOT. My fifth shot scored +${fmt(final)}. You get the same first four shots. Can you beat it?\nClutch Code: ${r.board}-${r.angles}`+
+ (link?`\nPlay this exact clutch: ${link}`:'\nOpen BANKSHOT → Menu → Friend Code, and paste the Clutch Code.')+'\nUnverified friend challenge.';
+}
+// V16: portrait share artwork rendered from REAL completed shot scores. No invented rank.
+function makeScorecard(run=currentShareRun()){
+ if(!run||!Number.isFinite(run.score))throw Error('Complete a round first');
+ const c=document.createElement('canvas');c.width=720;c.height=1280;
+ const p=c.getContext('2d'),W=720,H=1280;
+ const grad=p.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#132d45');grad.addColorStop(.46,'#071527');grad.addColorStop(1,'#050b17');p.fillStyle=grad;p.fillRect(0,0,W,H);
+ const halo=p.createRadialGradient(360,520,30,360,500,500);halo.addColorStop(0,'#43ece735');halo.addColorStop(1,'#43ece700');p.fillStyle=halo;p.fillRect(0,0,W,H);
+ p.lineJoin='round';p.textAlign='center';
+ p.fillStyle='#efffff';p.font='italic 900 70px system-ui';p.fillText('BANK',252,145);
+ p.fillStyle='#68eef3';p.fillText('SHOT',496,145);
+ p.fillStyle='#fcd57a';p.beginPath();p.arc(626,129,7,0,Math.PI*2);p.fill();
+ p.fillStyle='#92abc4';p.font='700 20px system-ui';p.fillText(run.mode==='lab'?'ONE SHOT • ONE SCORE':'FIVE SHOTS • ONE SCORE',W/2,208);
+ p.strokeStyle='#326781';p.lineWidth=2;p.beginPath();p.moveTo(80,244);p.lineTo(640,244);p.stroke();
+ p.fillStyle='#acffe3';p.font='900 24px system-ui';p.fillText('MY SCORE',W/2,333);
+ p.fillStyle='#f4ffff';p.shadowColor='#69f3eb';p.shadowBlur=32;p.font='900 122px system-ui';p.fillText(fmt(run.score),W/2,465);p.shadowBlur=0;
+ p.fillStyle='#bad0df';p.font='700 23px system-ui';p.fillText('BOARD  '+run.board,W/2,514);
+ const values=(run.steps||[]).map((v,i)=>Math.max(0,v-(i?run.steps[i-1]:0)));
+ const columns=run.mode==='lab'?1:5;
+ for(let i=0;i<Math.min(values.length,columns);i++){
+  let x=columns===1?W/2:105+i*127;
+  p.fillStyle='#1d3446';p.strokeStyle=i===values.indexOf(Math.max(...values))?'#ffd184':'#406078';p.lineWidth=2;
+  p.beginPath();if(p.roundRect)p.roundRect(x-56,574,112,96,14);else p.rect(x-56,574,112,96);p.fill();p.stroke();
+  p.fillStyle='#a7b8ca';p.font='750 17px system-ui';p.fillText('SHOT '+(i+1),x,610);
+  p.fillStyle='#f6faff';p.font='900 25px system-ui';p.fillText('+'+fmt(values[i]),x,647);
+ }
+ // Actual board image from the currently completed board; no stock imagery.
+ p.fillStyle='#132335';p.strokeStyle='#31536a';p.lineWidth=3;
+ p.beginPath();if(p.roundRect)p.roundRect(87,706,546,318,22);else p.rect(87,706,546,318);p.fill();p.stroke();
+ // Preview the ORIGINAL deterministic board, not an almost-empty post-shot board.
+ p.save();p.beginPath();if(p.roundRect)p.roundRect(90,708,540,314,20);else p.rect(90,708,540,314);p.clip();
+ for(let gx=120;gx<630;gx+=38){p.strokeStyle='#8cb9db16';p.beginPath();p.moveTo(gx,707);p.lineTo(gx,1022);p.stroke()}
+ for(let gy=720;gy<1024;gy+=38){p.strokeStyle='#8cb9db16';p.beginPath();p.moveTo(90,gy);p.lineTo(630,gy);p.stroke()}
+ for(const t of makeBoard(run.board)){
+  const x=360+(t.x-195)*1.2,y=710+(t.y-74)*.96,color=palette[t.color];
+  p.shadowColor=color;p.shadowBlur=13;p.fillStyle=color+'55';p.beginPath();p.arc(x,y,16,0,TAU);p.fill();
+  p.fillStyle=color;p.shadowBlur=8;p.beginPath();p.arc(x,y,11.5,0,TAU);p.fill();p.shadowBlur=0;
+  p.strokeStyle='#ffffffaa';p.lineWidth=1;p.beginPath();p.arc(x-1,y-1,8,-.1,2);p.stroke();
+  if(t.bomb){p.fillStyle='#0e243b';p.font='900 17px system-ui';p.fillText('✦',x,y+6)}
+ }
+ p.restore();
+ p.fillStyle='#061b2bdc';p.fillRect(97,955,526,60);
+ p.fillStyle='#dbfff5';p.font='900 23px system-ui';p.fillText('CAN YOU BEAT THIS?',W/2,993);
+ p.fillStyle='#f9fefd';p.font='900 43px system-ui';p.fillText('FIVE SHOTS.',W/2,1092);
+ p.fillStyle='#82f8ea';p.font='900 43px system-ui';p.fillText('BEAT MINE.',W/2,1144);
+ p.fillStyle='#8a9db0';p.font='500 17px system-ui';p.fillText('Local score • friend challenges not verified',W/2,1233);
+ return c;
+}
+async function shareScorecard(){
+ const run=currentShareRun();if(!run)return popToast('Finish a round to share your score');
+ const card=makeScorecard(run),text=challengeMessage();
+ recordPlaytest('shares');
+ try{
+   // Native share sheet supports images in WKWebView, unlike unreliable local-file downloads.
+   const native=window.webkit?.messageHandlers?.bankshotShare;
+   if(native){native.postMessage({dataURL:card.toDataURL('image/png'),text});popToast('Choose where to share your scorecard');return;}
+   const blob=await new Promise(resolve=>card.toBlob(resolve,'image/png'));
+   if(blob&&navigator.canShare&&navigator.share){const file=new File([blob],`BANKSHOT_${run.board}_${run.score}.png`,{type:'image/png'});if(navigator.canShare({files:[file]})){await navigator.share({files:[file],text,title:'BANKSHOT score challenge'});return;}}
+   const a=document.createElement('a');a.href=card.toDataURL('image/png');a.download=`BANKSHOT_${run.board}_${run.score}.png`;document.body.append(a);a.click();a.remove();popToast('Scorecard saved — share it with a friend');
+ }catch(e){if(e?.name!=='AbortError'){await copyText(text);popToast('Image share unavailable · challenge text copied')}}
+}
+// Browser QA can verify that rendered cards use a completed run, not invented scores.
+window.BANKSHOT_V16={makeScorecard:()=>makeScorecard().toDataURL('image/png'),shareScorecard};
+async function shareTextToFriend(text,title){
+ const native=window.webkit?.messageHandlers?.bankshotShareText;
+ if(native){native.postMessage({text,title});popToast('Choose how to send challenge');return}
+ try{if(navigator.share){await navigator.share({title,text});return}await copyText(text)}
+ catch(e){if(e?.name!=='AbortError')await copyText(text)}
+}
+async function shareClutch(){recordPlaytest('shares');const text=clutchMessage();if(!text)return popToast('Finish a five-shot run first');await shareTextToFriend(text,'BANKSHOT: One Shot Clutch')}
+async function shareChallenge(){recordPlaytest('shares');const text=challengeMessage();await shareTextToFriend(text,'BANKSHOT: Beat my score')}
+$('clutchFullBtn').onclick=()=>{clutchActive=false;targetScore=0;rivalAngles=[];rivalSteps=[];reset(mode,board);popToast('Full five-shot board loaded')};$('ghostBtn').onclick=()=>{if(!ghostRun||shooting||targetScore)return;reset(mode,board,true);popToast('Ghost challenge loaded!')};$('crownBtn').onclick=()=>openDialog('crown');$('goDailyBtn').onclick=()=>{targetScore=0;rivalAngles=[];rivalSteps=[];reset('daily',dailyCode());popToast('Daily Crown challenge loaded')};$('watchRivalBtn').onclick=watchRival;$('helpBtn').onclick=()=>openDialog('help');$('settingsBtn').onclick=()=>openDialog('hub');$('modeToggle').onclick=()=>openDialog('modes');$('roundMoreBtn').onclick=()=>openDialog('hub');$('precisionToggle').onclick=()=>{const active=$('app').classList.toggle('precision-expanded');$('precisionToggle').setAttribute('aria-expanded',String(active));$('precisionToggle').innerHTML=active?'⌖ HIDE PRECISION <span>⌃</span>':'⌖ PRECISION AIM <span>⌄</span>';};$('closeDialog').onclick=closeDialog;$('dialogBackdrop').addEventListener('click',e=>{if(e.target===$('dialogBackdrop'))closeDialog()});
+$('newBoardBtn').onclick=freshSoloBoard;$('enterCodeBtn').onclick=()=>openDialog('join');$('shareBtn').onclick=()=>{if(mode==='flow'){popToast('Flow beta is solo-only. Use Blitz for sharing.');return}if(clutchActive){clutchActive=false;targetScore=0;rivalAngles=[];rivalSteps=[];reset(mode,board);popToast('Play all five shots')}else openDialog('share')};$('shareEnd').onclick=()=>{if(mode==='flow'){reset('blitz','B7K9');popToast('Blitz challenge ready');return}if(clutchActive){clutchActive=false;targetScore=0;rivalAngles=[];rivalSteps=[];reset(mode,board);popToast('Play all five shots')}else if(watchMode){reset(mode,board);popToast('Your turn!')}else{closeDialog();openDialog('share')}};
+$('newBoardEnd').onclick=()=>{if(mode==='flow'){reset('flow',randomBoard());return}if(mode==='daily'){closeDialog();openDialog('daily');return}targetScore=0;rivalAngles=[];rivalSteps=[];if(mode==='lab'){reset('blitz',board);popToast('Full five-shot challenge loaded!')}else{freshSoloBoard()}};
+$('restartBtn').onclick=()=>{if(shots<(mode==='lab'?1:SHOT_MAX))recordPlaytest('replays');if(clutchActive)startClutch();else reset();playSound(440,.08,'triangle',.03);};$('replayEnd').onclick=()=>{if(!watchMode){recordPlaytest('replays');if(playtest.firstRoundSeconds!==null&&playtest.firstReplaySeconds===null){playtest.firstReplaySeconds=Math.round((performance.now()-startingTime)/100)/10;savePlaytest()}}if(clutchActive)startClutch();else reset(mode,board,ghostChasing);playSound(520,.08,'triangle',.05)};
+$('blitzTab').onclick=()=>{if(mode!=='blitz')recordPlaytest('modeChanges');targetScore=0;rivalAngles=[];rivalSteps=[];reset('blitz',mode!=='blitz'?'B7K9':board);popToast('Blitz mode')};$('dailyTab').onclick=()=>{if(mode!=='daily')recordPlaytest('modeChanges');playDaily()};$('labTab').onclick=()=>{if(mode!=='lab')recordPlaytest('modeChanges');targetScore=0;rivalAngles=[];rivalSteps=[];reset('lab',labCode());popToast('Shot Lab: one ball, unlimited retries')};
+window.addEventListener('keydown',e=>{if(e.key==='Escape')closeDialog()});
+updateAudioQuick();reset(mode,board,false,incomingClutch);if(incomingClutch)startClutch();requestAnimationFrame(frame);setInterval(()=>{if(mode==='daily'&&!targetScore&&!clutchActive&&board!==dailyCode()&&!shooting&&!watchMode&&!aiming){reset('daily',dailyCode());popToast('A new Daily Crown is live!')}else if(mode==='lab'&&!targetScore&&board!==labCode()&&!shooting&&!aiming&&!finished){reset('lab',labCode());popToast('Today’s new Shot Lab puzzle is ready!')}else updateCrownUI()},60000);
+// Read-only diagnostics for mobile QA. Does not allow score injection.
+
+// Scores remain local unless the player explicitly opts into Daily competition.
+const pendingOnline=new Map();let onlineRequestNumber=0;
+function onlineBridge(action,body={}){
+ return new Promise((resolve,reject)=>{
+  const native=window.webkit?.messageHandlers?.bankshotOnline;
+  if(!native){reject(new Error('Online rankings are not configured in this build. Solo and Daily practice still work.'));return;}
+  const requestId='online-'+(++onlineRequestNumber);const timeout=setTimeout(()=>{
+   if(pendingOnline.has(requestId)){pendingOnline.delete(requestId);reject(new Error('Online request timed out'))}
+  },16000);
+  pendingOnline.set(requestId,{resolve,reject,timeout});
+  try{native.postMessage({...body,action,requestId})}catch(error){clearTimeout(timeout);pendingOnline.delete(requestId);reject(error)}
+ });
+}
+function fetchLeaderboard(dayBoard){return onlineBridge('leaderboard',{board:dayBoard,mode:'daily'})}
+window.BANKSHOT_ONLINE={receive(response){
+ const pending=pendingOnline.get(response?.requestId);if(!pending)return;
+ clearTimeout(pending.timeout);pendingOnline.delete(response.requestId);
+ if(response.ok)pending.resolve(response.data||{});else pending.reject(new Error(response.error||'Could not connect to rankings'));
+}};
+function renderOnlineResult(){
+ const box=$('dailyOnlineResult');if(!box)return;
+ const ready=mode==='daily'&&!watchMode&&!clutchActive&&board===dailyCode()&&lastRun?.board===board&&lastRun.angles?.length===15;
+ box.hidden=!ready;
+ if(ready){$('dailyOnlineStatus').textContent='Your score is saved locally. Submit to earn a verified global ranking.';
+  // Re-arm the submit handler each new round. After a successful submission the button
+  // temporarily opens rankings; without this, later Daily rounds cannot be submitted.
+  $('dailySubmit').onclick=submitDailyScore;
+  $('dailySubmit').disabled=false;$('dailySubmit').textContent='SIGN IN WITH APPLE · SUBMIT SCORE';}
+}
+async function submitDailyScore(){
+ const run=lastRun;
+ if(!run||run.mode!=='daily'||run.board!==dailyCode()||typeof run.angles!=='string'||run.angles.length!==15)return popToast('Complete today’s five-shot Daily first');
+ const status=$('dailyOnlineStatus'),btn=$('dailySubmit');btn.disabled=true;btn.textContent='VERIFYING…';status.textContent='Sign in with Apple to post this completed run.';
+ try{
+  const result=await onlineBridge('submit',{board:run.board,mode:'daily',angles:run.angles,rulesVersion:1});
+  if(Number(result.score)!==run.score){status.textContent='Server replay score differs from this game version. Please report this mismatch before competing.';btn.textContent='RETRY SCORE SUBMISSION';btn.disabled=false;return;}
+  status.textContent=`Verified! Your daily best is ${fmt(result.best)} · current rank #${result.rank}.`;
+  btn.textContent='VIEW VERIFIED LEADERBOARD';btn.disabled=false;btn.onclick=()=>openDialog('leaderboard');
+ }catch(error){status.textContent=error.message||'Could not verify the score';btn.textContent='TRY SUBMITTING AGAIN';btn.disabled=false}
+}
+$('dailySubmit').onclick=submitDailyScore;
+
+window.BANKSHOT_QA={snapshot:()=>({mode,board,score,best,shots,shooting,finished,remaining:targets.filter(t=>t.alive).length,version:VERSION,audioMode,masteryTier:tierFor(best,mode),masteryBook:masteryBook(),sfxCounts:{...sfxCounts},closestMiss:Number.isFinite(closestMiss)?Math.round(closestMiss):null,lastAudioEvent,personalTarget:personalTarget(),shotPoints:runSteps.map((v,i)=>v-(i?runSteps[i-1]:0)),runAngles:runAngles.join(''),runSteps:[...runSteps],watchMode,crowns:crownsEarned(),trail:chosenTrail,lastRun:lastRun,ghostScore:ghostRun?.score||0,ghostChasing,ghostSteps:ghostRun?.steps||[],clutchActive,clutchReady,clutchBase,clutchTargetShot,clutchPlayerShot:clutchActive?score-clutchBase:0,labAttempts:read('bs:v7:lab:attempts:'+board,0),labBestAngle,labBestScore,labRecent:[...labRecent],precisionCode,lastShot,aiming,playbackSpeed,playtest:{...playtest}}),preview:(x,y)=>simulatePreview(aimDir(x,y))};
+// Web version runs without a service worker until an actual offline-cache asset is bundled.
+})();
+</script>
+</body>
+</html>

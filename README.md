@@ -1,123 +1,21 @@
-# ChapterOS
+# BANKSHOT — Blitz vs. V21 Flow (iPhone Playtest)
 
-> Run your chapter like a pro.
+**Experiment date:** October 19, 2026. **Status:** local-beta research prototypes, not App Store releases.
 
-Full-stack SaaS for fraternity and sorority chapter management. Replaces Excel, GroupMe lists, Venmo chasing, and Google Docs with one platform.
+## Open and play
+- [Five-Shot Blitz](./blitz.html) — five-shot solo score chase (default launch mode: `blitz`).
+- [V21 Flow](./flow.html) — untimed five-shot waves; meet a score goal to continue (default launch mode: `flow`).
+- [Mode chooser](./index.html)
 
----
+Both HTML pages are stand-alone and intentionally share the **same V21 scoring and physics code** from `BANKSHOT_V21_Flow_Experiment.html`; only their starting mode and browser tab title differ. This isolates *gameplay mode* as the independent variable rather than confounding mechanics with code-version changes. Other in-game modes remain accessible from the menu. Scores and records use local browser storage. Flow is not verified/ranked. This is **not** an exact separate V20 build and should not be represented as one. A previous V20 package remains in the creator's original archive outside this repository.
 
-## Stack
+## Hosting
+Source files alone on GitHub do not make a playable web app. For iPhone Safari, enable **GitHub Pages** in repository Settings → Pages → Deploy from a branch → `main` / `/ (root)`. After the site deploys, open the Pages URL ending in `/blitz.html`, `/flow.html`, or `/`. This setting is not automatically configured by this commit.
 
-- **Frontend:** React 18 + Vite + Tailwind CSS
-- **Backend:** Node.js + Express + Prisma ORM
-- **Database:** PostgreSQL
-- **Auth:** JWT
-- **Email:** Nodemailer (SMTP)
-- **PDF:** PDFKit
-- **Scheduling:** node-cron
-- **Mobile:** Capacitor (iOS/Android)
+## Testing protocol
+1. On the same iPhone, play Blitz for 10 minutes, then Flow for 10 minutes. Record voluntary replays, session time, scoring clarity (1–10), enjoyment (1–10), and mode preference.
+2. Repeat with at least five fresh players if available. Alternate which mode they try first; avoid coaching.
+3. Specifically ask if a miss/wave failure felt deserved and what scored points.
+4. Avoid claiming a winner from a tiny sample: use it to identify friction and prioritize another iteration.
 
----
-
-## Quick Start
-
-### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-
-### Backend
-```bash
-cd backend
-cp .env.example .env
-# Fill in DATABASE_URL, JWT_SECRET, SMTP_*, STRIPE_*
-npm install
-npx prisma db push
-npx prisma generate
-node src/seed.js   # optional: seed demo data
-node src/index.js
-```
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open http://localhost:5173
-
----
-
-## Environment Variables
-
-### Backend `.env`
-```
-DATABASE_URL=postgresql://user:pass@localhost:5432/chapteros
-JWT_SECRET=your-secret-key
-STRIPE_SECRET_KEY=sk_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your@email.com
-SMTP_PASS=your-app-password
-PORT=3001
-FRONTEND_URL=https://your-domain.com
-```
-
----
-
-## Features
-
-| Feature | Status |
-|---------|--------|
-| Member directory | ✅ |
-| Dues tracking + auto-reminders | ✅ |
-| Events + QR check-in | ✅ |
-| Recruitment pipeline (Kanban) | ✅ |
-| Bid voting (anonymous) | ✅ |
-| Academic tracking (GPA) | ✅ |
-| Budget & treasury | ✅ |
-| Announcements | ✅ |
-| Polls | ✅ (DB-backed) |
-| Risk management | ✅ |
-| Documents | ✅ |
-| HQ compliance reports (PDF) | ✅ |
-| Analytics dashboard | ✅ |
-| Leaderboard & points | ✅ |
-| Weekly email digest | ✅ |
-| PWA (installable) | ✅ |
-| iOS/Android (Capacitor) | ✅ (setup) |
-| In-app notifications | ✅ |
-
----
-
-## Deployment
-
-### Production (PM2)
-```bash
-npm install -g pm2
-cd /path/to/chapteros
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup
-```
-
-### iOS App Store
-See `MOBILE_DEPLOY.md`
-
----
-
-## Pricing
-
-| Plan | Price | Members |
-|------|-------|---------|
-| Basic | $49/mo | Up to 40 |
-| Standard | $89/mo | Up to 100 |
-| Pro | $150/mo | Unlimited |
-
-All plans include a 30-day free trial.
-
----
-
-## License
-Private — All rights reserved.
+**Limitations:** No validated difficulty tuning, real iPhone field-testing, server-verified friend duels or guaranteed online leaderboard. GitHub Pages is public if enabled on this public repository.
