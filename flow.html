@@ -422,7 +422,7 @@ function makeChallengeLink(run=currentShareRun(),isClutch=false){
 function freshSoloBoard(){
  const old=board;let next=randomBoard();for(let i=0;i<8&&next===old;i++)next=randomBoard();
  if(next===old)next=(old==='P5Q2X'?'Q4A9R':'P5Q2X');
- targetScore=0;rivalAngles=[];rivalSteps=[];closeDialog();reset('blitz',next);
+ targetScore=0;rivalAngles=[];rivalSteps=[];closeDialog();reset(mode==='flow'?'flow':'blitz',next);
  popToast('New board '+next+' · ready to shoot');return next;
 }
 function currentShareRun(){if(mode==='flow')return null;return (lastRun&&lastRun.board===board&&lastRun.mode===mode)?lastRun:read(runKey(),null)}
