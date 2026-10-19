@@ -750,7 +750,7 @@ function makeScorecard(run=currentShareRun()){
  p.restore();
  p.fillStyle='#061b2bdc';p.fillRect(97,955,526,60);
  p.fillStyle='#dbfff5';p.font='900 23px system-ui';p.fillText('CAN YOU BEAT THIS?',W/2,993);
- p.fillStyle='#f9fefd';p.font='900 43px system-ui';p.fillText('FIVE SHOTS.',W/2,1092);
+ p.fillStyle='#f9fefd';p.font='900 43px system-ui';p.fillText(run.mode==='lab'?'ONE SHOT.':'FIVE SHOTS.',W/2,1092);
  p.fillStyle='#82f8ea';p.font='900 43px system-ui';p.fillText('BEAT MINE.',W/2,1144);
  p.fillStyle='#8a9db0';p.font='500 17px system-ui';p.fillText('Local score • friend challenges not verified',W/2,1233);
  return c;
