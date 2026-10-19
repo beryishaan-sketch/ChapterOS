@@ -7,178 +7,186 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Bankshot: five-shot arcade, daily scores, and one-shot Shot Lab puzzles to challenge friends.">
-<title>BANKSHOT • V21 Flow</title>
+<title>BANKSHOT • Flow</title>
 <style>
-/* V11: single-tap sound level; visible but not intrusive. */
-.toolrow .audioQuick{border:1px solid #56848f;background:linear-gradient(#163c48,#112c40);color:#c4ffed;min-width:52px;width:52px;display:flex;flex-direction:column;justify-content:center;gap:1px;font-size:10px;font-weight:1000;line-height:1;letter-spacing:.15px}
-.audioQuick small{font-size:8px;color:#91dcd4;letter-spacing:.5px}
-.audioQuick[aria-label*="Muted"]{color:#b9c5dc;border-color:#40506c;background:#19223c}
-.audioQuick[aria-label*="Muted"] small{color:#8e99b5}
-.audioHint{font-size:10px;color:#a3b6cc;margin:8px 2px 0;text-align:center}
-/* V10: nonblocking game lesson, legible score rules, and faster resolution. */
-.firstGuide{position:absolute;z-index:5;pointer-events:none;left:50%;bottom:15%;transform:translateX(-50%);background:#071127e6;border:1px solid #a1ebfa9a;border-radius:15px;padding:11px 16px;display:flex;flex-direction:column;align-items:center;min-width:215px;gap:4px;box-shadow:0 12px 27px #03081580;text-align:center;white-space:nowrap}
-.firstGuide[hidden]{display:none}.firstGuide strong{color:#aaffd8;font-size:12px;letter-spacing:1.05px}.firstGuide span{color:#d6f1ff;font-size:11px;font-weight:850}.firstGuide small{color:#92accf;font-size:9px}
-.speedBtn{position:absolute;z-index:8;right:10px;bottom:14px;color:#efffff;background:#0b2a3af0;border:1px solid #8defec9a;border-radius:11px;min-height:42px;padding:8px 12px;box-shadow:0 8px 18px #000a;font-size:12px;font-weight:950;letter-spacing:.3px}.speedBtn[hidden]{display:none}.speedBtn:active{transform:scale(.96)}
-.scoreRules{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:11px}.scoreRules span{border:1px solid #354962;border-radius:9px;padding:7px 4px;background:#131e33;color:#d8e7ff;font-weight:850;font-size:10px;text-align:center;letter-spacing:-.13px}.scoreRules strong{color:#baffc7}
-.feelSurvey{border:1px solid #5a6e90;border-radius:13px;padding:10px;margin:10px 0 0;background:#142036}.feelSurvey[hidden]{display:none}.feelSurvey strong{display:block;font-size:11px;color:#e5f7ff;margin:0 0 8px}.feelOptions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.feelOptions button{font-size:11px;font-weight:850;padding:10px 2px;border:1px solid #7493ad;border-radius:9px;color:#def0ff;background:#223650}.feelOptions button:active{background:#3d6580}
-.qaMetrics{font-size:12px;border:1px solid #3b5575;background:#0b1831;padding:12px;border-radius:12px;line-height:1.6;color:#d9e8ff}.qaMetrics b{color:#bcffcf}.qaMetrics button{width:100%;min-height:40px;border:1px solid #62778e;background:#283951;color:#fff;border-radius:9px;font-weight:850;margin-top:8px}.qaMetrics .smallNote{font-size:10px;color:#98aacb;margin:6px 0 0}
-@media(max-width:365px){.scoreRules span{font-size:9px}.firstGuide{min-width:185px;padding:8px 11px}}
+:root{
+  --bg:#07090f; --ink:#f4f7fb; --muted:#8b97a8; --line:#1c2636;
+  --cyan:#3ee0ff; --pink:#ff4d8d; --gold:#ffd15c; --lime:#b6ff6a; --violet:#b388ff;
+  --panel:#121722; --good:#101820;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+body{overflow-x:hidden}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+button:disabled{opacity:.4}
+.app{
+  max-width:430px;min-height:100dvh;margin:auto;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 22px);
+  display:flex;flex-direction:column;gap:10px;
+}
+.top{display:flex;align-items:center;gap:8px;min-height:48px}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.6px;font-style:italic}
+.brand span{color:var(--cyan)} .brand i{color:var(--gold);font-style:normal}
+.topControls{margin-left:auto;display:flex;align-items:center;gap:8px}
+.modeToggle,.topControls .tool,#quickRestart,#roundMoreBtn,#clipBtn,.precisionToggle{
+  min-height:48px;min-width:48px;border-radius:14px;
+  background:#161c28;color:var(--ink);border:1px solid #2a3548;
+}
+.modeToggle{padding:0 12px;display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
+.topControls .tool{width:48px;display:grid;place-items:center}
+.topControls .audioQuick{
+  width:auto;min-width:64px;padding:0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;font-size:14px;line-height:1;font-weight:800;color:var(--cyan);border-color:#245868;background:#0e1c22;white-space:nowrap;
+}
+.topControls .audioQuick small{display:block;font-size:10px;letter-spacing:.2px;font-weight:700;color:#b7ecf4}
+.audioQuick.isMuted{color:#ffb3c4;border-color:#6a3040;background:#241018}
+.audioQuick.isMuted small{color:#ffb3c4}
+.visuallyHidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}
+.liveScoreBar{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px;min-height:54px;padding:0 2px;
+}
+.liveScore strong{font-size:48px;line-height:.9;font-weight:800;letter-spacing:-1.5px;font-variant-numeric:tabular-nums}
+.liveScore span,.liveBest span,.liveShots span{display:none}
+.liveBest{display:none!important}
+.liveShots strong{font-size:18px;letter-spacing:3px;color:var(--lime);font-weight:800}
+.goalBar{display:flex;flex-direction:column;gap:6px;padding:0 2px 2px}
+.goalTrack{height:10px;border-radius:999px;background:#1a2230;overflow:hidden}
+#goalFill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--cyan),var(--lime));transition:width .18s linear}
+.goalMeta{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:650;color:var(--muted)}
+.goalMeta b{color:var(--ink);font-weight:750}
+.modebar,.scores,.dailyRibbon,.rivalStrip,.ghostStrip,.clutchStrip,.labStrip,.paceStrip,.playFooter,.subcopy,.gameHud{display:none!important}
+.arenaWrap{
+  position:relative;align-self:center;flex:none;
+  width:min(100%,calc((100dvh - 300px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .75),400px);
+  aspect-ratio:390/520;border-radius:22px;overflow:hidden;
+  background:#0c1018;border:1px solid #243044;
+  box-shadow:0 18px 40px #000a;
+}
+canvas#game{width:100%;height:100%;display:block;touch-action:none}
+.aimReadout{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:4;pointer-events:none;
+  display:flex;gap:8px;align-items:center;max-width:86%;
+  background:#0c1018ee;border:1px solid #2c3c52;border-radius:999px;padding:6px 12px;
+  font-size:12px;font-weight:700;color:#d5deea;
+}
+.aimReadout[hidden]{display:none}
+.aimReadout b{color:var(--cyan);font-weight:800}
+.firstGuide{
+  position:absolute;left:50%;bottom:18%;transform:translateX(-50%);z-index:5;pointer-events:none;
+  background:#0c1018ee;border:1px solid #2c3c52;border-radius:999px;padding:8px 14px;
+}
+.firstGuide[hidden]{display:none}
+.firstGuide strong,.firstGuide small{display:none}
+.firstGuide span{font-size:13px;font-weight:700;color:#e7eef6}
+.speedBtn{
+  position:absolute;right:10px;bottom:12px;z-index:6;min-height:44px;padding:8px 12px;border-radius:12px;
+  background:#121822ee;border:1px solid #2c3c52;color:#e7eef6;font-weight:750;font-size:13px;
+}
+.speedBtn[hidden]{display:none}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3}
+.flash.on{animation:flash .16s ease-out}
+@keyframes flash{from{opacity:.2}to{opacity:0}}
+.callout{
+  position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;
+  font-weight:900;font-size:28px;letter-spacing:-.4px;color:#fff;text-transform:uppercase;
+  text-shadow:0 2px 0 #000,0 0 18px #3ee0ff;opacity:0;white-space:nowrap;
+}
+.callout.pop{animation:callout .7s cubic-bezier(.12,.88,.26,1)}
+@keyframes callout{
+  0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}
+  18%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}
+  70%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-70%) scale(1)}
+}
+.bottomDock{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px;padding:0 2px;
+}
+.dockHint{font-size:14px;font-weight:650;color:#c5d0de;line-height:1.35}
+.dockBtns{display:flex;gap:8px}
+#quickRestart,#roundMoreBtn,#clipBtn{width:48px;height:48px;border-radius:14px;font-size:20px}
+#clipBtn[hidden]{display:none}
+.shotReport{display:none!important}
+.precisionToggle{display:none;margin-top:4px;padding:0 14px;font-weight:750}
+.app.lab-mode .precisionToggle{display:inline-flex;align-items:center;gap:6px}
+.precisionBar{display:none;background:#121722;border:1px solid #2a3548;border-radius:16px;padding:10px}
+.app.lab-mode.precision-expanded .precisionBar{display:block}
+.precisionControls{display:grid;grid-template-columns:1fr 1.1fr 1fr 1.1fr;gap:8px}
+.precisionControls button{min-height:48px;border-radius:12px;background:#1c2433;border:1px solid #314056;font-weight:750}
+.precisionFire{background:var(--lime)!important;color:#102016!important;border:0!important}
+.overlay{
+  position:fixed;inset:0;z-index:40;display:none;overflow:auto;
+  background:#07090ff2;padding:calc(env(safe-area-inset-top) + 28px) 22px calc(env(safe-area-inset-bottom) + 28px);
+}
+.overlay.show{display:flex;justify-content:center;align-items:center}
+.endPanel{width:min(100%,380px);text-align:center}
+.trophy{font-size:40px}
+.overline{color:var(--muted);font-size:13px;font-weight:700;margin-top:6px}
+.endPanel h2{margin:8px 0 0;font-size:32px;letter-spacing:-.8px;font-weight:800}
+.endScore{font-size:72px;font-weight:800;letter-spacing:-2px;line-height:1;color:#fff;margin:8px 0}
+.endSub,.endCoach{color:#b7c2d0;font-size:15px;line-height:1.45;margin:8px 0}
+.endActions{display:grid;gap:10px;margin-top:18px}
+.endActions .action{
+  min-height:48px;border-radius:14px;background:#171d29;border:1px solid #2c384c;
+  font-weight:750;font-size:15px;
+}
+.endActions .action.main{
+  min-height:60px;font-size:18px;font-weight:800;border:0;
+  background:var(--lime);color:#102016;
+}
+.shotRecap{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0}
+.shotBox{background:#121722;border:1px solid #2a3548;border-radius:10px;padding:6px 2px}
+.shotBox label{display:block;color:var(--muted);font-size:10px}
+.shotBox strong{font-size:12px}
+.shotBox.bestShot{border-color:var(--gold)}
+.masteryResult{text-align:left;background:#121722;border:1px solid #2a3548;border-radius:14px;padding:10px 12px;margin:8px 0}
+.masteryTrack{height:6px;background:#1c2433;border-radius:99px;overflow:hidden;margin:6px 0}
+.masteryTrack div{height:100%;background:var(--cyan)}
+.feelSurvey{margin-top:8px}
+.feelOptions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.feelOptions button{min-height:44px;border-radius:12px;background:#171d29;border:1px solid #2c384c;font-weight:700}
+.onlineBox{text-align:left;background:#121722;border:1px solid #2a3548;border-radius:14px;padding:12px;margin:10px 0}
+.onlineBox button{margin-top:8px;min-height:48px;border-radius:12px;background:var(--cyan);color:#071016;font-weight:800}
+.backdrop{position:fixed;inset:0;z-index:60;display:none;background:#07090ee6;padding:16px;align-items:center;justify-content:center}
+.backdrop.show{display:flex}
+.dialog{
+  width:min(100%,420px);max-height:calc(100dvh - 32px);overflow:auto;
+  background:#121722;border:1px solid #2a3548;border-radius:22px;padding:22px 18px 18px;position:relative;
+}
+.dialog h3{margin:4px 36px 8px 0;font-size:26px;letter-spacing:-.6px}
+.dialog p,.dialog li{color:#b7c2d0;font-size:14px;line-height:1.5}
+.dialog .micro{color:var(--cyan);font-size:12px;font-weight:750}
+.close{position:absolute;top:8px;right:8px;width:44px;height:44px;font-size:26px;color:#c5d0de}
+.menuActions{display:grid;gap:8px;margin:12px 0}
+.menuActions button{
+  min-height:52px;border-radius:14px;background:#171d29;border:1px solid #2c384c;
+  display:flex;justify-content:space-between;align-items:center;padding:10px 12px;text-align:left;font-weight:700;
+}
+.menuActions button.primary{background:#102028;border-color:#1d6a78}
+.menuActions b{color:var(--cyan);font-weight:700;font-size:12px}
+.menuNote{color:var(--muted);font-size:13px;line-height:1.45}
+.dialog .action{width:100%;min-height:52px;border-radius:14px;margin-top:8px;background:#171d29;border:1px solid #2c384c;font-weight:750}
+.dialog .action.main{background:var(--lime);color:#102016;border:0;font-weight:800}
+.prefRow{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #243044}
+.switch{min-height:40px;border-radius:999px;padding:8px 12px;background:#1c2433;border:1px solid #314056;font-weight:750}
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);
+  background:#e8fff2;color:#102016;font-weight:750;font-size:13px;padding:10px 14px;border-radius:999px;
+  opacity:0;pointer-events:none;z-index:70;max-width:90%;
+}
+.toast.show{opacity:1}
+.dailyOverview,.dailyHistory,.dailyMetric,.crownDays,.infoBanner,.qaMetrics{color:#c5d0de}
+.dailyMetric,.dailyHistoryItem,.qaMetrics,.dailyBetaNotice{background:#0e1420;border:1px solid #2a3548;border-radius:12px;padding:10px;margin:6px 0}
+@media (prefers-reduced-motion:reduce){
+  .callout.pop,.flash.on,#goalFill{animation:none;transition:none}
+}
+@media (max-width:360px){
+  .liveScore strong{font-size:40px}
+  .app{padding-left:12px;padding-right:12px}
+}
 
-/* V9: Optional 0.5-degree precision controls. Main touch aiming stays unchanged. */
-.precisionBar{border:1px solid #486d7d;background:linear-gradient(105deg,#112b37,#17203a);border-radius:14px;padding:8px 10px;margin:0 0 9px}
-.precisionBar[hidden]{display:none}.precisionHead{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 6px}.precisionHead b{font-size:10px;color:#a7f7f1;letter-spacing:.7px}.precisionHead span{font-size:9px;color:#acbfd4;font-weight:750}.precisionControls{display:grid;grid-template-columns:1fr 1.1fr 1fr 1.05fr;gap:6px;align-items:stretch}.precisionControls button{min-height:42px;border:1px solid #61869d;background:#253951;color:#edffff;border-radius:9px;font-weight:950;font-size:12px;padding:6px 4px}.precisionControls button:active{transform:scale(.97)}.precisionControls button:disabled{opacity:.4}.precisionControls .precisionFire{border:0;background:#affbc1;color:#0a2334}.precisionValue{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;line-height:1.25}.precisionValue strong{color:#ffda91;font-size:11px;white-space:nowrap}.precisionValue small{font-size:9px;color:#93b3c9;white-space:nowrap}
-@media(max-width:370px){.precisionHead span{font-size:8px}.precisionControls{gap:4px}.precisionControls button{font-size:11px}}
-:root{--bg:#070916;--panel:#10172b;--panel2:#161f37;--outline:#34405f;--sub:#8995b2;--cyan:#66f1fb;--mint:#beff8f;--pink:#ff6ea8;--gold:#ffce70;--white:#f7fbff;--shadow:rgba(0,0,0,.45)}
-*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;min-height:100svh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse 90% 45% at 50% -9%,#323265 0%,#0e1228 56%,#070916 100%);color:var(--white);overscroll-behavior-y:contain}
-button,input{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,input:focus-visible{outline:3px solid var(--mint);outline-offset:3px}button:disabled{cursor:not-allowed;opacity:.5}
-.app{max-width:470px;margin:auto;padding:15px 14px max(25px,env(safe-area-inset-bottom));-webkit-user-select:none;user-select:none}.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 1px 17px}.eyebrow{font-weight:900;color:#a0a9ca;letter-spacing:2.2px;font-size:9px}.logo{margin:3px 0 -1px;line-height:1;font-size:clamp(30px,8.7vw,42px);letter-spacing:-2.4px;font-weight:1000;font-style:italic;text-shadow:0 6px 15px #0008}.logo em{font-style:inherit;color:var(--cyan)}.logo b{color:var(--gold)}.tagline{margin-top:5px;font-size:10px;color:#b2bbd3;letter-spacing:1.6px;font-weight:850}
-.toolrow{display:flex;gap:7px;align-self:start}.tool{border:1px solid #3b4668;background:linear-gradient(#222944,#151c34);color:#e0eafa;border-radius:13px;width:40px;height:40px;display:grid;place-items:center;font-size:18px;box-shadow:0 4px 9px #0003}.tool:active,.tab:active,.action:active{transform:scale(.97)}
-.modebar{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;margin-bottom:11px;background:#10182b;border:1px solid #303a55;border-radius:16px}.tab{background:transparent;color:#a9b4d0;border:0;border-radius:11px;min-height:38px;font-weight:900;letter-spacing:.7px;font-size:12px}.tab.active{background:linear-gradient(150deg,#315f71,#205164 66%,#1d465d);box-shadow:inset 0 1px #7effff5d,0 5px 12px #0005;color:#f0ffff}
-.scores{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:11px}.stat{border:1px solid #34415f;border-radius:16px;padding:11px 10px 10px;background:linear-gradient(155deg,#222b4b,#12192d);box-shadow:0 4px 19px #0003}.stat label{display:block;color:#a2b2cf;font-weight:850;font-size:9px;letter-spacing:1.2px;white-space:nowrap}.stat strong{display:block;font-size:clamp(22px,6.4vw,31px);font-weight:1000;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1.25}.stat small{display:block;color:#8796b7;font-size:10px;margin-top:-2px}.stat .bestval{color:var(--gold)}.stat .streakval{color:var(--mint)}
-.arenaWrap{position:relative;border-radius:23px;border:1px solid #58749c;box-shadow:0 25px 55px #000a,0 0 35px #4fecff13;overflow:hidden;background:#10162c;isolation:isolate}canvas#game{display:block;width:100%;height:auto;aspect-ratio:390/520;touch-action:none;-webkit-touch-callout:none;cursor:crosshair}.gameHud{pointer-events:none;position:absolute;z-index:4;inset:12px 12px auto;display:flex;align-items:center;justify-content:space-between;gap:6px}.hudpill{font-size:10px;font-weight:900;letter-spacing:.8px;background:#071027c7;border:1px solid #91a5d259;color:#d7e7fe;border-radius:999px;padding:7px 10px;backdrop-filter:blur(6px)}.hudpill.warm{color:#d9ffd3;border-color:#b5fb9c44}
-.flash{pointer-events:none;z-index:3;position:absolute;inset:0;background:#fff;opacity:0}.flash.on{animation:flash .18s ease-out}@keyframes flash{from{opacity:.13}to{opacity:0}}
-.callout{position:absolute;top:38%;left:50%;z-index:5;transform:translate(-50%,-50%);white-space:nowrap;font-size:25px;color:#fff;font-weight:1000;letter-spacing:-1px;text-shadow:0 3px 0 #010a24,0 0 20px #57dcff;pointer-events:none;opacity:0}.callout.pop{animation:callout .85s cubic-bezier(.12,.88,.26,1)}@keyframes callout{0%{opacity:0;transform:translate(-50%,-30%) scale(.65)}22%{opacity:1;transform:translate(-50%,-60%) scale(1.14)}65%{opacity:1;transform:translate(-50%,-65%) scale(1)}100%{opacity:0;transform:translate(-50%,-82%) scale(.97)}}
-.playFooter{margin-top:12px}.shotsRow{display:flex;align-items:center;justify-content:space-between;gap:5px;margin:0 3px 8px}.leftShots{display:flex;align-items:center;gap:8px}.tiny{font-size:10px;font-weight:900;letter-spacing:1px;color:#a7b4cf}.dots{display:flex;gap:5px}.dot{height:14px;width:14px;border-radius:50%;background:radial-gradient(circle at 27% 22%,#fff,#ffe5a2 33%,#fc9343 75%);box-shadow:0 0 10px #ffaa4d66;border:1px solid #fff2b3}.dot.used{background:#28324b;border:1px solid #3d4965;box-shadow:none}.how{font-size:10px;color:#a4b5d4;font-weight:750;white-space:nowrap}
-.progress{height:5px;border-radius:100px;background:#202d47;overflow:hidden;margin-bottom:9px}.progress>div{height:100%;width:0%;background:linear-gradient(90deg,#5de5fc,#bcffa1);border-radius:inherit;transition:width .2s}.tip{font-size:12px;color:#a8b5cf;text-align:center;min-height:20px;font-weight:670;margin:6px 0 8px}.tip b{color:#eaffff}
-.buttons{display:grid;grid-template-columns:1fr 1.4fr;gap:9px;margin-top:6px}.action{border-radius:14px;min-height:52px;font-weight:1000;font-size:13px;letter-spacing:.2px;border:1px solid #384764;background:#1a2541;color:#e4f0ff;box-shadow:0 7px 16px #0002;transition:transform .1s,opacity .1s}.action.main{border:0;background:linear-gradient(118deg,#73f2fb,#acffc3);color:#102239;box-shadow:0 7px 25px #5df1d13b}.action.wide{grid-column:1/-1}.subcopy{font-size:11px;color:#8290ae;text-align:center;line-height:1.5;margin:15px 6px 0}.subcopy strong{color:#b8d4e8}
-.boardStrip{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #273550;background:#101729;border-radius:11px;padding:10px 12px}.boardStrip span{font-size:10px;color:#a2b0cb;letter-spacing:.7px;font-weight:800}.boardStrip b{font-weight:950;letter-spacing:1.5px;color:#d6faff}.linklike{border:0;background:transparent;color:#8ce5ee;font-weight:850;font-size:11px;padding:4px}.boardBtns{display:flex;gap:8px;align-items:center}.boardBtns .linklike:first-child{color:#c5ffaa}.boardStrip{flex-wrap:wrap}
-.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:19px;z-index:10;background:linear-gradient(180deg,#070b1cc9,#070b19f5);backdrop-filter:blur(8px)}.overlay.show{display:flex}.endPanel{text-align:center;width:100%;max-width:330px;padding:12px 10px}.overline{font-size:11px;color:#b1d5e0;letter-spacing:2px;font-weight:1000}.trophy{font-size:48px;filter:drop-shadow(0 3px 17px #ffca5865)}.endPanel h2{margin:10px 0 1px;font-size:clamp(25px,6vw,34px);letter-spacing:-1.5px;line-height:1.05;font-weight:1000}.endScore{color:var(--cyan);font-size:clamp(51px,15vw,68px);font-weight:1000;line-height:1.15;letter-spacing:-3px;text-shadow:0 0 25px #7eefff65}.endSub{margin:5px auto 12px;line-height:1.55;color:#bdc9df;font-size:12px}.endActions{display:grid;gap:9px}.endActions .action{min-height:48px}
-.backdrop{position:fixed;inset:0;background:#050815df;z-index:30;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px)}.backdrop.show{display:flex}.dialog{width:100%;max-width:420px;border-radius:23px;padding:24px;background:linear-gradient(144deg,#202b4b,#0f182d 75%);border:1px solid #536783;box-shadow:0 24px 80px #000a;position:relative}.dialog h3{font-size:26px;letter-spacing:-1.2px;margin:5px 35px 7px 0}.dialog p,.dialog li{font-size:13px;color:#b5c5df;line-height:1.6}.dialog ol{padding-left:18px}.dialog .micro{font-weight:1000;font-size:10px;color:var(--cyan);letter-spacing:1.8px}.close{position:absolute;right:13px;top:10px;border:0;background:transparent;color:#acc6e6;font-size:27px;padding:2px 8px}.dialog input{width:100%;background:#080f24;border:1px solid #4c6486;color:#fff;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:3px;padding:12px;border-radius:12px;outline:none;margin:7px 0 12px;text-align:center}.dialog .action{width:100%;margin-top:6px}.heroScore{text-align:center;font-size:49px;font-weight:1000;color:var(--gold);margin:5px 0}.prefRow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;gap:8px;border-bottom:1px solid #35415a}.switch{min-width:63px;border:1px solid #446080;border-radius:999px;background:#1b2b45;color:#b9d4eb;padding:9px 12px;font-size:11px;font-weight:900}
-.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 22px);left:50%;transform:translateX(-50%);z-index:55;background:#c9ffee;color:#082439;padding:11px 15px;border-radius:999px;font-size:12px;font-weight:950;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;box-shadow:0 9px 32px #0009}.toast.show{opacity:1}
-@media(min-width:650px){.app{padding-top:28px}.logo{font-size:40px}}
-@media(max-height:730px) and (max-width:450px){.app{padding-top:8px}.top{margin-bottom:8px}.scores{margin-bottom:7px}.stat{padding:7px 9px}.modebar{margin-bottom:7px}.logo{font-size:29px}.tagline{font-size:9px}.playFooter{margin-top:7px}.subcopy{margin-top:8px}}
-@media(prefers-reduced-motion:reduce){.callout.pop,.flash.on{animation:none}*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
-
-/* V3: Daily crown & rival replay */
-.dailyRibbon{display:flex;align-items:center;justify-content:space-between;gap:7px;margin:-2px 2px 10px;border:1px solid #495374;border-radius:14px;padding:9px 10px;background:linear-gradient(115deg,#22284a,#1c2441 62%,#172d37);box-shadow:inset 0 1px #ffffff18}
-.dailyLeft{display:flex;align-items:center;gap:8px;min-width:0}.crownIcon{font-size:24px;filter:drop-shadow(0 0 9px #ffbc7299)}.dailyText{display:flex;flex-direction:column;gap:2px;min-width:0}.dailyText strong{font-size:11px;letter-spacing:.3px;white-space:nowrap}.dailyText small{color:#aab9d5;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dailyRight{display:flex;gap:5px;align-items:center}.smallAction{background:#2c4454;color:#dcfbff;border:1px solid #547687;border-radius:10px;min-height:33px;padding:0 10px;font-size:10px;font-weight:1000;white-space:nowrap}.smallAction.gold{background:linear-gradient(120deg,#ffd77a,#ffa45d);color:#2b1e12;border:0}.smallAction[hidden]{display:none}
-.rivalStrip{border-radius:13px;border:1px solid #587084;background:linear-gradient(100deg,#192844,#152f3c);padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:9px}.rivalStrip[hidden]{display:none}.rivalStrip b{font-size:11px;color:#c0fff7}.rivalStrip span{font-weight:1000;font-size:15px;color:#ffe08d}.rivalStrip button{border:0;background:#ecf6ff17;color:#e8f7ff;border-radius:8px;font-weight:800;font-size:10px;padding:7px}
-.crownModalTop{text-align:center;margin-bottom:12px}.crownModalTop strong{font-size:48px;display:block;line-height:1.1}.crownModalTop small{display:block;color:#b3bfd5;margin-top:5px}.crownDays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:12px 0}.crownDay{background:#0c1427;border:1px solid #364b69;border-radius:10px;padding:8px 0;text-align:center}.crownDay span{display:block;font-size:10px;color:#a0afcd;font-weight:850}.crownDay strong{display:block;font-size:19px;margin-top:3px;color:#65718b}.crownDay.got{background:#3b2a29;border-color:#f7b462}.crownDay.got strong{color:#ffe08d}.crownDay.today{outline:2px solid #82f7e4;outline-offset:1px}.miniCaption{font-size:11px!important;color:#a9b6cd!important}.milestones{display:flex;align-items:center;justify-content:space-around;margin:13px 0 4px;gap:6px}.milestones span{text-align:center;color:#dbe8fb;font-size:11px;font-weight:850}.milestones b{display:block;font-size:17px;margin-bottom:3px}.infoBanner{margin:8px 0;padding:9px;border-radius:10px;background:#24314b;font-size:12px;color:#cfe2f7;line-height:1.5}.trailPreview{display:inline-block;width:13px;height:13px;border-radius:100%;vertical-align:middle;margin-right:5px}.rivalBeat{color:#c8ffe4;font-weight:950}
-@media(max-width:360px){.dailyText small{font-size:9px}.smallAction{padding:0 7px}.crownIcon{font-size:20px}}
-/* V4: score-based personal ghost chase. Local only, never a verified wager. */
-.ghostStrip{margin-bottom:10px;padding:10px 12px;border:1px solid #486d73;background:linear-gradient(120deg,#16303d,#1c2344);border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.ghostStrip[hidden]{display:none}.ghostLeft{min-width:0;flex:1}.ghostLabel{font-size:10px;font-weight:1000;letter-spacing:1.2px;color:#b5fded}.ghostPace{font-size:11px;color:#c1d3e8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ghostScore{font-size:19px;font-weight:1000;color:#fff3c3;white-space:nowrap}.ghostButton{border:1px solid #79dab8;background:#173b3d;color:#c5ffe8;border-radius:10px;padding:8px 10px;white-space:nowrap;font-weight:1000;font-size:10px} .ghostButton:disabled{opacity:.5}
-/* End-of-round actions must remain reachable on short mobile viewports. */
-.overlay.show{overflow-y:auto;align-items:flex-start;overscroll-behavior:contain}
-.endPanel{margin:auto 0;padding:10px 6px}
-@media(max-height:730px){.endPanel .trophy{font-size:32px}.endPanel h2{font-size:25px}.endPanel .endScore{font-size:48px}.endActions{gap:6px}.endActions .action{min-height:41px}}
-/* V6: playable one-shot asynchronous friend challenges, using the identical deterministic board state. */
-.clutchStrip{margin:0 0 10px;padding:10px 12px;border:1px solid #ffcc796c;border-radius:14px;background:linear-gradient(100deg,#453320,#222840);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.clutchStrip[hidden]{display:none}.clutchStrip b{font-size:11px;letter-spacing:.8px;color:#ffdb99}.clutchStrip small{display:block;color:#e1d6c9;font-size:10px;margin-top:3px}.clutchStrip strong{white-space:nowrap;color:#fff2c7;font-size:18px}
-.clutchButton{font-size:11px;font-weight:900;background:#59462b;color:#ffe5b2;border:1px solid #927145;border-radius:9px;padding:7px}
-.clutchNote{font-size:11px;line-height:1.4;color:#e8dbba;margin:5px 0 10px}
-@media(max-height:710px){.clutchStrip{padding:7px 10px;margin-bottom:6px}.clutchNote{margin:2px 0 5px}}
-/* V5: Personal improvement is a first-class solo mode: clear attainable feedback, no fake rankings. */
-.paceStrip{margin:0 0 10px;border:1px solid #536483;background:#162039;border-radius:13px;padding:9px 11px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 9px;align-items:center}
-.paceStrip[hidden]{display:none}.paceLeft{min-width:0}.paceTag{color:#a9e9ff;font-size:10px;font-weight:1000;letter-spacing:.8px}.paceText{font-size:11px;color:#dceaff;line-height:1.35;margin-top:3px}.paceValue{font-size:17px;font-weight:1000;color:#fff4b7;white-space:nowrap}.paceTrack{grid-column:1/-1;height:5px;background:#293650;border-radius:9px;overflow:hidden}.paceFill{height:100%;width:0%;background:linear-gradient(90deg,#72d3ff,#b3ffac);transition:width .18s}
-.shotRecap{margin:9px 0 10px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}.shotRecap .shotBox{background:#13223a;border:1px solid #3c526d;border-radius:9px;padding:7px 2px;color:#e4eeff}.shotRecap .shotBox.bestShot{border-color:#ffc76a;background:#403323}.shotRecap .shotBox label{display:block;font-size:9px;color:#a7b6ca;font-weight:900}.shotRecap .shotBox strong{display:block;font-size:11px;letter-spacing:-.3px;margin-top:2px}.shotRecap .shotBox.bestShot strong{color:#ffe5a0}
-.endCoach{font-size:11px;line-height:1.4;color:#c7e6fa;min-height:28px;margin:6px 0 8px}
-#newBoardEnd{min-height:40px;border-color:#55708c;background:#182945}
-@media(max-height:710px){.shotRecap{margin:5px 0}.shotRecap .shotBox{padding:4px 2px}.endCoach{margin:3px 0}.endPanel .endSub{margin:3px auto 6px}.endPanel h2{margin-top:5px}.endPanel .trophy{font-size:37px}}
-/* V7: Optional one-shot puzzle variation, NOT a separate game. */
-.modebar{grid-template-columns:1fr 1fr 1fr}.modebar .tab{font-size:11px;min-width:0;letter-spacing:0;padding:0 2px}
-.labStrip{display:none;align-items:center;justify-content:space-between;gap:8px;border:1px solid #6a7fa1;background:linear-gradient(110deg,#192b4c,#222544);border-radius:13px;padding:10px 12px;margin:0 0 10px}
-.labStrip strong{font-size:12px;letter-spacing:.5px;color:#bceafc}.labStrip small{display:block;color:#bcc9e5;font-size:10px;margin-top:3px;line-height:1.4}.labStrip .labCount{text-align:right;white-space:nowrap;color:#fff5ce;font-weight:950;font-size:17px}.labStrip .labCount span{display:block;color:#a6b8da;font-size:9px;letter-spacing:.6px}
-.lab-mode .labStrip{display:flex}.app:not(.daily-mode) .dailyRibbon{display:none}.lab-mode .ghostStrip{display:none!important}
-.lab-mode .stat{padding:10px 8px}
-@media(max-width:355px){.modebar .tab{font-size:10px}.labStrip{padding:7px 9px}}
-
-/* V8: competence feedback without a second game or extrinsic currency loop */
-.shotReport{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:5px 9px;padding:8px 10px;border:1px solid #406b78;border-radius:12px;background:linear-gradient(115deg,#17313a,#18243d);margin:0 0 9px;box-shadow:inset 0 1px #8ce8e020}
-.shotReport[hidden]{display:none}.shotReport span{font-size:10px;font-weight:950;letter-spacing:.8px;color:#9dece5}.shotReport strong{text-align:right;font-size:16px;font-weight:1000;color:#d8ffb4;font-variant-numeric:tabular-nums}.shotReport small{grid-column:1/-1;font-size:11px;line-height:1.3;color:#c4d8e6;font-weight:650}
-.aimReadout{position:absolute;top:53px;left:50%;transform:translateX(-50%);z-index:4;pointer-events:none;display:flex;align-items:center;gap:8px;background:#071329d9;border:1px solid #527f95;border-radius:999px;white-space:nowrap;padding:6px 11px;color:#edffff;font-size:10px;box-shadow:0 5px 20px #0007}
-.aimReadout[hidden]{display:none}.aimReadout b{color:#b6ffff;font-size:11px}.aimReadout span{color:#b8cde3;font-weight:800}
-@media(max-width:360px){.aimReadout{top:48px;gap:4px;padding:5px 8px;font-size:9px}.aimReadout b{font-size:10px}}
-
-/* V12 — evidence-informed focus-first mobile game design.  See V12 UX research brief. */
-:root{--bg:#070d19;--panel:#0d1a2a;--panel2:#121f31;--outline:#25435b;--sub:#93aac3;--cyan:#67eff6;--mint:#adffd0;--gold:#ffcd77;--white:#effaff}
-html,body{height:100%;min-height:100%;background:#07101e}body{background:radial-gradient(ellipse 70% 46% at 50% 38%,#122943 0%,#071222 69%,#050c17 100%);overflow-x:hidden}
-.app{max-width:530px;min-height:100svh;min-height:100dvh;margin:auto;padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 8px);display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:9px}
-.top{margin:0;flex:none;display:flex;align-items:center;min-height:46px;gap:8px}
-.brand{font-weight:1000;font-size:clamp(20px,5.5vw,27px);letter-spacing:-1.3px;line-height:1;font-style:italic;white-space:nowrap;text-shadow:0 2px 14px #6beaff10}
-.brand span{color:#71edf4}.brand i{color:#ffc66a;font-style:normal}
-.topControls{display:flex;align-items:center;margin-left:auto;gap:6px}
-.modeToggle,.topControls .tool,#roundMoreBtn,#quickRestart,#clipBtn,.precisionToggle{border:1px solid #305168;background:#102238;color:#d3e9f8;border-radius:12px;min-height:44px;transition:background .15s,transform .1s;box-shadow:none}
-.modeToggle{display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;font-weight:900;font-size:11px;letter-spacing:.4px;white-space:nowrap}
-.modeToggle span:last-child{font-size:16px;color:#75e6f0}.topControls .tool{width:44px;height:44px;min-width:44px;font-size:19px}
-.topControls .audioQuick{display:grid;place-content:center;padding:0;min-width:44px;width:44px;background:#112b3b;color:#bafaf6;font-size:20px;font-weight:800;border-color:#315563}
-.topControls .audioQuick small{display:none}.topControls .menuToggle{font-size:20px}
-.visuallyHidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
-.liveScoreBar{flex:none;min-height:52px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.06fr);align-items:center;column-gap:10px;padding:5px 4px 6px;border-bottom:1px solid #2b3f53;box-shadow:0 10px 24px -23px #8cf4ff}
-.liveScoreBar>div{min-width:0;display:flex;flex-direction:column;gap:3px}
-.liveScoreBar span{font-size:9px;letter-spacing:1.1px;font-weight:900;color:#97abc4;white-space:nowrap}
-.liveScoreBar strong{line-height:1.07;font-size:clamp(22px,6vw,28px);font-weight:950;letter-spacing:-.75px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
-.liveScore strong{color:#f5ffff}.liveBest strong{color:#ffda8f;font-size:clamp(17px,5vw,21px)}
-.liveShots{text-align:right}.liveShots strong{color:#a8fdd1;font-size:14px;letter-spacing:.5px;white-space:nowrap;overflow:visible}
-/* Maintain the exact 390:520 simulation geometry as the arena resizes. */
-.arenaWrap{flex:none;align-self:center;width:min(100%,calc((100dvh - 199px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px);aspect-ratio:390/520;min-width:0;max-width:100%;overflow:hidden;border:1px solid #38627d;border-radius:20px;box-shadow:0 12px 36px #0009,0 0 38px #45ebf111;background:#0c192b}
-canvas#game{width:100%;height:100%;aspect-ratio:390/520;touch-action:none}
-.gameHud{inset:11px 13px auto}.gameHud #boardChip{font-size:9px;letter-spacing:.6px;padding:5px 0;background:transparent;border:0;color:#779cb9;backdrop-filter:none}.gameHud #statusChip{display:none}
-.firstGuide{bottom:14%;padding:8px 15px;border-radius:999px;background:#071a2bdb;border:1px solid #77d8d988;box-shadow:0 4px 21px #000a;min-width:auto;max-width:90%;white-space:nowrap;transform:translateX(-50%)}
-.firstGuide strong,.firstGuide small{display:none}.firstGuide span{font-size:11px;color:#e9feff;letter-spacing:.1px}
-.aimReadout{top:8px;left:50%;font-size:10px;padding:6px 8px;background:#0b2539d6;border-color:#47758c;max-width:62%;overflow:hidden}
-.speedBtn{bottom:10px;right:10px;min-height:36px;padding:6px 9px;font-size:11px;background:#122c3ddc;border-radius:10px}
-.bottomDock{flex:none;display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:0 0 0 10px;color:#d0deef}
-.dockHint{font-size:11px;font-weight:850;letter-spacing:.4px;color:#c9d8eb;white-space:nowrap}.dockHint span{color:#52bac9;margin:0 3px}
-#clipBtn[hidden]{display:none}.dockBtns{display:flex;gap:6px;position:relative;z-index:45}#roundMoreBtn,#quickRestart,#clipBtn{width:44px;height:44px;display:grid;place-items:center;font-size:19px;letter-spacing:1px;color:#adbed1}
-/* Older screens still update state and keep features, but no longer compete with active shooting. */
-.modebar,.scores,.dailyRibbon,.rivalStrip,.ghostStrip,.clutchStrip,.labStrip,.paceStrip,.playFooter,.subcopy{display:none!important}
-/* Put important shot feedback where its cause happens, without reflowing the board. */
-.shotReport{z-index:7;position:absolute;left:12px;right:12px;bottom:51px;margin:0;padding:8px 10px;pointer-events:none;grid-template-columns:auto 1fr;background:#081c2ae8;border:1px solid #427483b5;box-shadow:0 8px 28px #0008}
-.shotReport[hidden]{display:none}.shotReport strong{font-size:15px}.shotReport small{font-size:10px;line-height:1.25;grid-column:1/-1}
-.precisionToggle{display:none;min-height:44px;padding:8px 15px;font-size:11px;letter-spacing:.6px;font-weight:900;color:#c9fdf4;flex:none}
-.app.lab-mode .precisionToggle{display:block}
-.app.lab-mode.precision-expanded .precisionBar{display:block!important}
-.app.lab-mode.precision-expanded .arenaWrap{width:min(100%,calc((100dvh - 308px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px)}
-.precisionBar{display:none!important;order:4;margin:0;border-radius:14px;padding:8px;background:#10273b;border:1px solid #345a70}
-.app.lab-mode.precision-expanded .precisionBar{display:block!important}
-.app.lab-mode.precision-expanded .precisionBar .precisionHead span{display:none}
-.precisionControls button{min-height:44px}.precisionControls .precisionValue{font-size:11px}
-/* After finishing, reward the result in a dedicated full-screen overlay, not inside a small playfield. */
-.overlay{position:fixed;inset:0;overflow-y:auto;overscroll-behavior:contain;display:none;justify-content:center;align-items:safe center;padding:calc(env(safe-area-inset-top) + 20px) 18px calc(env(safe-area-inset-bottom) + 20px);z-index:40;background:linear-gradient(180deg,#060e1aed,#050c16fa);backdrop-filter:blur(10px)}
-.overlay.show{display:flex}.endPanel{max-width:400px;margin:auto;padding:20px 4px 12px}.endPanel .trophy{font-size:43px}.endPanel h2{font-size:clamp(26px,6vw,34px)}
-.endPanel .endScore{font-size:clamp(56px,15vw,76px);margin:10px 0;color:#8af9eb}.endPanel .endSub{font-size:12px}.endActions{margin-top:15px;gap:11px}
-.endActions .action{min-height:52px}.endActions .action.main{font-size:15px;background:linear-gradient(120deg,#6debfd,#a1ffd4)}
-.endCoach{font-size:12px;margin:12px 0;color:#b7d0e5;line-height:1.5}
-.dialog{max-height:calc(100dvh - 44px);overflow-y:auto;background:linear-gradient(155deg,#122d43,#101829 80%);border-color:#3b6078;border-radius:22px}.dialog h3{font-size:24px}.dialog .close{min-width:44px;min-height:44px}
-.menuActions{display:grid;gap:9px;margin:15px 0}.menuActions button{width:100%;min-height:52px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;border:1px solid #36566a;background:#17283a;border-radius:13px;text-align:left;color:#e2f7ff;font-size:13px;font-weight:850}
-.menuActions button b{color:#83eee6;font-size:12px}.menuActions button.primary{background:#123b49;border-color:#58aaae}
-.menuNote{font-size:11px;line-height:1.5;color:#91a9bd}
-@media(max-width:355px){.app{padding-left:8px;padding-right:8px;gap:6px}.top{gap:4px}.brand{font-size:19px}.topControls{gap:4px}.modeToggle{padding:0 8px;font-size:10px}.topControls .tool{min-width:40px;width:40px;height:44px}.liveScoreBar{column-gap:6px}.liveScoreBar span{letter-spacing:.3px;font-size:8px}.dockHint{font-size:10px}.arenaWrap{width:min(100%,calc((100dvh - 181px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px)}}
-@media(max-height:690px){.app{gap:5px;padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:calc(env(safe-area-inset-bottom) + 4px)}.arenaWrap{width:min(100%,calc((100dvh - 171px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px)}.liveScoreBar{min-height:44px}.top{min-height:44px}.firstGuide{bottom:12%}.dockHint{font-size:10px}.app.lab-mode.precision-expanded .arenaWrap{width:min(100%,calc((100dvh - 270px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75),470px)}}
-@media(min-width:700px){.app{max-width:520px;padding-top:16px;padding-bottom:16px;justify-content:center;gap:12px}.arenaWrap{width:min(100%,min(440px,calc((100dvh - 215px - env(safe-area-inset-top) - env(safe-area-inset-bottom))*.75)))}.brand{font-size:26px}}
-@media(prefers-reduced-motion:reduce){.modeToggle,.topControls .tool,#roundMoreBtn{transition:none}}
-/* V13: progression exists between games, never across the active playfield. */
-.masteryResult{border:1px solid #386175;border-radius:13px;background:#112737;padding:10px 14px;margin:3px auto 10px;max-width:330px;display:grid;gap:6px;text-align:left}
-.masteryResult[hidden]{display:none}.masteryResult strong{font-size:12px;letter-spacing:.8px;color:#fff3cb}.masteryResult small{font-size:11px;color:#b9d2e3;line-height:1.3}
-.masteryTrack{background:#25384d;height:5px;border-radius:10px;overflow:hidden}.masteryTrack div{height:100%;width:0;background:linear-gradient(90deg,#65dbf1,#a6ffd5);transition:width .2s}
-.practiceShelf{display:grid;gap:8px;margin:12px 0}.practiceShelf button{width:100%;display:flex;justify-content:space-between;align-items:center;min-height:52px;background:#152b3e;color:#f1fbff;border:1px solid #305a70;border-radius:12px;padding:9px 11px;font-weight:900;gap:10px;text-align:left}
-.practiceShelf small{display:block;color:#aec4d7;font-size:11px;font-weight:600;margin-top:3px}.practiceShelf em{font-style:normal;color:#ffde9c;font-size:12px;white-space:nowrap}
-/* The launch tutorial stays a small, one-line hint above the launcher. */
-.firstGuide{bottom:12%;padding:8px 12px}.firstGuide span{font-size:11px;font-weight:900;letter-spacing:.4px}
-/* One visual message only while aiming: direct hit, bank, or no target. */
-.aimReadout{max-width:70%;white-space:nowrap}.aimReadout span{font-size:9px}
-@media(max-height:700px){.masteryResult{padding:7px 10px;margin:1px auto 5px;gap:4px}.masteryResult small{font-size:10px}}
-/* V14: Daily detail is a modal, never permanently added to the active playfield. */
-.backdrop{z-index:60}
-.dailyOverview{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:15px 0}
-.dailyMetric{background:#0d2438;border:1px solid #33546c;border-radius:13px;padding:13px 10px;min-width:0}
-.dailyMetric span{display:block;color:#99b6c9;font-weight:800;letter-spacing:.65px;font-size:10px;margin-bottom:4px}
-.dailyMetric strong{font-size:24px;font-weight:950;color:#b1fff1;font-variant-numeric:tabular-nums}
-.dailyDate{color:#a8c4d8;font-size:12px;line-height:1.6}
-.dailyHistory{display:grid;gap:7px;margin:12px 0}
-.dailyHistoryItem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#122738;padding:10px;border:1px solid #315268;border-radius:10px;font-size:12px}
-.dailyHistoryItem strong{color:#ffe2a5}
-.dailyBetaNotice{background:#13202d;border:1px solid #425566;padding:12px;border-radius:12px;color:#c7d5e4;font-size:12px;line-height:1.55;margin:12px 0}
-.dailyMenuCta{background:#214b52!important;border-color:#74a9a0!important}
-.dialog{max-height:calc(100svh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-
-/* V17: competitive features live only in end-state or menu, never on the aiming board. */
-.onlineBox{border:1px solid #436478;border-radius:13px;padding:11px;margin:10px 0;background:linear-gradient(125deg,#112b3c,#0d1b30);color:#d6eff9;font-size:12px;line-height:1.5}
-.onlineBox strong{color:#b8fff0}.onlineBox button{border:0;border-radius:9px;padding:10px 13px;background:#7bebd6;color:#102738;font-size:12px;font-weight:900;min-height:43px;margin-top:9px;width:100%}
-.onlineBox .subtle{color:#a8bace;font-size:11px;margin-top:5px}.onlineRows{display:grid;gap:7px;margin-top:9px}.onlineRow{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #314f64;border-radius:10px;padding:10px;background:#14283c;font-size:13px}
-.onlineRow b{color:#baffef}.onlineBox[hidden]{display:none!important}
-.app.flow-mode .arenaWrap{border-color:#6a9b92}.app.flow-mode .hudpill{color:#bfffe7}.app.flow-mode #liveBest{color:#b4ffcf}
 </style>
 </head>
 <body>
@@ -194,30 +202,32 @@ canvas#game{width:100%;height:100%;aspect-ratio:390/520;touch-action:none}
   </div>
 </header>
 <div class="liveScoreBar" aria-label="Current round status">
-  <div class="liveScore"><span>SCORE</span><strong id="liveScore">0</strong></div>
-  <div class="liveBest"><span id="liveBestLabel">PERSONAL BEST</span><strong id="liveBest">0</strong></div>
-  <div class="liveShots"><span id="liveShotsLabel">SHOTS LEFT</span><strong id="liveShots">● ● ● ● ●</strong></div>
+  <div class="liveScore"><span>Score</span><strong id="liveScore">0</strong></div>
+  <div class="liveBest"><span id="liveBestLabel">Best</span><strong id="liveBest">0</strong></div>
+  <div class="liveShots"><span id="liveShotsLabel">Shots</span><strong id="liveShots">● ● ● ● ●</strong></div>
 </div>
+<div class="goalBar" id="goalBar"><div class="goalTrack"><div id="goalFill"></div></div><div class="goalMeta"><span id="goalLabel">Wave 1</span><b id="goalNums">0 to go</b></div></div>
 <nav class="modebar" aria-label="Game mode"><button class="tab active" id="blitzTab">⚡ BLITZ</button><button class="tab" id="dailyTab">✦ DAILY</button><button class="tab" id="labTab">🧠 SHOT LAB</button></nav>
 <div class="dailyRibbon"><div class="dailyLeft"><div class="crownIcon">👑</div><div class="dailyText"><strong id="dailyHeadline">DAILY CROWN · DAY 1</strong><small id="dailyDetail">A new shared board every UTC day</small></div></div><div class="dailyRight"><button class="smallAction" id="crownBtn">7-DAY CASE</button><button class="smallAction gold" id="goDailyBtn">PLAY ↗</button></div></div><div class="rivalStrip" id="rivalStrip" hidden><div><b id="rivalLabel">FRIEND'S SCORE</b><div style="font-size:10px;color:#b7c5dd" id="rivalProgress">Beat their five-shot run</div></div><span id="rivalTarget">0</span><button id="watchRivalBtn">▶ WATCH</button></div><div class="ghostStrip" id="ghostStrip" hidden><div class="ghostLeft"><div class="ghostLabel" id="ghostLabel">👻 CHASE YOUR GHOST</div><div class="ghostPace" id="ghostPace">Beat your best run on this board</div></div><div class="ghostScore" id="ghostScore">0</div><button class="ghostButton" id="ghostBtn">↻ CHASE</button></div><div class="clutchStrip" id="clutchStrip" hidden><div><b>⚡ CLUTCH SHOT</b><small id="clutchDetail">Same setup. One shot to beat theirs.</small></div><strong id="clutchGoal">+0</strong><button class="clutchButton" id="clutchFullBtn">FULL GAME ↗</button></div><div class="scores"><div class="stat"><label>YOUR SCORE</label><strong id="score">0</strong><small id="scoreSub">5 shots to go</small></div><div class="stat"><label>PERSONAL BEST</label><strong class="bestval" id="best">0</strong><small id="bestSub">On this board</small></div><div class="stat"><label>MAX CHAIN</label><strong class="streakval" id="chain">×0</strong><small id="chainSub">This round</small></div></div>
 <div class="labStrip" id="labStrip"><div><strong>🧠 TODAY’S ONE-SHOT PUZZLE</strong><small>One shot per try. Find a better bank angle.<br>Unlimited retries · the same board for everyone today.</small></div><div class="labCount" id="labAttempts">0<span>ATTEMPTS</span></div></div>
 <div class="paceStrip" id="paceStrip" hidden aria-live="polite"><div class="paceLeft"><div class="paceTag" id="paceTag">PERSONAL TARGET</div><div class="paceText" id="paceText">Beat your best on this board.</div></div><div class="paceValue" id="paceValue">0</div><div class="paceTrack"><div class="paceFill" id="paceFill"></div></div></div>
-<section class="arenaWrap" id="arenaWrap" aria-label="BANKSHOT game arena"><canvas id="game" aria-label="Drag from anywhere to aim and lift your finger to launch your shot"></canvas><div class="gameHud"><span class="hudpill" id="boardChip">BOARD · B7K9</span><span class="hudpill warm" id="statusChip">READY TO FIRE</span></div><div class="aimReadout" id="aimReadout" hidden aria-live="off"><b id="aimAngle">STRAIGHT</b><span id="aimBank">PATH PREVIEW</span></div><div class="firstGuide" id="firstGuide" hidden><strong>SHOOT</strong><span>DRAG TO AIM · RELEASE</span><small>Follow the dotted trajectory</small></div><button type="button" class="speedBtn" id="speedBtn" hidden aria-label="Speed up the ball">2× SPEED »</button><div class="flash" id="flash"></div><div class="callout" id="callout"></div><div class="overlay" id="gameEnd"><div class="endPanel"><div class="trophy" id="endIcon">🏆</div><div class="overline" id="endOverline">RUN COMPLETE</div><h2 id="endTitle">NICE SHOT.</h2><div class="endScore" id="endScore">0</div><div class="masteryResult" id="masteryResult" hidden aria-live="polite"><strong id="masteryRank">BOARD MASTERY</strong><div class="masteryTrack"><div id="masteryFill"></div></div><small id="masteryNext">Next milestone</small></div><p class="endSub" id="endText"></p><div class="shotRecap" id="shotRecap" aria-label="Points scored on each shot"></div><div class="endCoach" id="endCoach"></div><div class="clutchNote" id="clutchEndNote" hidden>Four setup shots are replayed from the challenge. Only your final shot counts in this duel.</div><div class="feelSurvey" id="feelSurvey" hidden><strong>QUICK PLAYTEST · What decided your score?</strong><div class="feelOptions"><button type="button" data-feeling="aiming">My aiming</button><button type="button" data-feeling="both">Both</button><button type="button" data-feeling="luck">Mostly luck</button></div></div><div class="onlineBox" id="dailyOnlineResult" hidden><strong>DAILY LEADERBOARD</strong><div id="dailyOnlineStatus">Compare your five shots with real verified scores.</div><button type="button" id="dailySubmit">SIGN IN WITH APPLE · SUBMIT SCORE</button></div><div class="endActions"><button class="action main" id="replayEnd">↻ PLAY AGAIN</button><button class="action" id="shareEnd">↗ CHALLENGE A FRIEND</button><button class="action" id="newBoardEnd">✦ TRY NEW BOARD</button><button class="action" id="videoEnd">🎬 SAVE REPLAY VIDEO</button><button class="action" id="ghostEnd" hidden>👻 CHASE YOUR GHOST</button><button class="action" id="watchEnd" hidden>▶ WATCH FRIEND’S RUN</button></div></div></div></section>
-<div class="bottomDock"><div class="dockHint" id="dockHint">DRAG TO AIM <span>·</span> RELEASE TO SHOOT</div><span class="dockBtns"><button type="button" id="clipBtn" hidden aria-label="Save a replay video of this highlight" title="Save replay video">🎬</button><button type="button" id="quickRestart" aria-label="Restart this run" title="Restart">↻</button><button type="button" id="roundMoreBtn" aria-label="More game actions" title="More actions">•••</button></span></div>
+<section class="arenaWrap" id="arenaWrap" aria-label="BANKSHOT game arena"><canvas id="game" aria-label="Drag from anywhere to aim and lift your finger to launch your shot"></canvas><div class="gameHud"><span class="hudpill" id="boardChip">BOARD · B7K9</span><span class="hudpill warm" id="statusChip">READY TO FIRE</span></div><div class="aimReadout" id="aimReadout" hidden aria-live="off"><b id="aimAngle">STRAIGHT</b><span id="aimBank">PATH PREVIEW</span></div><div class="firstGuide" id="firstGuide" hidden><strong>SHOOT</strong><span>Drag to aim, then let go</span><small>Follow the dotted trajectory</small></div><button type="button" class="speedBtn" id="speedBtn" hidden aria-label="Speed up the ball">2× speed</button><div class="flash" id="flash"></div><div class="callout" id="callout"></div><div class="overlay" id="gameEnd"><div class="endPanel"><div class="trophy" id="endIcon">🏆</div><div class="overline" id="endOverline">RUN COMPLETE</div><h2 id="endTitle">NICE SHOT.</h2><div class="endScore" id="endScore">0</div><div class="masteryResult" id="masteryResult" hidden aria-live="polite"><strong id="masteryRank">BOARD MASTERY</strong><div class="masteryTrack"><div id="masteryFill"></div></div><small id="masteryNext">Next milestone</small></div><p class="endSub" id="endText"></p><div class="shotRecap" id="shotRecap" aria-label="Points scored on each shot"></div><div class="endCoach" id="endCoach"></div><div class="clutchNote" id="clutchEndNote" hidden>Four setup shots are replayed from the challenge. Only your final shot counts in this duel.</div><div class="feelSurvey" id="feelSurvey" hidden><strong>QUICK PLAYTEST · What decided your score?</strong><div class="feelOptions"><button type="button" data-feeling="aiming">My aiming</button><button type="button" data-feeling="both">Both</button><button type="button" data-feeling="luck">Mostly luck</button></div></div><div class="onlineBox" id="dailyOnlineResult" hidden><strong>DAILY LEADERBOARD</strong><div id="dailyOnlineStatus">Compare your five shots with real verified scores.</div><button type="button" id="dailySubmit">SIGN IN WITH APPLE · SUBMIT SCORE</button></div><div class="endActions"><button class="action main" id="replayEnd">Play again</button><button class="action" id="shareEnd">↗ CHALLENGE A FRIEND</button><button class="action" id="newBoardEnd">✦ TRY NEW BOARD</button><button class="action" id="videoEnd">🎬 SAVE REPLAY VIDEO</button><button class="action" id="ghostEnd" hidden>👻 CHASE YOUR GHOST</button><button class="action" id="watchEnd" hidden>▶ WATCH FRIEND’S RUN</button></div></div></div></section>
+<div class="bottomDock"><div class="dockHint" id="dockHint">Drag to aim, then let go</div><span class="dockBtns"><button type="button" id="clipBtn" hidden aria-label="Save a replay video of this highlight" title="Save replay video">🎬</button><button type="button" id="quickRestart" aria-label="Restart this run" title="Restart">↻</button><button type="button" id="roundMoreBtn" aria-label="More game actions" title="More actions">•••</button></span></div>
 <button type="button" id="precisionToggle" class="precisionToggle" aria-expanded="false" hidden>⌖ PRECISION AIM <span>⌄</span></button>
 <div class="playFooter"><div class="scoreRules" aria-label="Scoring rules"><span>🎯 <strong>HIT</strong> targets</span><span>↗ <strong>BANK</strong> +24%/wall</span><span>🔗 <strong>CHAIN</strong> matching</span></div><div class="shotsRow"><div class="leftShots"><span class="tiny">SHOTS LEFT</span><div class="dots" id="shotDots" aria-label="Shots remaining"></div></div><span class="how" id="countText">5 / 5</span></div><div class="shotReport" id="shotReport" hidden aria-live="polite"><span id="shotReportTitle">SHOT 1</span><strong id="shotReportNumbers">+0</strong><small id="shotReportAdvice"></small></div><div class="precisionBar" id="precisionBar" hidden><div class="precisionHead"><b>🎯 PRECISION TUNING</b><span>Nudge your last angle · or drag to aim</span></div><div class="precisionControls"><button type="button" id="precisionLeft" aria-label="Aim half a degree left">−0.5°</button><div class="precisionValue"><strong id="precisionAngle">CENTER</strong><small>aim angle</small></div><button type="button" id="precisionRight" aria-label="Aim half a degree right">+0.5°</button><button type="button" class="precisionFire" id="precisionFire">FIRE ↗</button></div></div><div class="progress"><div id="shotProgress"></div></div><div class="tip" id="tip"><b>DRAG</b> to aim · <b>RELEASE</b> to shoot</div><div class="buttons"><button class="action" id="restartBtn">↻ RESTART</button><button class="action main" id="shareBtn">↗ BEAT MY SCORE</button></div><div class="boardStrip"><span id="boardInfo">YOUR BOARD <b id="boardCode">B7K9</b></span><div class="boardBtns"><button class="linklike" id="newBoardBtn">✦ NEW</button><button class="linklike" id="enterCodeBtn">FRIEND CODE ↗</button></div></div></div>
 <p class="subcopy" id="modeSubcopy"><strong>Bank it.</strong> Wall ricochets boost your score. Connect matching colors for huge chains. Five shots to prove yourself.</p>
 </main>
 <div class="backdrop" id="dialogBackdrop"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><button class="close" id="closeDialog" aria-label="Close dialog">×</button><div class="micro" id="dialogEyebrow"></div><h3 id="dialogTitle"></h3><div id="dialogBody"></div></div></div>
+<audio id="silentUnlock" playsinline webkit-playsinline loop preload="auto" src="data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none" aria-hidden="true"></audio>
 <div class="toast" id="toast">Ready</div>
 <script>
 (()=>{'use strict';
 const W=390,H=520,TAU=6.283185307179586,SHOT_MAX=5,SPEED=840,STEP=1/120;
-const VERSION='21.0.0-flow-experiment';
+const VERSION='26.0.0-flow';
 const $=id=>document.getElementById(id),canvas=$('game'),cx=canvas.getContext('2d',{alpha:false});
 // V12: feedback belongs near the shot; full results belong above the entire phone screen.
 $('arenaWrap').appendChild($('shotReport'));$('app').appendChild($('precisionBar'));document.body.appendChild($('gameEnd'));
-const palette=['#69ecfb','#ff74b4','#ffc86a','#bc99ff','#b7ff92'];
+const palette=['#3ee0ff','#ff4d8d','#ffd15c','#b388ff','#b6ff6a'];
 const param=new URLSearchParams(location.search);
 const utcDay=(d=new Date())=>d.toISOString().slice(0,10);
 const dailyCode=()=> 'D'+utcDay().replaceAll('-','');
@@ -242,7 +252,7 @@ let clutchActive=false,clutchBase=0,clutchTargetShot=0,clutchReady=false;
 let ghostRun=null,ghostChasing=false,runAngles=[],runSteps=[],lastRun=null,watchMode=false,autoReplayIndex=0,autoReplayTimer=0,chosenTrail=read('bs:v3:trail','cyan'),unlockedCrownToday=false;
 
 let shotMaxChain=0,shotPerfect=false,flowShotLog=[],flowGrid=[],flowStreak=0,inputPauseUntil=0,flowSeed='',flowSteps=[],flowGhost=null,flowPrevGhost=null;
-let flowWave=1,flowWaveStart=0,flowSuccessShots=0,flowWaveCleared=0;
+let flowWave=1,flowWaveStart=0,flowSuccessShots=0,flowWaveCleared=0,flowHoldWave=false,flowSnap=null,flowSnapStreak=0,flowFlight=null,flowRating='',flowGained=0,flowGhostLine=null;
 let playbackSpeed=1,firstShotSession=false,precisionCode=null,lastShot=null,labBestAngle=null,labBestScore=0,labRecent=[],targets=[],ball=null,particles=[],rings=[],floats=[],shooting=false,aiming=false,aim=null,aimStart=null,finished=false,score=0,best=0,initialBest=0,shots=SHOT_MAX,maxCombo=0,combo=0,hits=0,walls=0,elapsed=0,clock=0,shake=0,shakeX=0,shakeY=0,impulse=0,accum=0,lastFrame=0,shotSeq=0, pendingRound=0,overlayTimeout=0,justCleared=false;
 let sound=read('bs:sound',true),haptics=read('bs:haptics',true),reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let audioContext=null,sparkCount=0;
@@ -253,43 +263,23 @@ if(!['off','soft','arcade'].includes(audioMode))audioMode='arcade';
 sound=audioMode!=='off';
 let closestMiss=Infinity,lastAudioEvent='',lastAudioAt=-100;
 function audioLevel(){return audioMode==='off'?0:audioMode==='soft'?.32:.72}
-function updateAudioQuick(){const b=$('audioQuick');b.innerHTML=audioMode==='off'?'♪<small>OFF</small>':audioMode==='soft'?'♪<small>SOFT</small>':'♫<small>ARCADE</small>';b.setAttribute('aria-label',audioMode==='off'?'Muted audio, tap for soft volume':audioMode==='soft'?'Soft arcade audio, tap for full volume':'Arcade audio, tap to mute')}
-function setAudioMode(next){audioMode=next;sound=audioMode!=='off';store('bs:v11:audioMode',next);store('bs:sound',sound);updateAudioQuick();if(audioMaster)audioMaster.gain.setTargetAtTime(audioLevel(),audioContext.currentTime,.015);if(sound)sfx('ui',{force:true});popToast(audioMode==='off'?'Sound muted':audioMode==='soft'?'Sound: soft':'Sound: arcade')}
-function initAudio(){if(!sound)return null;try{if(!audioContext){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;audioContext=new C();const limiter=audioContext.createDynamicsCompressor();limiter.threshold.value=-18;limiter.knee.value=16;limiter.ratio.value=6;limiter.attack.value=.002;limiter.release.value=.13;audioMaster=audioContext.createGain();audioMaster.gain.value=audioLevel();audioMaster.connect(limiter);limiter.connect(audioContext.destination)}if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});return audioContext}catch{return null}}
-// Keep enough headroom for simultaneous impacts. Attack should be clear on small phone speakers.
-function synth(freq,duration=.1,type='sine',amount=.09,slide=1,start=0){
- const a=initAudio();if(!a||!audioMaster||!sound)return;const when=a.currentTime+start;
- const osc=a.createOscillator(),env=a.createGain();osc.type=type;osc.frequency.setValueAtTime(Math.max(55,freq),when);
- osc.frequency.exponentialRampToValueAtTime(Math.max(55,freq*slide),when+duration);
- env.gain.setValueAtTime(.0001,when);env.gain.exponentialRampToValueAtTime(Math.max(.0002,amount),when+.007);
- env.gain.exponentialRampToValueAtTime(.0001,when+duration);
- osc.connect(env);env.connect(audioMaster);osc.start(when);osc.stop(when+duration+.015);
-}
-function transient(duration=.06,amount=.11,filterHz=1300){
- const a=initAudio();if(!a||!audioMaster||!sound)return;const len=Math.ceil(a.sampleRate*duration),b=a.createBuffer(1,len,a.sampleRate),data=b.getChannelData(0);
- // Simple noise transient for a physical, crisp impact; not used in game RNG.
- for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*Math.exp(-i/len*7);
- const src=a.createBufferSource();src.buffer=b;const filter=a.createBiquadFilter();filter.type='bandpass';filter.frequency.value=filterHz;filter.Q.value=.65;
- const g=a.createGain();g.gain.value=amount;src.connect(filter);filter.connect(g);g.connect(audioMaster);src.start();src.stop(a.currentTime+duration+.01)
-}
-function sfx(event,{chain=1,banks=0,force=false}={}){
- if(!sound||watchMode||(!force&&event==='ui'&&document.hidden))return;
- const a=initAudio();if(!a)return;
- sfxCounts[event]=(sfxCounts[event]||0)+1;
- // Sound design is deliberately event-driven. No background music, no random reward sounds.
- switch(event){
+function updateAudioQuick(){const b=$('audioQuick');if(!b)return;const off=audioMode==='off',soft=audioMode==='soft';b.classList.toggle('isMuted',off);b.innerHTML=off?'Muted<small>Off</small>':soft?'Low<small>Soft</small>':'On<small>Sound</small>';b.setAttribute('aria-label',off?'Sound is muted. Tap for quiet sound.':soft?'Sound is low. Tap for full sound.':'Sound is on. Tap to mute.')}
+function ensureAudio(){try{if(!audioContext){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;audioContext=new C();audioMaster=audioContext.createGain();audioMaster.gain.value=audioLevel();audioMaster.connect(audioContext.destination)}return audioContext}catch(e){return null}}
+function unlockAudio(){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}const el=$('silentUnlock');if(el){if(sound){el.muted=false;const play=el.play();if(play&&play.catch)play.catch(()=>{})}else{try{el.pause()}catch(e){}}}if(!sound)return null;const a=ensureAudio();if(a&&a.state==='suspended')a.resume().catch(()=>{});return a}
+function withAudio(fn){if(!sound)return;const a=ensureAudio();if(!a)return;if(a.state==='suspended'){a.resume().then(()=>{if(sound&&audioContext&&audioContext.state==='running')fn(audioContext)}).catch(()=>{});return}fn(a)}
+function initAudio(){return unlockAudio()}
+function setAudioMode(next){audioMode=next;sound=audioMode!=='off';store('bs:v11:audioMode',next);store('bs:sound',sound);updateAudioQuick();if(audioMaster){const lv=audioLevel();if(audioContext&&audioContext.state==='running')audioMaster.gain.setTargetAtTime(lv,audioContext.currentTime,.015);else audioMaster.gain.value=lv}if(sound){unlockAudio();sfx('ui',{force:true});popToast(audioMode==='soft'?'Sound is low':'Sound is on')}else{const el=$('silentUnlock');if(el)try{el.pause()}catch(e){}popToast('Sound is muted')}}
+function synth(freq,duration=.1,type='sine',amount=.09,slide=1,start=0){withAudio(a=>{const when=a.currentTime+Math.max(0,start);const osc=a.createOscillator(),env=a.createGain();osc.type=type;osc.frequency.setValueAtTime(Math.max(55,freq),when);osc.frequency.exponentialRampToValueAtTime(Math.max(55,freq*slide),when+Math.max(.02,duration));env.gain.setValueAtTime(.0001,when);env.gain.exponentialRampToValueAtTime(Math.max(.0002,amount),when+.008);env.gain.exponentialRampToValueAtTime(.0001,when+Math.max(.02,duration));osc.connect(env);env.connect(audioMaster);osc.start(when);osc.stop(when+duration+.02)})}
+function transient(duration=.06,amount=.11,filterHz=1300){withAudio(a=>{const len=Math.max(1,Math.ceil(a.sampleRate*duration)),buf=a.createBuffer(1,len,a.sampleRate),data=buf.getChannelData(0);for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*Math.exp(-i/len*7);const src=a.createBufferSource();src.buffer=buf;const filter=a.createBiquadFilter();filter.type='bandpass';filter.frequency.value=filterHz;filter.Q.value=.65;const g=a.createGain();g.gain.value=amount;src.connect(filter);filter.connect(g);g.connect(audioMaster);src.start();src.stop(a.currentTime+duration+.02)})}
+function sfx(event,{chain=1,banks=0,force=false}={}){if(!sound||watchMode)return;if(!force&&event==='ui'&&document.hidden)return;sfxCounts[event]=(sfxCounts[event]||0)+1;switch(event){
  case 'launch':synth(175,.15,'triangle',.16,1.85);synth(640,.12,'sine',.09,.44);transient(.05,.095,1950);break;
  case 'bank':synth(Math.min(680,300+banks*44),.065,'triangle',.085,1.28);transient(.028,.055,2750);break;
- case 'hit':{
-  // A five-note pentatonic scale ensures bigger chains sound upward and musical.
-  const notes=[392,440,523.25,587.33,659.25,783.99,880,1046.5];
-  const note=notes[Math.min(notes.length-1,Math.floor((chain-1)/2))];
-  synth(note,.11,'triangle',.095,1.13);synth(note/2,.08,'sine',.07,.86);
-  if(chain>=4)synth(note*1.5,.14,'sine',.055,1.08,.055);
-  break;}
+ case 'hit':{const notes=[392,440,523.25,587.33,659.25,783.99,880,1046.5];const note=notes[Math.min(notes.length-1,Math.floor((chain-1)/2))];synth(note,.11,'triangle',.095,1.13);synth(note/2,.08,'sine',.07,.86);if(chain>=4)synth(note*1.5,.14,'sine',.055,1.08,.055);break}
  case 'mega':synth(523.25,.17,'triangle',.085,1.05);synth(783.99,.21,'sine',.085,1.10,.08);synth(1046.5,.24,'triangle',.08,1.02,.16);break;
  case 'near':synth(430,.11,'triangle',.045,.95);synth(510,.14,'sine',.06,1.01,.09);break;
  case 'miss':synth(280,.15,'sine',.04,.78);break;
+ case 'crack':synth(210,.07,'square',.07,1.6);transient(.04,.09,1100);break;
+ case 'hazard':synth(130,.18,'sawtooth',.045,.55);break;
  case 'record':synth(523.25,.17,'triangle',.1,1.03);synth(659.25,.17,'triangle',.1,1.03,.12);synth(783.99,.22,'triangle',.1,1.03,.24);synth(1046.5,.3,'sine',.07,1.03,.38);break;
  case 'finish':synth(440,.12,'triangle',.07,1.03);synth(554.37,.16,'sine',.06,1.05,.13);break;
  case 'streak':synth(Math.min(990,520+chain*60),.09,'square',.035,1.2);synth(Math.min(1320,780+chain*80),.12,'triangle',.05,1.05,.06);break;
@@ -297,9 +287,7 @@ function sfx(event,{chain=1,banks=0,force=false}={}){
  case 'perfect':[392,523.25,659.25,783.99,1046.5,1568].forEach((f,i)=>synth(f,.22,i%2?'sine':'triangle',.085,1.04,i*.06));synth(130.8,.5,'sine',.1,.5);transient(.12,.1,900);break;
  case 'gameover':synth(392,.18,'triangle',.07,.94);synth(311.1,.2,'triangle',.07,.94,.16);synth(233.1,.38,'sine',.08,.7,.32);break;
  case 'ui':synth(620,.055,'sine',.06,1.08);break;
- }
- lastAudioEvent=event;lastAudioAt=performance.now();
-}
+}lastAudioEvent=event;lastAudioAt=performance.now()}
 
 function read(k,fallback){try{const v=localStorage.getItem(k);return v===null?fallback:JSON.parse(v)}catch{return fallback}}
 function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
@@ -322,10 +310,10 @@ let visualRand=rng(104931);
 function bestAngleKey(){return 'bs:v8:lab:best:'+board}
 function recentAngleKey(){return 'bs:v8:lab:recent:'+board}
 function loadLabMemory(){const b=read(bestAngleKey(),null),r=read(recentAngleKey(),[]);labBestAngle=b&&typeof b.angle==='string'&&/^[0-9a-z]{3}$/.test(b.angle)&&Number.parseInt(b.angle,36)<=4095?b.angle:null;labBestScore=b&&Number.isFinite(b.score)?b.score:0;labRecent=Array.isArray(r)?r.filter(z=>z&&typeof z.angle==='string'&&Number.isFinite(z.score)).slice(-6):[];precisionCode=labRecent.length?labRecent.at(-1).angle:(labBestAngle||'1kw')}
-function angleLabel(angle){let d=Math.atan2(angle.x,-angle.y)*180/Math.PI;return Math.abs(d)<.07?'CENTER':Math.abs(d).toFixed(1)+'° '+(d<0?'LEFT':'RIGHT')}
+function angleLabel(angle){let d=Math.atan2(angle.x,-angle.y)*180/Math.PI;return Math.abs(d)<.07?'Center':Math.abs(d).toFixed(1)+'° '+(d<0?'left':'right')}
 function shotFeedback(info){if(!info)return '';if(info.hits===0)return 'No target hit. Compare the preview to your last angle and adjust.';if(info.walls===0)return `${info.hits} target${info.hits===1?'':'s'} hit. Try a wall bank for a higher multiplier.`;return `${info.hits} targets · ${info.walls} bank${info.walls===1?'':'s'}. ${info.walls>1?'Strong ricochet!':'See if one more bank earns a bigger chain.'}`}
 function renderShotReport(){const el=$('shotReport');if(!lastShot||shooting||finished){el.hidden=true;return}el.hidden=false;$('shotReportTitle').textContent='SHOT '+lastShot.index+' · '+angleLabel(dirCode(lastShot.angle));$('shotReportNumbers').textContent='+'+fmt(lastShot.points);$('shotReportAdvice').textContent=shotFeedback(lastShot)}
-function updateAimReadout(){const el=$('aimReadout');if(!aiming||!aim||shooting||finished){el.hidden=true;return}const d=aimDir(aim.x,aim.y),p=simulatePreview(d,previewLimit());el.hidden=false;$('aimAngle').textContent=angleLabel(d);$('aimBank').textContent=p.impact?(p.bounces===0?'DIRECT HIT':p.bounces+' BANK'+(p.bounces===1?'':'S')+' → HIT'):(mode==='flow'?'BANK SHOT · TRUST YOUR ANGLE':'NO EARLY HIT · ADJUST ANGLE')}
+function updateAimReadout(){const el=$('aimReadout');if(!aiming||!aim||shooting||finished){el.hidden=true;return}const d=aimDir(aim.x,aim.y);el.hidden=false;$('aimAngle').textContent=angleLabel(d);if(mode==='flow'){$('aimBank').textContent=flowAimText(flowPreview(d,targets));return}const p=simulatePreview(d,previewLimit());$('aimBank').textContent=p.impact?(p.impact.kind==='hazard'?'Hazard':(p.impact.kind==='shield'&&p.bounces===0)?'Needs a bank':(p.bounces===0?'Direct hit':p.bounces+' bank'+(p.bounces===1?'':'s')+' · hit')):'No early hit · adjust the angle'}
 function randomBoard(){let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',out='';for(let i=0;i<5;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out}
 
 // V13: mastery is per-board, local-only, without coins, timers, paywalls or mandatory streaks.
@@ -347,7 +335,7 @@ function dailyRemainingLabel(){const minutes=dailyMinutesRemaining();return `${M
 function dailyBestScore(){return Math.max(0,Number(read('bs:best:daily:'+dailyCode(),0))||0)}
 function dailyPlayed(){return masteryBook().filter(r=>r.mode==='daily'&&/^D\d{8}$/.test(r.board)).sort((a,b)=>b.board.localeCompare(a.board)).slice(0,7)}
 function playDaily(){targetScore=0;rivalAngles=[];rivalSteps=[];reset('daily',dailyCode());closeDialog();popToast('Today’s five-shot challenge is ready')}
-function key(){return mode==='flow'?(isDailyFlow()?'bs:v22:flowdaily:'+flowSeed:'bs:v21:flow:best'):'bs:best:'+mode+':'+board}
+function key(){return mode==='flow'?(isDailyFlow()?'bs:v26:flowdaily:'+flowSeed:'bs:v26:flow:best'):'bs:best:'+mode+':'+board}
 function runKey(){return 'bs:v3:run:'+mode+':'+board}
 function ghostKey(){return 'bs:v4:ghost:'+mode+':'+board}
 function loadGhost(){const g=read(ghostKey(),null),old=read(runKey(),null);return g&&g.board===board&&g.mode===mode?g:(old&&old.board===board&&old.mode===mode&&old.score===best?old:null)}
@@ -471,16 +459,16 @@ updateCrownUI();updateGhostUI();updatePaceUI();$('statusChip').textContent=watch
  $('liveBestLabel').textContent=clutchActive?'THEIR FINAL SHOT':targetScore?'FRIEND TO BEAT':mode==='flow'?'FLOW RECORD':mode==='daily'?'DAILY BEST':'PERSONAL BEST';
  $('liveBest').textContent=fmt(clutchActive?clutchTargetShot:targetScore||best);
  $('liveShotsLabel').textContent=mode==='lab'?'ONE SHOT':clutchActive?'FINAL SHOT':'SHOTS LEFT';
- $('liveShots').textContent=(mode==='lab'||clutchActive)?(shooting?'●':'●'):(Array.from({length:SHOT_MAX},(_,i)=>i<shots?'●':'○').join(' '));
+ $('liveShots').textContent=(mode==='lab'||clutchActive)?'●':Array.from({length:mode==='flow'?shotsFor(flowWave):SHOT_MAX},(_,i)=>i<shots?'●':'○').join(' ');
  $('modeToggleText').textContent=clutchActive?'⚡ CLUTCH':mode==='flow'?'∞ FLOW':mode==='lab'?'⌖ SHOT LAB':mode==='daily'?'✦ DAILY':'⚡ BLITZ';
- $('dockHint').textContent=watchMode?'WATCHING FRIEND':finished?'RUN COMPLETE':shooting?'BALL IN PLAY':mode==='flow'?'WAVE '+flowWave+' · '+fmt(Math.max(0,flowGoal()-(score-flowWaveStart)))+' POINTS TO ADVANCE':mode==='daily'?'DAILY · SAME BOARD FOR EVERYONE':mode==='lab'?'ONE SHOT · FIND YOUR ANGLE':clutchActive?'BEAT THEIR FINAL SHOT':playtest.shots===0?'FIVE SHOTS · ONE FINGER':'DRAG TO AIM · RELEASE TO SHOOT';
+ $('dockHint').textContent=watchMode?'Watching a friend':finished?'Run over':shooting?'Ball in play':mode==='flow'?'Wave '+flowWave+' · '+fmt(Math.max(0,flowGoal()-(score-flowWaveStart)))+' to go':mode==='daily'?'Daily · same board for everyone':mode==='lab'?'One shot · find your angle':clutchActive?'Beat their final shot':playtest.shots===0?'Five shots · one finger':'Drag to aim, then let go';
  $('precisionToggle').hidden=mode!=='lab'||clutchActive||watchMode;
  if(mode!=='lab'){$('app').classList.remove('precision-expanded');$('precisionToggle').setAttribute('aria-expanded','false')}
-
+ paintGoal();
 }
 function reset(newMode=mode,newBoard=board,preserveGhost=false,keepDailyBoard=false){
-clearTimeout(overlayTimeout);clearTimeout(autoReplayTimer);unlockedCrownToday=false;aimStart=null;clutchActive=false;clutchReady=false;ghostChasing=preserveGhost;watchMode=false;autoReplayIndex=0;mode=newMode;flowWave=1;flowWaveStart=0;flowStreak=0;flowSuccessShots=0;flowWaveCleared=0;board=String(newBoard).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14)||'B7K9';if(mode==='daily'&&!targetScore&&!keepDailyBoard)board=dailyCode();
-targets=makeBoard(board);lastShot=null;loadLabMemory();ball=null;playbackSpeed=1;elapsed=0;particles=[];rings=[];floats=[];shooting=false;aiming=false;aim=null;finished=false;score=0;shots=mode==='lab'?1:SHOT_MAX;maxCombo=0;combo=0;hits=0;walls=0;runAngles=[];runSteps=[];elapsed=0;shotSeq++;shake=0;justCleared=false;best=read(key(),0);initialBest=best;$('clipBtn').hidden=true;ghostRun=loadGhost();$('gameEnd').classList.remove('show');$('gameEnd').setAttribute('aria-hidden','true');setTip(playtest.shots===0?'<b>STEP 1.</b> Drag toward glowing targets · release to shoot':'<b>DRAG</b> to aim · <b>RELEASE</b> to shoot');updateHUD();setURL()}
+clearTimeout(overlayTimeout);clearTimeout(autoReplayTimer);unlockedCrownToday=false;aimStart=null;clutchActive=false;clutchReady=false;ghostChasing=preserveGhost;watchMode=false;autoReplayIndex=0;mode=newMode;flowWave=flowHoldWave?flowWave:1;flowWaveStart=0;flowStreak=0;flowSuccessShots=0;flowWaveCleared=0;board=String(newBoard).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14)||'B7K9';if(mode==='daily'&&!targetScore&&!keepDailyBoard)board=dailyCode();
+targets=mode==='flow'?makeFlowBoard(board,flowWave):makeBoard(board);lastShot=null;loadLabMemory();ball=null;playbackSpeed=1;elapsed=0;particles=[];rings=[];floats=[];shooting=false;aiming=false;aim=null;finished=false;score=0;shots=mode==='flow'?shotsFor(flowWave):mode==='lab'?1:SHOT_MAX;maxCombo=0;combo=0;hits=0;walls=0;runAngles=[];runSteps=[];elapsed=0;shotSeq++;shake=0;justCleared=false;best=read(key(),0);initialBest=best;$('clipBtn').hidden=true;ghostRun=loadGhost();$('gameEnd').classList.remove('show');$('gameEnd').setAttribute('aria-hidden','true');setTip(playtest.shots===0?'<b>STEP 1.</b> Drag toward glowing targets · release to shoot':'<b>DRAG</b> to aim · <b>RELEASE</b> to shoot');updateHUD();setURL()}
 // Replay four real shots to reproduce the exact remaining targets. The fifth is simulated
 // offscreen to derive its actual target score; all fifth-shot changes are then undone.
 // No points, board awards, personal records or crowns are persisted for a one-shot duel.
@@ -512,10 +500,396 @@ function startClutch(){
  setTip('<b>ONE SHOT.</b> Beat their final shot. Drag to aim · release to fire.');
  updateHUD();setURL();popToast('⚡ Clutch loaded. Your shot!');return true;
 }
+// Flow skill model. The first block the ball touches ends the shot.
+// The layout is seeded. The physics are not random.
+// Blitz, Daily, and Shot Lab keep the earlier chain resolver.
+const FLOW_GOALS={1:1250,2:1150,3:500,4:950,5:550,6:1200,7:500,8:900,9:500,10:1300,11:800,12:550,13:600,14:600,15:650,16:600,17:1550,18:700};
+function roleFor(wave){
+ if(wave<=13)return {1:'learn',2:'bank',3:'goal',4:'pressure',5:'peak',6:'relief',7:'ramp',8:'ramp',9:'ramp',10:'milestone',11:'ramp',12:'ramp',13:'ramp'}[wave];
+ return (wave-14)%4===3?'relief':'hard';
+}
+function layoutFor(wave){
+ if(wave===1)return 'learn';
+ if(wave===2)return 'banks';
+ if(wave===3)return 'introShield';
+ if(wave===4)return 'introMix';
+ if(wave===5||wave===7)return 'shields';
+ if(wave===6||wave===10||roleFor(wave)==='relief')return 'party';
+ if(wave===8)return 'armor';
+ if(wave===9||wave===13)return 'mixed';
+ if(wave===11)return 'gates';
+ if(wave===12)return 'hazard';
+ return ['mixed','hazard','armor','party'][(wave-14)%4];
+}
+function shotsFor(wave){
+ const lay=layoutFor(wave);
+ if(wave<=4)return 5;
+ if(wave===5)return 4;
+ if(lay==='party')return 5;
+ if(wave===9||wave===12||wave===13)return 3;
+ if(wave>13&&roleFor(wave)==='hard')return 3;
+ return 4;
+}
+function flowGoal(){return FLOW_GOALS[flowWave]||(roleFor(flowWave)==='relief'?1550:650)}
+const FLOW_LAYOUTS={
+ learn:{r:18,narrow:true,low:true,objects:[['gold',1],['normal',3],['normal',1]]},
+ banks:{r:17,narrow:true,low:true,bias:{gold:'side'},objects:[['normal',3],['gold',1],['normal',1]]},
+ introShield:{r:17,anchor:'center',low:true,bias:{shield:'side'},objects:[['normal',3],['gold',1],['normal',1],['shield',1]]},
+ introMix:{r:16,anchor:'center',low:true,bias:{gold:'side',armor:'side',hazard:'side'},objects:[['normal',3],['gold',1],['armor',1],['hazard',1]]},
+ tight:{r:12,objects:[['normal',3],['normal',1],['normal',1],['normal',1]]},
+ shields:{r:13,objects:[['shield',1],['shield',1],['shield',1],['normal',3],['gold',1],['normal',1]],side:'shield-center'},
+ party:{r:15,objects:[['normal',3],['gold',3],['normal',2],['normal',1]]},
+ armor:{r:13,objects:[['armor',1],['armor',1],['armor',1],['normal',3],['gold',1]]},
+ mixed:{r:12,objects:[['shield',1],['shield',1],['armor',1],['armor',1],['hazard',1],['normal',3],['gold',1]]},
+ gates:{r:12,objects:[['normal',2],['normal',2],['gold',1],['normal',1],['shield',1]]},
+ hazard:{r:12,objects:[['hazard',1],['hazard',1],['shield',1],['normal',3],['gold',1]]}
+};
+function flowBases(kind,size){
+ if(kind==='shield'||kind==='hazard')return Array(size).fill(0);
+ if(kind==='gold')return size===3?[120,120,360]:size===2?[140,280]:[280];
+ if(kind==='armor')return size===3?[70,70,180]:size===2?[80,160]:[160];
+ return size===3?[80,80,160]:size===2?[70,140]:[90];
+}
+function slotBias(plan,kind){
+ if(plan.side==='shield-center'&&kind==='shield')return 'center';
+ if(plan.bias&&plan.bias[kind])return plan.bias[kind];
+ if(plan.anchor==='center')return 'center';
+ return 'any';
+}
+function shuffleSlots(arr,ran){for(let i=arr.length-1;i>0;i--){const j=Math.floor(ran()*(i+1));const t=arr[i];arr[i]=arr[j];arr[j]=t}return arr}
+function makeFlowBoard(code,wave){
+ const plan=FLOW_LAYOUTS[layoutFor(wave)];
+ const ran=rng(hash('bankshot:flow:v26:'+wave+':'+code));
+ const slots=[];
+ for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+  if(plan.narrow&&(c===0||c===3))continue;
+  const y0=plan.low?196:112,ys=plan.low?62:70;
+  slots.push({c,r,x:64+c*86,y:y0+r*ys});
+ }
+ shuffleSlots(slots,ran);
+ const ranked=slots.slice().sort((a,b)=>Math.abs(a.c-1.5)-Math.abs(b.c-1.5)||a.r-b.r);
+ const side=slots.slice().sort((a,b)=>Math.abs(b.c-1.5)-Math.abs(a.c-1.5)||a.r-b.r);
+ const used=new Set();
+ const take=prefer=>{const list=prefer==='center'?ranked:prefer==='side'?side:slots;const slot=list.find(s=>!used.has(s));used.add(slot);return slot};
+ const out=[];
+ plan.objects.forEach((spec,gi)=>{
+  const kind=spec[0],size=spec[1];
+  const slot=take(slotBias(plan,kind));
+  const color=gi%5;
+  const local=size===3?[[-15,8],[15,8],[0,-12]]:size===2?[[-13,0],[13,0]]:[[0,0]];
+  const bases=flowBases(kind,size);
+  for(let i=0;i<size;i++){
+   const value=bases[i]||0;
+   const bump=value>=240?4:value>=160?2:0;
+   out.push({x:slot.x+local[i][0],y:slot.y+local[i][1],r:plan.r+bump,value,color,alive:true,group:gi,kind:kind==='gold'?'normal':kind,gold:kind==='gold',bomb:false,hp:kind==='armor'?2:1,maxHp:kind==='armor'?2:1,phase:ran()*TAU});
+  }
+ });
+ if(layoutFor(wave)==='introShield'){const sh=out.find(t=>t.kind==='shield');if(sh){sh.x=W/2;sh.y=118}}
+ if(layoutFor(wave)==='introMix'){const hz=out.find(t=>t.kind==='hazard');const ar=out.find(t=>t.kind==='armor');if(hz){hz.x=52;hz.y=118}if(ar){ar.x=W-52;ar.y=124}}
+ const notches=[];
+ const interesting=out.filter(t=>t.gold||t.kind==='normal');
+ for(const t of interesting){
+  const mirrors=[{x:35.2-t.x,y:t.y},{x:2*(W-17.6)-t.x,y:t.y},{x:t.x,y:36-t.y}];
+  for(const m of mirrors){
+   const dx=m.x-W/2,dy=m.y-(H-29);
+   if(dy>=-20)continue;
+   const mag=Math.hypot(dx,dy)||1;
+   let x=W/2,y=H-29,vx=dx/mag,vy=dy/mag,wallsHit=0,notch=null;
+   for(let i=0;i<160&&wallsHit<2;i++){
+    x+=vx*4;y+=vy*4;
+    if(x<17.6){x=35.2-x;vx=Math.abs(vx);wallsHit++;notch={x,y}}
+    else if(x>W-17.6){x=2*(W-17.6)-x;vx=-Math.abs(vx);wallsHit++;notch={x,y}}
+    if(y<18){y=36-y;vy=Math.abs(vy);wallsHit++;notch={x,y}}
+    if(wallsHit===1&&(x-t.x)**2+(y-t.y)**2<=(t.r+7.6)**2){if(notch)notches.push(notch);break}
+   }
+  }
+ }
+ notches.sort((a,b)=>Math.abs(b.x-W/2)-Math.abs(a.x-W/2));
+ const kept=[];
+ for(const n of notches){if(kept.some(k=>(k.x-n.x)**2+(k.y-n.y)**2<40*40))continue;kept.push(n);if(kept.length===2)break}
+ out.notches=kept;
+ return out;
+}
+function cloneFlow(src){const t=src.map(x=>({...x}));t.notches=src.notches||[];return t}
+function flowPoints(base,wallsHit,precise,graze,streak){
+ let wallMul=1;
+ if(precise)wallMul=[1,2.8,4.6,6.4][Math.min(3,wallsHit)];
+ else if(!graze)wallMul=[1,1.3,1.5,1.65][Math.min(3,wallsHit)];
+ const aimMul=precise?1.35:graze?.22:.65;
+ const streakMul=1+.05*Math.min(3,streak);
+ return Math.round(base*wallMul*aimMul*streakMul/10)*10;
+}
+function ratingFor(wallsHit,precise,graze,thread){
+ if(wallsHit>=3)return 'TRICK SHOT';
+ if(wallsHit===2)return 'DOUBLE BANK';
+ if(wallsHit===1&&precise)return 'CLEAN BANK';
+ if(wallsHit===1)return 'BANK';
+ if(precise)return 'PRECISE';
+ if(graze)return 'GRAZE';
+ return thread?'THREAD':'HIT';
+}
+function nearNotch(notches,x,y){return (notches||[]).some(n=>(n.x-x)**2+(n.y-y)**2<=22*22)}
+function flowAdvance(ball,board,flight,dt){
+ flight.elapsed=(flight.elapsed||0)+dt;
+ flight.bounced=false;
+ flight.marked=false;
+ ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;
+ const notches=board.notches||[];
+ const mark=()=>{flight.walls++;flight.bounced=true;if(nearNotch(notches,ball.x,ball.y)){flight.calledBank=true;flight.marked=true}};
+ if(ball.x<17.6){ball.x=35.2-ball.x;ball.vx=Math.abs(ball.vx);mark()}
+ else if(ball.x>W-17.6){ball.x=2*(W-17.6)-ball.x;ball.vx=-Math.abs(ball.vx);mark()}
+ if(ball.y<18){ball.y=36-ball.y;ball.vy=Math.abs(ball.vy);mark()}
+ let hit=null,align=0;
+ for(const t of board){
+  if(!t.alive)continue;
+  const dx=ball.x-t.x,dy=ball.y-t.y,limit=7.6+t.r,d2=dx*dx+dy*dy;
+  const gap=Math.sqrt(d2)-limit;
+  if(gap<flight.closest)flight.closest=gap;
+  if(gap>0&&gap<22)flight.near.set(t,Math.min(flight.near.get(t)??99,gap));
+  if(d2>limit*limit)continue;
+  const d=Math.sqrt(d2)||1,nx=dx/d,ny=dy/d;
+  const dot=ball.vx*nx+ball.vy*ny;
+  align=Math.max(0,Math.min(1,-dot/(Math.hypot(ball.vx,ball.vy)||1)));
+  hit=t;break;
+ }
+ if(flight.near.size>=2)flight.thread=true;
+ if(!hit){
+  if(ball.y>H+22||flight.elapsed>6.25)return {type:'miss'};
+  return {type:'fly'};
+ }
+ return {type:'hit',hit,align};
+}
+function settleFlow(board,hit,align,flight,streak){
+ const wallsHit=flight.walls,calledBank=!!flight.calledBank,thread=!!flight.thread;
+ const precise=align>=.93,graze=align<.8;
+ if(hit.kind==='hazard')return {gained:0,hits:0,rating:'HAZARD'};
+ if(hit.kind==='shield'&&wallsHit===0)return {gained:0,hits:0,rating:'NEEDS A BANK'};
+ if(hit.kind==='armor'&&hit.hp>1){hit.hp--;hit.pop=clock;return {gained:40,hits:1,rating:'CRACKED'};}
+ const banked=wallsHit>0&&calledBank;
+ const group=board.filter(t=>t.alive&&t.group===hit.group&&t.kind!=='hazard'&&t.kind!=='shield');
+ let gained=0;
+ for(const t of group){
+  t.alive=false;t.pop=clock;
+  const base=t.value>0?t.value:(t.gold?230:(t===hit?110:75));
+  gained+=flowPoints(base,banked?wallsHit:0,precise,graze||(wallsHit>0&&!calledBank),streak);
+ }
+ if(thread)gained+=100;
+ if(!board.some(t=>t.alive&&t.kind!=='hazard'))gained+=600;
+ return {gained,hits:group.length,rating:ratingFor(banked?wallsHit:0,precise,graze||(wallsHit>0&&!calledBank),thread),perfect:!board.some(t=>t.alive&&t.kind!=='hazard')};
+}
+function resolveFlow(src,code,streak){
+ const board=cloneFlow(src);
+ const dir=dirCode(code);
+ const ball={x:W/2,y:H-29,vx:dir.x*SPEED,vy:dir.y*SPEED};
+ const flight={walls:0,calledBank:false,closest:Infinity,near:new Map(),thread:false,elapsed:0};
+ for(let n=0;n<900;n++){
+  const step=flowAdvance(ball,board,flight,STEP);
+  if(step.type==='fly')continue;
+  if(step.type==='miss')return {board,gained:0,hits:0,walls:flight.walls,rating:flight.closest<18?'SO CLOSE':'MISS',closest:flight.closest};
+  const settled=settleFlow(board,step.hit,step.align,flight,streak);
+  return {board,...settled,walls:flight.walls,closest:flight.closest};
+ }
+ return {board,gained:0,hits:0,walls:flight.walls,rating:flight.closest<18?'SO CLOSE':'MISS',closest:flight.closest};
+}
+function flowCodes(step){const out=[];for(let deg=-78;deg<=78;deg+=step){const a=deg*Math.PI/180;out.push(angleCode({x:Math.sin(a),y:-Math.cos(a)}))}return [...new Set(out)]}
+let flowFineGrid=null,flowMidGrid=null,flowCoarseGrid=null;
+function angleGrid(step){if(step===2)return flowFineGrid||(flowFineGrid=flowCodes(2));if(step===3)return flowMidGrid||(flowMidGrid=flowCodes(3));if(step===4)return flowCoarseGrid||(flowCoarseGrid=flowCodes(4));return flowCodes(step)}
+function searchFlow(board,streak,grid){let best=null;for(const code of grid){const r=resolveFlow(board,code,streak);if(!best||r.gained>best.gained)best={...r,code}}return best}
+function nudgeCode(code,deg){const v=Number.parseInt(code,36),a=(v/4095)*Math.PI-Math.PI/2+deg*Math.PI/180;return angleCode({x:Math.sin(a),y:-Math.cos(a)})}
+function handShot(board,streak,wave,ran){
+ // Goal tuning only. Live shots use the player's angle, with no added noise.
+ // Intent is the best direct the preview can show (2° early, 4° later). From wave 5
+ // a bank is chosen when it is at least 1.5× that direct. Then ±1.75° (waves 1–4)
+ // or ±3.2° (later) of finger noise is applied. That noise is not in the live physics.
+ const grid=angleGrid(wave<=4?2:4);
+ let direct=null,bank=null;
+ for(const code of grid){
+  const r=resolveFlow(board,code,streak);
+  if(r.walls===0&&r.gained>0&&(!direct||r.gained>direct.gained))direct={...r,code};
+  else if(r.walls>0&&r.gained>0&&(!bank||r.gained>bank.gained))bank={...r,code};
+ }
+ let intent=direct;
+ if(wave>=5&&bank&&(!direct||bank.gained>=direct.gained*1.5))intent=bank;
+ if(!intent)intent=bank||{code:angleCode({x:0,y:-1})};
+ const wobble=wave<=4?1.75:3.2;
+ return resolveFlow(board,nudgeCode(intent.code,(ran()*2-1)*wobble),streak);
+}
+function firstRunFlow(board,streak,wave){
+ const fine=angleGrid(2);
+ let direct=null;
+ for(const code of fine){const r=resolveFlow(board,code,streak);if(r.walls===0&&r.gained>0&&(!direct||r.gained>direct.gained))direct={...r,code}}
+ if(wave<=2)return direct||searchFlow(board,streak,flowCodes(6));
+ let bank=null;
+ for(const code of angleGrid(3)){const r=resolveFlow(board,code,streak);if(!bank||r.gained>bank.gained)bank={...r,code}}
+ if(bank&&direct&&bank.gained>=direct.gained*1.25&&bank.walls>0)return bank;
+ return direct||bank;
+}
+function simulateFlowWave(seed,wave,policy){
+ let board=makeFlowBoard(flowBoard(seed,wave),wave);
+ let streak=0,total=0;
+ const ran=rng(hash('spray:'+seed+':'+wave));
+ const shots=shotsFor(wave);
+ for(let s=0;s<shots;s++){
+  let choice;
+  if(policy==='skilled')choice=searchFlow(board,streak,angleGrid(2));
+  else if(policy==='first')choice=firstRunFlow(board,streak,wave);
+  else if(policy==='hand')choice=handShot(board,streak,wave,ran);
+  else {const grid=angleGrid(3);choice=resolveFlow(board,grid[Math.floor(ran()*grid.length)],streak)}
+  total+=choice.gained;board=choice.board;streak=choice.gained>0?Math.min(4,streak+1):0;
+ }
+ return total;
+}
+function prettyRating(r){return ({'CLEAN BANK':'Clean bank','DOUBLE BANK':'Double bank','TRICK SHOT':'Trick shot','PRECISE':'Precise','NEEDS A BANK':'Needs a bank','SO CLOSE':'So close','GRAZE':'Graze','HIT':'Hit','BANK':'Bank','MISS':'Miss','HAZARD':'Hazard','CRACKED':'Cracked','THREAD':'Thread','PERFECT':'Perfect'})[r]||'Shot'}
+function flowDockLine(){
+ if(!lastShot)return 'Wave '+flowWave+' · '+fmt(Math.max(0,flowGoal()-(score-flowWaveStart)))+' to go';
+ const name=prettyRating(lastShot.rating);
+ const ghost=flowGhostLine&&performance.now()<flowGhostLine.until?' Gold line shows it.':'';
+ if(lastShot.points<=0)return (lastShot.rating==='SO CLOSE'?'So close.':name+'.')+(lastShot.best>0?' Best line was +'+fmt(lastShot.best)+'.'+ghost:'');
+ const head=name+' for +'+fmt(lastShot.points)+'.';
+ if(lastShot.best==null)return head;
+ if(lastShot.best<=lastShot.points+40)return head+' That was the best line.';
+ return head+' Best line was +'+fmt(lastShot.best)+'.'+ghost;
+}
+function paintGoal(){
+ const fill=$('goalFill'),label=$('goalLabel'),nums=$('goalNums');
+ if(!fill||!label||!nums)return;
+ if(mode!=='flow'){
+  const limit=mode==='lab'?1:SHOT_MAX;
+  label.textContent=mode==='lab'?'One shot':mode==='daily'?'Daily':'Blitz';
+  nums.textContent=shots+' left';
+  fill.style.width=(100*Math.max(0,limit-shots)/limit)+'%';
+  return;
+ }
+ const goal=flowGoal(),earned=Math.max(0,score-flowWaveStart);
+ label.textContent='Wave '+flowWave+(isDailyFlow()?' · daily':'');
+ nums.textContent=earned>=goal?'Goal met':fmt(Math.max(0,goal-earned))+' to go';
+ fill.style.width=Math.min(100,goal?earned/goal*100:0)+'%';
+}
+function teachFlow(wave){
+ const tips={
+  2:['bs:v26:tipNotch','White marks on the wall are bank lanes. The aim line continues when you bounce on a mark.'],
+  3:['bs:v26:tipShield','Shields need a bank. A straight shot bounces off and scores nothing.'],
+  4:['bs:v26:tipMix','Armor takes two hits. The ! block scores nothing. Chase the big number.']
+ };
+ const tip=tips[wave];
+ if(!tip||read(tip[0],false)||exporting||watchMode)return;
+ store(tip[0],true);
+ setTimeout(()=>popToast(tip[1]),500);
+}
+function flowFly(dt){
+ const b=ball;
+ if(!flowFlight)flowFlight={walls:0,calledBank:false,closest:Infinity,near:new Map(),thread:false,elapsed:0};
+ const step=flowAdvance(b,targets,flowFlight,dt);
+ if(step.type!=='miss'&&flowFlight.bounced){
+  addParticles(b.x,b.y,flowFlight.marked?'#b6ff6a':'#8b97a8',flowFlight.marked?10:4,120);
+  addRing(b.x,b.y,flowFlight.marked?'#b6ff6a':'#8b97a8',4);
+  if(flowFlight.marked)sfx('bank',{banks:flowFlight.walls});
+ }
+ if(Math.floor(elapsed*110)%2===0){b.trail.push({x:b.x,y:b.y});if(b.trail.length>27)b.trail.shift()}
+ if(step.type==='fly')return;
+ walls=flowFlight.walls;closestMiss=flowFlight.closest;
+ if(step.type==='hit'){
+  if(exporting&&measuringHit)lastHitTick=exportTick;
+  const settled=settleFlow(targets,step.hit,step.align,flowFlight,flowSnapStreak||0);
+  flowGained=settled.gained;flowRating=settled.rating;hits=settled.hits;shotMaxChain=settled.hits;shotPerfect=!!settled.perfect;
+  if(settled.perfect)highlightThisShot=true;
+  if(settled.gained>=800)highlightThisShot=true;
+  score+=settled.gained;
+  const col=palette[step.hit.color]||'#f4f7fb';
+  if(settled.gained>0){
+   hitFlash(step.hit.x,step.hit.y,col,settled.gained>700?28:16);
+   addText(step.hit.x,step.hit.y-26,'+'+fmt(settled.gained),col,true);
+   sfx(settled.rating==='CRACKED'?'crack':settled.gained>700?'mega':'hit',{chain:Math.max(1,settled.hits)});
+   if(settled.gained>400)flash();
+  }else{
+   hitFlash(step.hit.x,step.hit.y,settled.rating==='HAZARD'?'#ff4d8d':'#c5d0de',12);
+   sfx(settled.rating==='HAZARD'?'hazard':'near');
+  }
+  if(settled.perfect)callout('PERFECT');
+  else if(['PRECISE','CLEAN BANK','DOUBLE BANK','TRICK SHOT','NEEDS A BANK','HAZARD','CRACKED'].includes(settled.rating))callout(settled.rating);
+ }else{
+  flowGained=0;hits=0;flowRating=flowFlight.closest<18?'SO CLOSE':'MISS';shotMaxChain=0;shotPerfect=false;
+  if(flowRating==='SO CLOSE')callout('SO CLOSE');
+ }
+ endShot();
+}
 function previewLimit(){return mode==='flow'?0:Infinity}
+function flowPreview(dir,board){
+ board=board||targets;
+ let x=W/2,y=H-29,vx=dir.x,vy=dir.y;
+ const leg1=[{x,y}],hitAt=(px,py)=>board.find(t=>t.alive&&(px-t.x)**2+(py-t.y)**2<=(t.r+7.6)**2)||null;
+ let bounces=0,onMark=false,notch=null,bounced=false;
+ for(let i=0;i<220;i++){
+  x+=vx*SPEED*STEP;y+=vy*SPEED*STEP;
+  let wall=false;
+  if(x<17.6){x=35.2-x;vx=Math.abs(vx);wall=true}
+  else if(x>W-17.6){x=2*(W-17.6)-x;vx=-Math.abs(vx);wall=true}
+  if(y<18){y=36-y;vy=Math.abs(vy);wall=true}
+  if(wall){
+   bounces++;
+   if(nearNotch(board.notches,x,y)){onMark=true;notch={x,y}}
+   leg1.push({x,y});
+   const immediate=hitAt(x,y);
+   if(immediate)return {leg1,leg2:[],impact:immediate,bounces,onMark,notch};
+   bounced=true;break;
+  }
+  if(i%3===0)leg1.push({x,y});
+  const direct=hitAt(x,y);
+  if(direct){leg1.push({x,y});return {leg1,leg2:[],impact:direct,bounces:0,onMark:false,notch:null}}
+  if(y>H+22)return {leg1,leg2:[],impact:null,bounces:0,onMark:false,notch:null};
+ }
+ const leg2=[];let impact=null;
+ if(bounced){
+  leg2.push({x,y});
+  for(let i=0;i<36;i++){
+   x+=vx*SPEED*STEP;y+=vy*SPEED*STEP;
+   if(x<17.6||x>W-17.6||y<18||y>H+22){leg2.push({x,y});break}
+   if(i%3===0)leg2.push({x,y});
+   const hit=hitAt(x,y);
+   if(hit){leg2.push({x,y});impact=hit;break}
+  }
+ }
+ return {leg1,leg2,impact,bounces,onMark,notch};
+}
+function flowAimText(p){
+ if(!p)return 'Drag to aim';
+ if(p.impact&&p.impact.kind==='hazard')return 'Hazard';
+ if(p.impact&&p.impact.kind==='shield'&&p.bounces===0)return 'Needs a bank';
+ if(p.bounces===0)return p.impact?'Direct hit':'No hit yet';
+ if(p.onMark)return p.impact?'On the mark':'On the mark · miss';
+ return 'Off the mark';
+}
+function strokeAim(path,color,width,alpha,dash){
+ if(!path||path.length<2)return;
+ cx.save();cx.globalAlpha=alpha;cx.strokeStyle=color;cx.lineWidth=width;cx.setLineDash(dash);
+ cx.beginPath();cx.moveTo(path[0].x,path[0].y);for(let i=1;i<path.length;i++)cx.lineTo(path[i].x,path[i].y);cx.stroke();cx.restore();
+}
+function drawFlowAim(dir,board){
+ const p=flowPreview(dir,board);
+ strokeAim(p.leg1,'#d7fbff',2.2,1,[2,7]);
+ cx.save();for(let i=4;i<p.leg1.length;i+=7){cx.fillStyle='#eaffff';cx.beginPath();cx.arc(p.leg1[i].x,p.leg1[i].y,2.2,0,TAU);cx.fill()}cx.restore();
+ strokeAim(p.leg2,'#b7e7ff',1.35,.4,[2,6]);
+ if(p.onMark&&p.notch){cx.save();cx.translate(p.notch.x,p.notch.y);cx.fillStyle='#b6ff6a';cx.shadowColor='#b6ff6a';cx.shadowBlur=12;if(p.notch.y<36)cx.fillRect(-14,-3,28,6);else cx.fillRect(-3,-16,6,32);cx.restore()}
+ else if(p.bounces&&p.leg1.length){const b=p.leg1[p.leg1.length-1];cx.save();cx.fillStyle='#ffd15c';cx.globalAlpha=.85;cx.beginPath();cx.arc(b.x,b.y,3.2,0,TAU);cx.fill();cx.restore()}
+ if(p.impact){const label=flowAimText(p),col=p.impact.kind==='hazard'?'#ff4d8d':p.onMark?'#b6ff6a':'#ffffff';cx.save();cx.strokeStyle=col;cx.lineWidth=2.4;cx.beginPath();cx.arc(p.impact.x,p.impact.y,p.impact.r+7,0,TAU);cx.stroke();cx.fillStyle=col;cx.font='800 11px system-ui';cx.textAlign='center';cx.fillText(label,p.impact.x,p.impact.y-p.impact.r-12);cx.restore()}
+}
+function drawGhostLine(){
+ if(mode!=='flow'||!flowGhostLine||aiming||performance.now()>flowGhostLine.until)return;
+ const p=flowPreview(dirCode(flowGhostLine.code),flowGhostLine.board);
+ strokeAim(p.leg1,'#ffd15c',1.7,.9,[5,7]);
+ strokeAim(p.leg2,'#ffd15c',1.15,.45,[3,6]);
+ if(p.impact){cx.save();cx.strokeStyle='#ffd15c';cx.globalAlpha=.85;cx.lineWidth=1.6;cx.setLineDash([3,5]);cx.beginPath();cx.arc(p.impact.x,p.impact.y,p.impact.r+8,0,TAU);cx.stroke();cx.setLineDash([]);cx.globalAlpha=1;cx.fillStyle='#ffd15c';cx.font='800 10px system-ui';cx.textAlign='center';cx.fillText('Best',p.impact.x,p.impact.y-p.impact.r-12);cx.restore()}
+}
+function drawClassicAim(){
+ const preview=simulatePreview(aiming&&aim?aimDir(aim.x,aim.y):dirCode(precisionCode),previewLimit()),path=preview.path;
+ cx.save();cx.strokeStyle='#d7fbff';cx.lineWidth=2.2;cx.setLineDash([2,7]);cx.beginPath();cx.moveTo(path[0].x,path[0].y);for(const v of path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);
+ for(let i=4;i<path.length;i+=7){const dot=path[i];cx.fillStyle='#eaffff';cx.beginPath();cx.arc(dot.x,dot.y,2.2,0,TAU);cx.fill()}
+ if(preview.impact){const kind=preview.impact.kind;const label=kind==='hazard'?'Hazard':(kind==='shield'&&preview.bounces===0)?'Needs a bank':'Hit';cx.strokeStyle='#ffffff';cx.lineWidth=2;cx.beginPath();cx.arc(preview.impact.x,preview.impact.y,preview.impact.r+6,0,TAU);cx.stroke();cx.fillStyle='#f4f7fb';cx.font='800 11px system-ui';cx.textAlign='center';cx.fillText(label,preview.impact.x,preview.impact.y-preview.impact.r-12)}
+ cx.restore();
+}
 function simulatePreview(dir,maxBounces=Infinity){let x=W/2,y=H-29,vx=dir.x,vy=dir.y,path=[{x,y}],impact=null,bounces=0;for(let i=0;i<250;i++){x+=vx*SPEED*STEP;y+=vy*SPEED*STEP;if(x<17.6){x=35.2-x;vx=Math.abs(vx);bounces++}if(x>W-17.6){x=2*(W-17.6)-x;vx=-Math.abs(vx);bounces++}if(y<18){y=36-y;vy=Math.abs(vy);bounces++}if(bounces>maxBounces){path.push({x,y});break}if(i%3===0)path.push({x,y});for(let t of targets){if(!t.alive)continue;if((x-t.x)**2+(y-t.y)**2<=(t.r+7.6)**2){impact=t;path.push({x,y});return {path,impact,bounces}}}if(y>H+22)break;}return {path,impact,bounces}}
 function aimDir(x,y){let dx=x-W/2,dy=y-(H-29);dy=Math.min(-46,dy);const mag=Math.hypot(dx,dy)||1;return{x:dx/mag,y:dy/mag}}
-function fire(x,y,recordCode){if(shooting||finished||shots===0)return;highlightThisShot=false;shotMaxChain=0;shotPerfect=false;if(!watchMode&&!clutchActive&&!exporting){if(playtest.shots===0)playtest.firstShotSeconds=Math.round((performance.now()-startingTime)/100)/10;recordPlaytest('shots')}let original=recordCode?dirCode(recordCode):aimDir(x,y);let encoded=recordCode||angleCode(original);let dir=dirCode(encoded);runAngles.push(encoded);aiming=false;aim=null;shots--;hits=0;walls=0;combo=0;elapsed=0;playbackSpeed=1;shooting=true;closestMiss=Infinity;ball={x:W/2,y:H-29,vx:dir.x*SPEED,vy:dir.y*SPEED,r:7.6,trail:[],lastWall:-1};setTip('<b>WATCH</b> your chain go!');sfx('launch');buzz(11);updateHUD()}
+function fire(x,y,recordCode){if(shooting||finished||shots===0)return;highlightThisShot=false;shotMaxChain=0;shotPerfect=false;if(!watchMode&&!clutchActive&&!exporting){if(playtest.shots===0)playtest.firstShotSeconds=Math.round((performance.now()-startingTime)/100)/10;recordPlaytest('shots')}let original=recordCode?dirCode(recordCode):aimDir(x,y);let encoded=recordCode||angleCode(original);let dir=dirCode(encoded);runAngles.push(encoded);aiming=false;aim=null;shots--;hits=0;walls=0;combo=0;elapsed=0;playbackSpeed=1;shooting=true;closestMiss=Infinity;ball={x:W/2,y:H-29,vx:dir.x*SPEED,vy:dir.y*SPEED,r:7.6,trail:[],lastWall:-1};if(mode==='flow'){flowGhostLine=null;flowSnap=cloneFlow(targets);flowSnapStreak=flowStreak;flowFlight={walls:0,calledBank:false,closest:Infinity,near:new Map(),thread:false,elapsed:0};flowRating='';flowGained=0}setTip('Watch the ball.');sfx('launch');buzz(11);updateHUD()}
 function bank(x,y){walls++;addParticles(x,y,'#b9ffb1',5,90);addRing(x,y,'#8ce8a9',5);if(walls<=8)sfx('bank',{banks:walls});if(walls===1)callout('BANK IT!')}
 function points(base){let mul=(1+Math.min(6,walls)*.24+Math.min(14,combo-1)*.14);return Math.round(base*mul*(mode==='flow'?1+.1*Math.min(5,flowStreak):1)/10)*10}
 function collect(t){if(!t.alive)return;
@@ -533,30 +907,32 @@ if(targets.every(z=>!z.alive)&&!justCleared){justCleared=true;highlightThisShot=
 
 // V21 research experiment. Untimed progression inspired by *principles*, not cloned content.
 // This is local solo only, not a ranked or verified multiplayer mode.
-function flowGoal(){return Math.min(12500,2600+(flowWave-1)*1200)}
 function finishFlowWave(){
- if(mode!=='flow'||finished||shooting||shots!==0)return;
- const earned=score-flowWaveStart;
- if(earned<flowGoal()){endRound();return}
- flowWaveCleared++;flowGrid.push(flowShotLog.join('')+' ✅');flowShotLog=[];const over=earned-flowGoal(),bonus=Math.round(over*.25/10)*10;if(bonus>0)score+=bonus;
+ if(exporting||mode!=='flow'||finished||shooting)return;
+ const earned=score-flowWaveStart,goal=flowGoal();
+ if(shots!==0&&earned<goal)return;
+ if(earned<goal){endRound();return}
+ const waveDone=flowWave,shotsUsed=shotsFor(waveDone)-shots,over=earned-goal;
+ flowWaveCleared++;flowGrid.push(flowShotLog.join('')+' ✅');flowShotLog=[];
+ const bonus=Math.round(over*.25/10)*10;if(bonus>0)score+=bonus;
+ if(!watchMode)track('wave_clear',{wave:waveDone,score:earned,earned,goal,shots_used:shotsUsed,overshoot:over,seed:flowSeed,first_run:runSerial===1,run_index:runSerial});
  if(score>best){best=score;store(key(),best)}
- flowWave++;flowWaveStart=score;
- let next=flowBoard(flowSeed,flowWave);
- board=next;targets=makeBoard(board);ball=null;justCleared=false;shots=SHOT_MAX;
- // Competitive five-shot replay snapshots are deliberately NOT used for Flow.
- runAngles=[];runSteps=[];lastShot=null;
- aim=null;aimStart=null;aiming=false;shooting=false;
- addText(W/2,H*.30,'WAVE '+flowWave,'#baffd0',true);
- sfx('wave');buzz([10,30,10,30,18]);callout('WAVE CLEAR!');flash();if(bonus>0)addText(W/2,H*.40,'+'+fmt(bonus)+' OVERSHOOT BONUS','#ffde80',true);flowStreak=0;inputPauseUntil=performance.now()+700;
- setTip('<b>WAVE '+flowWave+'.</b> '+fmt(flowGoal())+' points in five shots to keep your run alive.');
- updateHUD();setURL();popToast('Wave '+(flowWave-1)+' cleared! Keep going');
+ flowWave++;flowWaveStart=score;flowStreak=0;flowGhostLine=null;
+ board=flowBoard(flowSeed,flowWave);targets=makeFlowBoard(board,flowWave);ball=null;justCleared=false;shots=shotsFor(flowWave);
+ runAngles=[];runSteps=[];lastShot=null;aim=null;aimStart=null;aiming=false;shooting=false;
+ addText(W/2,H*.30,'WAVE '+flowWave,'#b6ff6a',true);
+ addParticles(W/2,H*.42,'#3ee0ff',24,260);flash();inputPauseUntil=performance.now()+700;
+ if(flowWave===10){callout('WAVE 10');sfx('perfect');buzz([12,30,12,30,20]);if(!read('bs:v26:decade',false)){store('bs:v26:decade',true);setTimeout(()=>popToast('Wave 10. A milestone board.'),400)}}
+ else{callout('WAVE CLEAR');sfx('wave');buzz([10,30,10,30,18])}
+ if(bonus>0)addText(W/2,H*.42,'Overshoot +'+fmt(bonus),'#ffd15c',true);
+ updateHUD();setURL();popToast('Wave '+(flowWave-1)+' cleared');teachFlow(flowWave);
 }
 function endShot(){if(!shooting)return;shooting=false;playbackSpeed=1;ball=null;shotSeq++;runSteps.push(score);if(mode==='flow'&&!exporting&&!watchMode)flowSteps.push(score);
-lastShot={index:runSteps.length,points:Math.max(0,score-(runSteps.length>1?runSteps.at(-2):(mode==='flow'?flowWaveStart:0))),hits,walls,angle:runAngles.at(-1)};
+lastShot={index:runSteps.length,points:Math.max(0,score-(runSteps.length>1?runSteps.at(-2):(mode==='flow'?flowWaveStart:0))),hits,walls,angle:runAngles.at(-1),rating:mode==='flow'?flowRating:'',best:null,bestCode:null};if(mode==='flow'){flowGhostLine=null;if(flowSnap&&!exporting&&!watchMode){try{const bestLine=searchFlow(flowSnap,flowSnapStreak,angleGrid(3));if(bestLine){lastShot.best=bestLine.gained;lastShot.bestCode=bestLine.code;if(bestLine.gained>lastShot.points+40)flowGhostLine={until:performance.now()+1600,board:flowSnap,code:bestLine.code}}}catch(e){}}}
 if(watchMode&&shots>0){autoReplayTimer=setTimeout(()=>{if(watchMode&&!shooting&&!finished)fire(0,0,rivalAngles[autoReplayIndex++])},530)}
 
-if(hits===0){addText(W/2,H*.66,closestMiss<15?'SO CLOSE!':'NO HIT — TRY AN ANGLE','#d0defb',true);sfx(closestMiss<15?'near':'miss')}else{addText(W/2,H*.65,'+'+hits+' TARGET'+(hits===1?'':'S')+' HIT','#defff7',true)}
-if(highlightThisShot&&!watchMode&&!clutchActive&&!exporting){highlightShotIndex=runAngles.length-1;$('clipBtn').hidden=false}if(mode==='flow'){if(!exporting&&!watchMode)flowShotLog.push(shotPerfect?'⭐':hits===0?'⬛':shotMaxChain>=5?'💥':walls>0?'🟦':'🎯');if(hits>0){flowSuccessShots++;flowStreak++;if(flowStreak>=2){sfx('streak',{chain:flowStreak});addText(W/2,H*.58,'STREAK · NEXT SHOT ×'+(1+.1*Math.min(5,flowStreak)).toFixed(1),'#ffd184')}}else{if(flowStreak>=2)popToast('Streak broken');flowStreak=0}}if(shots===0&&!exporting){let seq=shotSeq;overlayTimeout=setTimeout(()=>{if(shotSeq===seq&&!shooting)(mode==='flow'?finishFlowWave():endRound())},300)}else{setTip(hits===0?(closestMiss<15?'<b>VERY CLOSE!</b> Your ball passed beside a target. Adjust the angle slightly.':'<b>NO HIT?</b> Point directly toward a glowing cluster and try again.'):walls===0?'<b>GREAT HIT.</b> Try a wall bank to multiply your next shot.':'<b>YOU BANKED IT.</b> Aim at a matching color group for more points.');updateHUD()}}
+if(mode!=='flow'){if(hits===0){addText(W/2,H*.66,closestMiss<15?'SO CLOSE!':'NO HIT — TRY AN ANGLE','#d0defb',true);sfx(closestMiss<15?'near':'miss')}else{addText(W/2,H*.65,'+'+hits+' TARGET'+(hits===1?'':'S')+' HIT','#defff7',true)}}
+if(highlightThisShot&&!watchMode&&!clutchActive&&!exporting){highlightShotIndex=runAngles.length-1;$('clipBtn').hidden=false}if(mode==='flow'){if(!exporting&&!watchMode)flowShotLog.push(shotPerfect?'⭐':flowGained>0?(walls>0?'🟦':'🎯'):'⬛');if(flowGained>0){flowSuccessShots++;flowStreak=Math.min(4,flowStreak+1);if(flowStreak>=2&&!exporting)sfx('streak',{chain:flowStreak})}else{if(flowStreak>=2&&!exporting)popToast('Streak broken');flowStreak=0}}if((shots===0||(mode==='flow'&&score-flowWaveStart>=flowGoal()))&&!exporting){updateHUD();let seq=shotSeq;overlayTimeout=setTimeout(()=>{if(shotSeq===seq&&!shooting)(mode==='flow'?finishFlowWave():endRound())},(mode==='flow'&&flowGhostLine?1500:300))}else{setTip(hits===0?(closestMiss<15?'<b>VERY CLOSE!</b> Your ball passed beside a target. Adjust the angle slightly.':'<b>NO HIT?</b> Point directly toward a glowing cluster and try again.'):walls===0?'<b>GREAT HIT.</b> Try a wall bank to multiply your next shot.':'<b>YOU BANKED IT.</b> Aim at a matching color group for more points.');updateHUD()}}
 function endRound(){if(finished||shooting||shots!==0)return;finished=true;
 if(!watchMode&&!clutchActive){if(mode!=='lab'&&playtest.fullRounds===0&&playtest.firstRoundSeconds===null){playtest.firstRoundSeconds=Math.round((performance.now()-startingTime)/100)/10;savePlaytest()}recordPlaytest(mode==='lab'?'labRounds':'fullRounds');if(mode!=='flow'){lastRun={board,mode,score,angles:runAngles.join(''),steps:[...runSteps],date:utcDay()};store(runKey(),lastRun)}if(mode==='lab'&&runAngles.length===1){
  const attempt={angle:runAngles[0],score,walls:lastShot?.walls||0,hits:lastShot?.hits||0};labRecent=[...labRecent,attempt].slice(-6);store(recentAngleKey(),labRecent);
@@ -564,9 +940,9 @@ if(!watchMode&&!clutchActive){if(mode!=='lab'&&playtest.fullRounds===0&&playtest
 }
 if(score>best){best=score;store(key(),best)}saveMastery();if(mode!=='flow'&&(!ghostRun||score>ghostRun.score)){ghostRun={...lastRun};store(ghostKey(),ghostRun)}stampCrown();}flowRecordEnd();
 const record=!clutchActive&&score>initialBest;let clutchWin=clutchActive&&(score-clutchBase)>clutchTargetShot;let win=targetScore>0&&score>targetScore;let tied=targetScore>0&&score===targetScore;
-$('endIcon').textContent=clutchActive?(clutchWin?'⚡':'🎯'):watchMode?'🎬':win?'👑':record?'🏆':score>=4000?'⚡':'🎯';$('endOverline').textContent=clutchActive?'ONE SHOT DUEL COMPLETE':watchMode?'FRIEND REPLAY':mode==='lab'?'SHOT LAB COMPLETE':mode==='daily'?'DAILY SHOT COMPLETE':mode==='flow'?'FLOW RUN COMPLETE':'FIVE SHOTS COMPLETE';$('endTitle').textContent=clutchActive?(clutchWin?'YOU WON THE CLUTCH!':score-clutchBase===clutchTargetShot?'CLUTCH DRAW!':'RUN IT BACK!'):watchMode?'THAT WAS THEIR RUN':win?'YOU BEAT THEM!':record?'NEW PERSONAL BEST!':tied?'IT’S A TIE!':mode==='lab'?'TRY A NEW ANGLE!':mode==='flow'?(flowGoal()-(score-flowWaveStart)<=flowGoal()*.15?'SO CLOSE!':'RUN IT BACK!'):(initialBest>0&&initialBest-score<=initialBest*.1?'SO CLOSE!':'RUN COMPLETE');$('endScore').textContent=fmt(score);renderMasteryResult();
+$('endIcon').textContent=clutchActive?(clutchWin?'⚡':'🎯'):watchMode?'🎬':win?'👑':record?'🏆':score>=4000?'⚡':'🎯';$('endOverline').textContent=clutchActive?'ONE SHOT DUEL COMPLETE':watchMode?'FRIEND REPLAY':mode==='lab'?'SHOT LAB COMPLETE':mode==='daily'?'DAILY SHOT COMPLETE':mode==='flow'?'Run over':'FIVE SHOTS COMPLETE';$('endTitle').textContent=clutchActive?(clutchWin?'YOU WON THE CLUTCH!':score-clutchBase===clutchTargetShot?'CLUTCH DRAW!':'RUN IT BACK!'):watchMode?'THAT WAS THEIR RUN':win?'YOU BEAT THEM!':record?'NEW PERSONAL BEST!':tied?'IT’S A TIE!':mode==='lab'?'TRY A NEW ANGLE!':mode==='flow'?(flowGoal()-(score-flowWaveStart)<=flowGoal()*.18?'So close.':'One more bank.'):(initialBest>0&&initialBest-score<=initialBest*.1?'SO CLOSE!':'RUN COMPLETE');$('endScore').textContent=fmt(score);renderMasteryResult();
 $('endText').textContent=clutchActive?`Your shot +${fmt(score-clutchBase)} · their shot +${fmt(clutchTargetShot)}`:(watchMode?'Your turn to beat it! · ':'')+(unlockedCrownToday?'👑 DAILY CROWN UNLOCKED · ':'')+(targetScore?'Friend’s target: '+fmt(targetScore)+' · ':'')+(mode==='flow'?'Waves cleared: '+flowWaveCleared+' · Wave '+flowWave+' short by '+fmt(Math.max(0,flowGoal()-(score-flowWaveStart)))+' of '+fmt(flowGoal())+' · ':'')+'Max chain ×'+maxCombo+' · '+board;
- $('shotReport').hidden=true;$('aimReadout').hidden=true;$('shotRecap').innerHTML=clutchActive?`<div class="shotBox" style="grid-column:span 3"><label>SHARED SETUP</label><strong>${fmt(clutchBase)}</strong></div><div class="shotBox bestShot" style="grid-column:span 2"><label>YOUR FINAL SHOT</label><strong>+${fmt(score-clutchBase)}</strong></div>`:shotRecapHtml();$('endCoach').textContent=mode==='flow'?(flowGoal()-(score-flowWaveStart)<=flowGoal()*.15?`So close: only ${fmt(flowGoal()-(score-flowWaveStart))} points short of wave ${flowWave+1}. One more chain gets you there. `:'')+`You cleared ${flowWaveCleared} wave${flowWaveCleared===1?'':'s'}. Keep more shots productive to reach the next threshold.`:mode==='lab'&&!watchMode&&!clutchActive&&runAngles.length===1
+ $('shotReport').hidden=true;$('aimReadout').hidden=true;$('shotRecap').innerHTML=clutchActive?`<div class="shotBox" style="grid-column:span 3"><label>SHARED SETUP</label><strong>${fmt(clutchBase)}</strong></div><div class="shotBox bestShot" style="grid-column:span 2"><label>YOUR FINAL SHOT</label><strong>+${fmt(score-clutchBase)}</strong></div>`:shotRecapHtml();$('endCoach').textContent=mode==='flow'?`You were ${fmt(Math.max(0,flowGoal()-(score-flowWaveStart)))} short of the wave ${flowWave} goal. You cleared ${flowWaveCleared} wave${flowWaveCleared===1?'':'s'}.`:mode==='lab'&&!watchMode&&!clutchActive&&runAngles.length===1
  ? (record?`NEW BEST! ${angleLabel(dirCode(runAngles[0]))} earned ${fmt(score)}. Now try a nearby angle.`:
  `Your ${angleLabel(dirCode(runAngles[0]))} shot earned ${fmt(score)}. Best: ${fmt(labBestScore)} at ${labBestAngle?angleLabel(dirCode(labBestAngle)):'unknown'}. Move the aim slightly to improve.`)
  :endCoachingText(record);$('clutchEndNote').hidden=!clutchActive;const showFeel=!watchMode&&!clutchActive&&!playtest.feedback&&playtest.fullRounds>=4;$('feelSurvey').hidden=!showFeel;
@@ -577,7 +953,7 @@ function tick(dt){clock+=dt;shake=Math.max(0,shake-dt*16);shakeX=reduceMotion?0:
 for(let p of particles){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.max(.01,1-2.3*dt);p.vy*=Math.max(.01,1-2.3*dt)}particles=particles.filter(p=>p.age<p.life);
 for(let p of rings)p.age+=dt;rings=rings.filter(p=>p.age<p.life);
 for(let p of floats){p.age+=dt;p.y-=dt*32}floats=floats.filter(p=>p.age<p.life);
-if(!shooting||!ball)return;if(exporting)exportTick++;elapsed+=dt;if(elapsed>=1.05&&playbackSpeed===1&&!watchMode&&$('speedBtn').hidden)updateSpeedUI();const b=ball;
+if(!shooting||!ball)return;if(exporting)exportTick++;elapsed+=dt;if(elapsed>=1.05&&playbackSpeed===1&&!watchMode&&$('speedBtn').hidden)updateSpeedUI();if(mode==='flow'){flowFly(dt);return}const b=ball;
 const ox=b.x,oy=b.y;b.x+=b.vx*dt;b.y+=b.vy*dt;
 if(b.x<17.6){b.x=35.2-b.x;b.vx=Math.abs(b.vx);bank(b.x,b.y)}else if(b.x>W-17.6){b.x=2*(W-17.6)-b.x;b.vx=-Math.abs(b.vx);bank(b.x,b.y)}
 if(b.y<18){b.y=36-b.y;b.vy=Math.abs(b.vy);bank(b.x,b.y)}
@@ -589,33 +965,35 @@ if(Math.floor(elapsed*110)%2===0){b.trail.push({x:b.x,y:b.y});if(b.trail.length>
 if(b.y>H+22||elapsed>6.25||targets.every(z=>!z.alive)){if(elapsed>6.25&&b.y<=H+22){addParticles(b.x,b.y,trailColor(),10,120);addRing(b.x,b.y,trailColor(),6)}endShot()}
 }
 function draw(){let dpr=Math.min(window.devicePixelRatio||1,2.25);const w=Math.max(1,Math.floor(canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(canvas.clientHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}cx.setTransform(w/W,0,0,h/H,0,0);
-const bg=cx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#1c2a4e');bg.addColorStop(.5,'#0f1833');bg.addColorStop(1,'#0a1229');cx.fillStyle=bg;cx.fillRect(0,0,W,H);
-const bloom=cx.createRadialGradient(W/2,180,10,W/2,250,370);bloom.addColorStop(0,'#5e86ff17');bloom.addColorStop(1,'#09122900');cx.fillStyle=bloom;cx.fillRect(0,0,W,H);
-cx.strokeStyle='#c1d9ff09';cx.lineWidth=1;for(let x=16;x<W;x+=24){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke()}for(let y=14;y<H;y+=24){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke()}
-cx.save();cx.translate(shakeX,shakeY);cx.strokeStyle='#92b8e045';cx.lineWidth=2;cx.beginPath();cx.moveTo(12,0);cx.lineTo(12,H);cx.moveTo(W-12,0);cx.lineTo(W-12,H);cx.stroke();
-for(let t of targets){if(!t.alive)continue;let c=palette[t.color],p=reduceMotion?1:1+Math.sin(clock*2.15+t.phase)*.034;cx.save();cx.translate(t.x,t.y);cx.scale(p,p);cx.shadowBlur=9;cx.shadowColor=c;cx.fillStyle=c+'20';cx.beginPath();cx.arc(0,0,t.r+7,0,TAU);cx.fill();cx.shadowBlur=5;cx.fillStyle=c;cx.beginPath();cx.arc(0,0,t.r,0,TAU);cx.fill();cx.shadowBlur=0;const highlight=cx.createRadialGradient(-5,-6,1,0,0,t.r);highlight.addColorStop(0,'#ffffffcc');highlight.addColorStop(.36,'#ffffff50');highlight.addColorStop(1,'#00000024');cx.fillStyle=highlight;cx.beginPath();cx.arc(0,0,t.r,0,TAU);cx.fill();cx.strokeStyle='#ffffff90';cx.lineWidth=1.1;cx.beginPath();cx.arc(0,0,t.r-2.5,.3,2.4);cx.stroke();if(t.bomb){cx.fillStyle='#14233b';cx.font='900 16px system-ui';cx.textAlign='center';cx.textBaseline='middle';cx.fillText('✦',0,1)}cx.restore()}
-cx.save();cx.strokeStyle='#b9dcfa3c';cx.lineWidth=1.4;cx.setLineDash([4,9]);cx.beginPath();cx.moveTo(20,H-30);cx.lineTo(W-20,H-30);cx.stroke();cx.restore();
-if(!shooting&&!finished){if((aiming&&aim)||(mode==='lab'&&precisionCode&&!clutchActive&&!watchMode)){
-if(mode==='lab'&&labBestAngle){const memory=simulatePreview(dirCode(labBestAngle));cx.save();cx.strokeStyle='#ffce7063';cx.lineWidth=1.75;cx.setLineDash([3,8]);cx.beginPath();cx.moveTo(memory.path[0].x,memory.path[0].y);for(let v of memory.path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);const m=memory.path[Math.min(3,memory.path.length-1)];cx.fillStyle='#ffe3a7';cx.font='900 10px system-ui';cx.textAlign='center';cx.fillText('★ BEST',m.x,m.y-13);cx.restore()}
-let preview=simulatePreview(aiming&&aim?aimDir(aim.x,aim.y):dirCode(precisionCode),previewLimit()),path=preview.path;cx.save();cx.strokeStyle='#b4f7ffbc';cx.lineWidth=2.3;cx.setLineDash([4,8]);cx.beginPath();cx.moveTo(path[0].x,path[0].y);for(let v of path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);for(let i=4;i<path.length;i+=7){let p=path[i];cx.fillStyle='#c9fdff'+Math.min(240,120+i*2).toString(16).padStart(2,'0');cx.beginPath();cx.arc(p.x,p.y,2.1,0,TAU);cx.fill()}if(preview.impact){cx.strokeStyle='#ffffffea';cx.lineWidth=2;cx.shadowBlur=14;cx.shadowColor=palette[preview.impact.color];cx.beginPath();cx.arc(preview.impact.x,preview.impact.y,preview.impact.r+7,0,TAU);cx.stroke();cx.fillStyle='#f6ffff';cx.font='900 10px system-ui';cx.textAlign='center';cx.fillText('HIT',preview.impact.x,preview.impact.y-preview.impact.r-12)}cx.restore()}
-cx.shadowColor='#59f1fc';cx.shadowBlur=24;cx.fillStyle='#d9ffff';cx.beginPath();cx.arc(W/2,H-29,11,0,TAU);cx.fill();cx.shadowBlur=0;cx.fillStyle='#1d455e';cx.beginPath();cx.arc(W/2,H-29,5.3,0,TAU);cx.fill();cx.lineWidth=2;cx.strokeStyle='#96efff72';cx.beginPath();cx.arc(W/2,H-29,20+(reduceMotion?0:Math.sin(clock*3.5)*2),Math.PI,0);cx.stroke()}
-if(ball){for(let i=0;i<ball.trail.length;i++){let t=ball.trail[i],alpha=.015+.42*(i+1)/ball.trail.length;cx.fillStyle=trailColor();cx.globalAlpha=alpha;cx.beginPath();cx.arc(t.x,t.y,2.1+i/ball.trail.length*5.6,0,TAU);cx.fill()}cx.fillStyle='#f8ffff';cx.shadowBlur=25;cx.shadowColor='#8cf6ff';cx.beginPath();cx.arc(ball.x,ball.y,ball.r,0,TAU);cx.fill();cx.shadowBlur=0;cx.fillStyle='#c2faff';cx.beginPath();cx.arc(ball.x-2,ball.y-2,2.2,0,TAU);cx.fill()}
-for(let r of rings){let a=r.age/r.life;cx.strokeStyle=r.color;cx.globalAlpha=(1-a)*.8;cx.lineWidth=2.4*(1-a)+.5;cx.beginPath();cx.arc(r.x,r.y,r.r+24*a,0,TAU);cx.stroke()}cx.globalAlpha=1;
-for(let p of particles){let a=1-p.age/p.life;cx.fillStyle=p.color;cx.globalAlpha=a;cx.beginPath();cx.arc(p.x,p.y,p.r*(.35+a*.65),0,TAU);cx.fill()}cx.globalAlpha=1;
-for(let p of floats){let a=1-p.age/p.life;cx.save();cx.textAlign='center';cx.textBaseline='middle';cx.font='1000 '+(p.big?20:13)+'px system-ui';cx.fillStyle=p.color;cx.shadowBlur=5;cx.shadowColor='#0a122d';cx.globalAlpha=Math.min(1,a*2.5);cx.fillText(p.s,p.x,p.y);cx.restore()}
-// Instructions live in the bottom dock and a contextual first-shot hint; no board clutter.
+cx.fillStyle='#07090f';cx.fillRect(0,0,W,H);
+cx.strokeStyle='#ffffff0d';cx.lineWidth=1;for(let x=26;x<W;x+=32){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke()}for(let y=26;y<H;y+=32){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke()}
+cx.save();cx.translate(shakeX,shakeY);
+cx.strokeStyle='#243044';cx.lineWidth=3;cx.beginPath();cx.moveTo(10,0);cx.lineTo(10,H);cx.moveTo(W-10,0);cx.lineTo(W-10,H);cx.stroke();
+if(mode==='flow'&&targets.notches){cx.fillStyle='#f4f7fb';for(const n of targets.notches){cx.save();cx.translate(n.x,n.y);if(n.y<36)cx.fillRect(-11,-2,22,4);else cx.fillRect(-2,-12,4,24);cx.restore()}}
+for(const t of targets){if(!t.alive)continue;const c=palette[t.color]||'#3ee0ff';cx.save();cx.translate(t.x,t.y);cx.fillStyle=c;cx.beginPath();cx.arc(0,0,t.r,0,TAU);cx.fill();cx.fillStyle='#ffffff66';cx.beginPath();cx.arc(-t.r*.32,-t.r*.34,Math.max(2,t.r*.22),0,TAU);cx.fill();if(t.kind==='shield'){cx.strokeStyle='#f4f7fb';cx.lineWidth=2.4;cx.beginPath();cx.arc(0,0,t.r+4,0,TAU);cx.stroke()}if(t.gold||t.value>=240){cx.strokeStyle='#ffd15c';cx.lineWidth=t.value>=240?3:2;cx.beginPath();cx.arc(0,0,t.r-2.2,0,TAU);cx.stroke()}if(t.kind==='hazard'){cx.strokeStyle='#ffd0dc';cx.lineWidth=2;cx.beginPath();cx.arc(0,0,t.r+3,0,TAU);cx.stroke()}cx.fillStyle='#071018';cx.textAlign='center';cx.textBaseline='middle';if(t.kind==='hazard'){cx.font='800 16px system-ui';cx.fillText('!',0,1)}else if(t.kind==='armor'){cx.font='800 12px system-ui';cx.fillText(String(t.value||0),0,-5);cx.font='700 8px system-ui';cx.fillText(t.hp>1?t.hp+' hits':'last hit',0,8)}else if(t.bomb){cx.font='800 13px system-ui';cx.fillText('✦',0,1)}else if(t.kind==='normal'){const v=t.value||110;cx.font='800 '+(v>=240?16:v>=160?14:11)+'px system-ui';cx.fillText(String(v),0,1)}else{cx.beginPath();cx.arc(0,0,2.3,0,TAU);cx.fill()}cx.restore()}
+cx.save();cx.strokeStyle='#ffffff22';cx.lineWidth=1.2;cx.setLineDash([3,8]);cx.beginPath();cx.moveTo(20,H-30);cx.lineTo(W-20,H-30);cx.stroke();cx.restore();
+if(!shooting&&!finished){drawGhostLine();if((aiming&&aim)||(mode==='lab'&&precisionCode&&!clutchActive&&!watchMode)){
+if(mode==='lab'&&labBestAngle){const memory=simulatePreview(dirCode(labBestAngle));cx.save();cx.strokeStyle='#ffd15c88';cx.lineWidth=1.6;cx.setLineDash([3,8]);cx.beginPath();cx.moveTo(memory.path[0].x,memory.path[0].y);for(const v of memory.path.slice(1))cx.lineTo(v.x,v.y);cx.stroke();cx.setLineDash([]);const m=memory.path[Math.min(3,memory.path.length-1)];cx.fillStyle='#ffd15c';cx.font='800 10px system-ui';cx.textAlign='center';cx.fillText('Best',m.x,m.y-13);cx.restore()}
+if(mode==='flow'&&aiming&&aim)drawFlowAim(aimDir(aim.x,aim.y),targets);else drawClassicAim()}
+cx.save();cx.shadowColor='#3ee0ff';cx.shadowBlur=16;cx.fillStyle='#f4fbff';cx.beginPath();cx.arc(W/2,H-29,8,0,TAU);cx.fill();cx.restore();cx.strokeStyle='#3ee0ff55';cx.lineWidth=1.5;cx.beginPath();cx.arc(W/2,H-29,16+(reduceMotion?0:Math.sin(clock*3)*1.5),Math.PI,0);cx.stroke()}
+if(ball){for(let i=0;i<ball.trail.length;i++){const tr=ball.trail[i];cx.globalAlpha=.08+.5*(i+1)/ball.trail.length;cx.fillStyle=trailColor();cx.beginPath();cx.arc(tr.x,tr.y,2+i/ball.trail.length*4.2,0,TAU);cx.fill()}cx.globalAlpha=1;cx.save();cx.shadowColor=trailColor();cx.shadowBlur=22;cx.fillStyle='#f7ffff';cx.beginPath();cx.arc(ball.x,ball.y,ball.r,0,TAU);cx.fill();cx.restore()}
+cx.save();cx.globalCompositeOperation='lighter';
+for(const ring of rings){const a=ring.age/ring.life;cx.strokeStyle=ring.color;cx.globalAlpha=(1-a)*.85;cx.lineWidth=2.2*(1-a)+.4;cx.beginPath();cx.arc(ring.x,ring.y,ring.r+28*a,0,TAU);cx.stroke()}
+for(const bit of particles){const a=1-bit.age/bit.life;cx.fillStyle=bit.color;cx.globalAlpha=a;cx.beginPath();cx.arc(bit.x,bit.y,bit.r*(.4+a*.7),0,TAU);cx.fill()}
+cx.restore();cx.globalAlpha=1;
+for(const fl of floats){const a=1-fl.age/fl.life;cx.save();cx.textAlign='center';cx.textBaseline='middle';cx.font='800 '+(fl.big?22:14)+'px system-ui';cx.globalAlpha=Math.min(1,a*2.2);cx.lineWidth=4;cx.strokeStyle='#07090f';cx.strokeText(fl.s,fl.x,fl.y);cx.fillStyle=fl.color;cx.fillText(fl.s,fl.x,fl.y);cx.restore()}
 cx.restore()}
-function frame(now){let dt=lastFrame?Math.min((now-lastFrame)/1000,.06):.016;lastFrame=now;accum+=dt*(exporting?exportRate():watchMode?2.25:playbackSpeed);let n=0;while(accum>=STEP&&n<8){tick(STEP);accum-=STEP;n++}if(n===8)accum=0;draw();if(recCtx)drawExportFrame();requestAnimationFrame(frame)}
+function frame(now){if(sound&&audioContext&&audioContext.state==='suspended')audioContext.resume().catch(()=>{});let dt=lastFrame?Math.min((now-lastFrame)/1000,.06):.016;lastFrame=now;accum+=dt*(exporting?exportRate():watchMode?2.25:playbackSpeed);let n=0;while(accum>=STEP&&n<8){tick(STEP);accum-=STEP;n++}if(n===8)accum=0;draw();if(recCtx)drawExportFrame();requestAnimationFrame(frame)}
 $('audioQuick').addEventListener('click',()=>setAudioMode(audioMode==='arcade'?'off':audioMode==='off'?'soft':'arcade'));
 // Unlock Web Audio only on a real interaction. iOS Safari does not permit autoplay.
-window.addEventListener('pointerdown',()=>{if(sound)initAudio()},{capture:true,passive:true});
+['pointerdown','pointerup','touchend','click','keydown'].forEach(ev=>window.addEventListener(ev,()=>unlockAudio(),{capture:true,passive:true}));document.addEventListener('visibilitychange',()=>{if(!document.hidden)unlockAudio()});window.addEventListener('pageshow',()=>unlockAudio());window.addEventListener('focus',()=>unlockAudio());
 $('speedBtn').addEventListener('click',()=>{if(!shooting||watchMode)return;playbackSpeed=playbackSpeed===1?2:1;if(playbackSpeed>1)recordPlaytest('fastUses');updateSpeedUI()});
 $('feelSurvey').querySelectorAll('[data-feeling]').forEach(btn=>btn.addEventListener('click',()=>{if(playtest.feedback)return;playtest.feedback=btn.dataset.feeling;savePlaytest();$('feelSurvey').hidden=true;popToast('Thanks — recorded on this device')}));
 function pointerCoord(e){const r=canvas.getBoundingClientRect();return {x:Math.max(0,Math.min(W,(e.clientX-r.left)/r.width*W)),y:Math.max(0,Math.min(H,(e.clientY-r.top)/r.height*H))}}
 $('precisionLeft').addEventListener('click',()=>nudgePrecision(-1));
 $('precisionRight').addEventListener('click',()=>nudgePrecision(1));
 $('precisionFire').addEventListener('click',()=>{if(mode==='lab'&&!clutchActive&&!watchMode&&!shooting&&!finished&&shots===1)fire(0,0,precisionCode)});
-canvas.addEventListener('pointerdown',e=>{if(shooting||finished||watchMode||performance.now()<inputPauseUntil)return;if(e.pointerType==='mouse'&&e.button!==0)return;canvas.setPointerCapture(e.pointerId);aiming=true;aimStart={id:e.pointerId,x:e.clientX,y:e.clientY};aim=pointerCoord(e);updateHUD();e.preventDefault()});
+canvas.addEventListener('pointerdown',e=>{if(shooting||finished||watchMode||performance.now()<inputPauseUntil)return;if(e.pointerType==='mouse'&&e.button!==0)return;canvas.setPointerCapture(e.pointerId);aiming=true;flowGhostLine=null;aimStart={id:e.pointerId,x:e.clientX,y:e.clientY};aim=pointerCoord(e);updateHUD();e.preventDefault()});
 canvas.addEventListener('pointermove',e=>{if(!aiming||watchMode)return;aim=pointerCoord(e);updateAimReadout();e.preventDefault()});
 canvas.addEventListener('pointerup',e=>{if(!aiming||watchMode||aimStart?.id!==e.pointerId)return;aiming=false;const start=aimStart;aimStart=null;const distance=Math.hypot(e.clientX-start.x,e.clientY-start.y);if(distance<9){aim=null;updateAimReadout();setTip('<b>DRAG</b> to choose an angle · <b>RELEASE</b> to shoot');popToast('Drag to aim, then release');e.preventDefault();return}const p=pointerCoord(e);fire(p.x,p.y);e.preventDefault()});
 canvas.addEventListener('pointercancel',()=>{aiming=false;aim=null;aimStart=null;updateAimReadout()});
@@ -670,7 +1048,7 @@ if(type==='daily'){
 if(type==='crown'){
 let p=progress(),cnt=crownsEarned(),days=getDays(),today=p[utcDay()];eyebrow.textContent='DAILY CROWN';title.textContent='Your crown case';body.innerHTML=`<div class="crownModalTop"><strong>👑 ${cnt}</strong><small>${cnt} total earned · ${streakCount()} day streak<br>Score ${fmt(dailyMedalTarget)}+ on the daily board to earn today's crown.</small></div><div class="crownDays">${days.map(d=>`<div class="crownDay ${p[d]?'got':''} ${d===utcDay()?'today':''}"><span>${['SUN','MON','TUE','WED','THU','FRI','SAT'][new Date(d+'T12:00:00Z').getUTCDay()]}</span><strong>${p[d]?'👑':'·'}</strong></div>`).join('')}</div><div class="milestones"><span><b>🟢</b>1 crown<br>MINT TRAIL</span><span><b>🟣</b>3 crowns<br>VIOLET TRAIL</span><span><b>🟡</b>7 crowns<br>GOLD TRAIL</span></div><p class="miniCaption">New board at 00:00 UTC. Replay as often as you want. No paid entries, prizes, or fake opponent scores.</p><button class="action main" id="crownPlay">${today?'REPLAY DAILY BOARD':'GO FOR TODAY’S CROWN'}</button>`;body.querySelector('#crownPlay').onclick=()=>{targetScore=0;rivalAngles=[];rivalSteps=[];reset('daily',dailyCode());closeDialog()}
 }
-if(type==='help'){title.textContent='How to play';body.innerHTML='<ol><li><strong>Drag anywhere</strong> in the arena to line up a shot. Lift your finger to fire.</li><li>Hit glowing targets to score. Connecting <strong>matching colors</strong> sets off a chain.</li><li>Bank the ball off walls for a <strong>24% bigger multiplier per bounce</strong> (up to six).</li><li><strong>Blitz</strong> and <strong>Daily</strong> give you five shots. <strong>Shot Lab</strong> gives you one shot on today’s shared puzzle, with unlimited retries.</li><li>Same board code = same starting puzzle.</li><li>After setting a personal best, <strong>chase your ghost</strong> on exactly that board and see if you can improve your shot-by-shot pace.</li><li>After your run, challenge a friend to beat <strong>only your fifth shot</strong> using the exact same first four shots. The challenge is informal until server verification ships.</li></ol><p>✦ Stars are wildcards: hitting one detonates nearby colors.</p>'}
+if(type==='help'){title.textContent='How to play';body.innerHTML='<ol><li><strong>Drag anywhere</strong> in the arena to line up a shot. Lift your finger to fire.</li><li>Hit glowing targets to score. Connecting <strong>matching colors</strong> sets off a chain.</li><li>In Blitz, bank the ball off walls for a <strong>24% bigger multiplier per bounce</strong> (up to six). In Flow, only a bounce on a white wall mark pays the bank, and the first block you hit ends the shot.</li><li><strong>Blitz</strong> and <strong>Daily</strong> give you five shots. <strong>Shot Lab</strong> gives you one shot on today’s shared puzzle, with unlimited retries.</li><li>Same board code = same starting puzzle.</li><li>After setting a personal best, <strong>chase your ghost</strong> on exactly that board and see if you can improve your shot-by-shot pace.</li><li>After your run, challenge a friend to beat <strong>only your fifth shot</strong> using the exact same first four shots. The challenge is informal until server verification ships.</li></ol><p>✦ Stars are wildcards: hitting one detonates nearby colors.</p>'}
 if(type==='settings'){title.textContent='Your settings';let stats=read('bs:stats',{runs:0,highest:0,total:0});body.innerHTML=`<div class="prefRow"><div><strong>Arcade audio</strong><div style="color:#a7b4cf;font-size:12px">Distinct launch, bank, chain and record sounds. Use ♪ at top to select off, soft, or full.</div></div><button class="switch" id="soundToggle">${sound?'ON':'OFF'}</button></div><div class="prefRow"><div><strong>Haptics</strong><div style="color:#a7b4cf;font-size:12px">${('vibrate' in navigator||!!window.webkit?.messageHandlers?.bankshotHaptics)?'Optional native iPhone taps or browser vibration where supported':'Not available in this browser'}</div></div><button class="switch" id="hapticToggle" ${('vibrate' in navigator||!!window.webkit?.messageHandlers?.bankshotHaptics)?'':'disabled'}>${('vibrate' in navigator||!!window.webkit?.messageHandlers?.bankshotHaptics)?(haptics?'ON':'OFF'):'N/A'}</button></div><p><b>Rounds played:</b> ${fmt(stats.runs)} &nbsp; <b>Best round:</b> ${fmt(stats.highest)}</p><p><b>Shot trail</b> · Unlock colors with Daily crowns, or by reaching Flow waves 3, 6 and 9</p><div class="prefRow" style="flex-wrap:wrap;justify-content:start;gap:6px">${[['cyan','ICE',0],['mint','MINT',1],['violet','VIOLET',3],['gold','GOLD',7]].map(([k,n,c])=>`<button class="switch" data-trail="${k}" ${unlockTrail(k)?'':'disabled'}>${unlockTrail(k)?'':'🔒 '}${n}${k===chosenTrail?' ✓':''}</button>`).join('')}</div><div class="qaMetrics"><b>🧪 LOCAL PLAYTEST REPORT</b><div id="qaSummary"></div><button id="copyPlaytest">COPY PLAYTEST RESULTS</button><button id="resetPlaytest">RESET PLAYTEST COUNTERS</button><p class="smallNote">Stored only in this browser, never uploaded. Reset between testers using the same phone; this does not reset game scores.</p></div><button type="button" class="action" id="privacyInfo">PRIVACY AND YOUR DATA</button><p>Solo records stay on this device. Verified Daily scores require optional Apple sign-in. Friend codes are not verified.</p>`;body.querySelector('#qaSummary').textContent=`${playtest.shots||0} shots · ${playtest.fullRounds||0} five-shot rounds · ${playtest.replays||0} rematches`;
 
 if(window.webkit?.messageHandlers?.bankshotOnline){
@@ -852,7 +1230,7 @@ function drawExportFrame(){if(!recCtx)return;const p=recCtx,w=720,h=1280;p.fillS
 function shotBase(s){return s.mode==='flow'?s.flowWaveStart:0}
 function bestShotIndex(s){let bi=0,bp=-1;s.steps.forEach((v,i)=>{const d=v-(i?s.steps[i-1]:shotBase(s));if(d>bp){bp=d;bi=i}});return bi}
 function snapshotRun(){return {mode,board,score,angles:[...runAngles],steps:[...runSteps],finished,lastShot,flowWave,flowWaveStart,flowSuccessShots,flowWaveCleared,ghostChasing,initialBest}}
-function rebuild(s,count){reset(s.mode,s.board,s.ghostChasing,true);for(let i=0;i<count;i++)fastForwardShot(s.angles[i]);clearTimeout(overlayTimeout)}
+function rebuild(s,count){if(s.mode==='flow'){flowWave=s.flowWave||1;flowHoldWave=true}reset(s.mode,s.board,s.ghostChasing,true);flowHoldWave=false;for(let i=0;i<count;i++)fastForwardShot(s.angles[i]);clearTimeout(overlayTimeout)}
 function restoreRun(s){rebuild(s,s.angles.length);if(s.mode==='flow'){flowWave=s.flowWave;flowWaveStart=s.flowWaveStart;flowSuccessShots=s.flowSuccessShots;flowWaveCleared=s.flowWaveCleared}score=s.score;runSteps=s.steps;lastShot=s.lastShot;initialBest=s.initialBest;finished=s.finished;particles=[];rings=[];floats=[]}
 async function exportReplay(shotIndex){
  if(exporting||shooting||watchMode||clutchActive){popToast('Finish the shot first');return null}
@@ -886,18 +1264,18 @@ function dailyFlowSeed(){return 'F'+utcDay().replaceAll('-','')}
 function dailyFlowNumber(){return Math.floor((Date.parse(utcDay()+'T00:00:00Z')-FLOW_EPOCH)/864e5)+1}
 function isDailyFlow(){return flowSeed===dailyFlowSeed()}
 function flowBoard(seed,w){return (seed+'W'+w).slice(0,14)}
-function flowGhostKey(){return 'bs:v22:flowghost:'+flowSeed}
+function flowGhostKey(){return 'bs:v26:flowghost:'+flowSeed}
 function flowLabel(){return isDailyFlow()?'DAILY FLOW #'+dailyFlowNumber():'FLOW · SEED '+flowSeed}
 function startFlow(seed,keepTarget=false){flowSeed=String(seed||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,9)||randomBoard();if(!keepTarget){targetScore=0;rivalAngles=[];rivalSteps=[]}flowSteps=[];flowShotLog=[];flowGrid=[];const g=read(flowGhostKey(),null);flowGhost=g&&Number.isFinite(g.score)&&Array.isArray(g.steps)?g:null;reset('flow',flowBoard(flowSeed,1))}
 function flowRecordEnd(){if(mode!=='flow'||watchMode||exporting)return;flowPrevGhost=flowGhost;if(!flowGhost||score>flowGhost.score){flowGhost={seed:flowSeed,score,wave:flowWave,steps:[...flowSteps],date:utcDay()};store(flowGhostKey(),flowGhost)}}
 function flowDuelLink(){const base=playableChallengeBase();if(!base)return null;try{const u=new URL(base);u.search='';u.hash='';u.searchParams.set('mode','flow');u.searchParams.set('seed',flowSeed);u.searchParams.set('beat',String(Math.round(score)));return u.toString()}catch{return null}}
 function flowShareTextV22(){const link=flowDuelLink();return `BANKSHOT ∞ ${flowLabel()}\nI reached wave ${flowWave} with ${fmt(score)} points. Beat me on the same waves:`+(link?`\n${link}`:`\nOpen BANKSHOT → ∞ Flow → seed ${flowSeed}`)}
 async function shareFlowDuel(){recordPlaytest('shares');await shareTextToFriend(flowShareText(),'BANKSHOT Flow duel')}
-function flowHUD(){if(mode!=='flow')return;$('boardChip').textContent='∞ '+flowLabel()+' · W'+flowWave;$('modeToggleText').textContent=isDailyFlow()?'✦ DAILY FLOW':'∞ FLOW';
- if(finished||shooting||watchMode)return;const n=flowSteps.length;let extra='';
- if(targetScore)extra=' · FRIEND '+fmt(targetScore);else if(flowGhost&&n>0&&flowGhost.steps[n-1]!=null){const d=score-flowGhost.steps[n-1];extra=' · '+(d>=0?'+':'−')+fmt(Math.abs(d))+' VS GHOST'}else if(flowGhost&&n===0)extra=' · GHOST '+fmt(flowGhost.score);
- $('dockHint').textContent='WAVE '+flowWave+' · '+fmt(Math.max(0,flowGoal()-(score-flowWaveStart)))+' TO ADVANCE'+(flowStreak>=1?' · ×'+(1+.1*Math.min(5,flowStreak)).toFixed(1):'')+extra}
-function flowEndScreen(){const g=flowPrevGhost||flowGhost;$('ghostEnd').hidden=!g;if(g)$('ghostEnd').textContent='👻 CHASE YOUR GHOST · '+fmt(g.score);$('shareEnd').textContent='↗ DUEL A FRIEND';$('newBoardEnd').textContent='∞ NEW FLOW RUN';$('replayEnd').textContent=targetScore?'↻ REMATCH':'↻ SAME WAVES AGAIN'}
+function flowHUD(){if(mode!=='flow')return;$('boardChip').textContent=flowLabel();$('modeToggleText').textContent=isDailyFlow()?'Daily Flow':'Flow';
+ if(finished||watchMode)return;if(shooting){$('dockHint').textContent='Ball in play';return}if(aiming){$('dockHint').textContent='Release to shoot';return}const n=flowSteps.length;let extra='';
+ if(targetScore)extra=' · Friend '+fmt(targetScore);else if(flowGhost&&n>0&&flowGhost.steps[n-1]!=null){const d=score-flowGhost.steps[n-1];extra=' · '+(d>=0?'+':'−')+fmt(Math.abs(d))+' vs ghost'}else if(flowGhost&&n===0)extra=' · Ghost '+fmt(flowGhost.score);
+ const streak=flowStreak>=1?' Next shot ×'+(1+.05*Math.min(3,flowStreak)).toFixed(2)+'.':'';$('dockHint').textContent=flowDockLine()+streak+extra}
+function flowEndScreen(){const g=flowPrevGhost||flowGhost;$('ghostEnd').hidden=!g;if(g)$('ghostEnd').textContent='Chase your ghost · '+fmt(g.score);$('shareEnd').textContent='Duel a friend';$('newBoardEnd').textContent='New Flow run';$('replayEnd').textContent='Play again'}
 {const _uh=updateHUD;updateHUD=function(){_uh();flowHUD()}}
 {const wrap=(id,fn)=>{const orig=$(id).onclick;$(id).onclick=e=>mode==='flow'&&!exporting?fn(e):orig&&orig(e)};
  wrap('restartBtn',()=>{recordPlaytest('replays');startFlow(flowSeed,true)});
@@ -918,16 +1296,19 @@ updateHUD();
 // ===== V23: pluggable event logger, Flow emoji score card, progression, stats, onboarding =====
 // Analytics: BANKSHOT_ANALYTICS.addSink(fn) or set window.BANKSHOT_TRACK=fn. Nothing is sent anywhere by default.
 const analyticsSinks=[];const eventKey='bs:v23:events';
-function track(name,props={}){const ev={name,t:new Date().toISOString(),v:VERSION,mode,...props};
+function playerId(){let id=read('bs:v24:pid','');if(typeof id!=='string'||!id){try{id=crypto.randomUUID()}catch(e){id=''}if(!id)id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2);store('bs:v24:pid',id)}return id}
+const sessionId=(()=>{try{return crypto.randomUUID()}catch(e){return 's'+Date.now().toString(36)+Math.random().toString(36).slice(2)}})();
+let runSerial=Number(read('bs:v24:runSerial',0))||0,runStartedAt=performance.now();
+function track(name,props={}){if(name==='run_start'){runStartedAt=performance.now();const first=runSerial===0;runSerial=(runSerial|0)+1;store('bs:v24:runSerial',runSerial);props={...props,first_run:first,run_index:runSerial}}const ev={name,t:new Date().toISOString(),v:VERSION,mode,player_id:playerId(),session_id:sessionId,...props};
  try{const log=read(eventKey,[]);log.push(ev);store(eventKey,log.slice(-200))}catch{}
  for(const s of [...analyticsSinks,window.BANKSHOT_TRACK])if(typeof s==='function')try{s(ev)}catch{}
  try{window.dispatchEvent(new CustomEvent('bankshot:event',{detail:ev}))}catch{}}
 window.BANKSHOT_ANALYTICS={track,addSink:f=>{if(typeof f==='function')analyticsSinks.push(f)},events:()=>read(eventKey,[]),clear:()=>store(eventKey,[])};
 {const o=recordPlaytest;recordPlaytest=function(field,by){o(field,by);if(field==='replays')track('restart',{board});if(field==='shares')track('share',{board,seed:mode==='flow'?flowSeed:undefined})}}
 {const o=reset;reset=function(...a){o(...a);if(!exporting&&!watchMode)track('run_start',{board,seed:mode==='flow'?flowSeed:undefined})}}
-{const o=endRound;endRound=function(){const was=finished;o();if(!was&&finished&&!exporting&&!watchMode)track('run_end',{board,score,wave:mode==='flow'?flowWave:undefined,seed:mode==='flow'?flowSeed:undefined})}}
+{const o=endRound;endRound=function(){const was=finished;const runMs=Math.round(performance.now()-runStartedAt);const goal=mode==='flow'?flowGoal():undefined;const waveScore=mode==='flow'?Math.max(0,score-flowWaveStart):score;const shotsTaken=mode==='flow'?flowSteps.length:runSteps.length;o();if(!was&&finished&&!exporting&&!watchMode)track('run_end',{board,score,wave:mode==='flow'?flowWave:undefined,seed:mode==='flow'?flowSeed:undefined,run_ms:runMs,shots:shotsTaken,goal,wave_score:waveScore,miss_margin:mode==='flow'?Math.max(0,(goal||0)-waveScore):undefined,first_run:runSerial===1,run_index:runSerial})}}
 // Local Flow stats + progression (cosmetic trails, never pay-to-win).
-const flowStatsKey='bs:v23:flowstats';
+const flowStatsKey='bs:v26:flowstats';
 function flowStats(){const s=read(flowStatsKey,{});return {runs:s.runs||0,waves:s.waves||0,bestWave:s.bestWave||0,bestScore:s.bestScore||0,shots:s.shots||0}}
 function flowBestWave(){return flowStats().bestWave}
 function flowShareText(){const link=flowDuelLink(),rows=flowGrid.length?flowGrid:[flowShotLog.join('')];
@@ -938,13 +1319,14 @@ function flowShareText(){const link=flowDuelLink(),rows=flowGrid.length?flowGrid
 {const o=flowEndScreen;flowEndScreen=function(){o();const s=flowStats();$('endText').textContent+=` · Best wave ${s.bestWave} · ${s.runs} run${s.runs===1?'':'s'}`;
  const next=[3,6,9].find(w=>s.bestWave<w);$('endCoach').textContent+=next?` Reach wave ${next} to unlock the ${({3:'Mint',6:'Violet',9:'Gold'})[next]} trail.`:''}}
 {const o=openDialog;openDialog=function(type){o(type);if(type==='settings'){const s=flowStats(),p=document.createElement('p');p.innerHTML=`<b>Flow:</b> ${fmt(s.runs)} run${s.runs===1?"":"s"} · best wave ${s.bestWave} · best score ${fmt(s.bestScore)} · ${fmt(s.waves)} waves cleared`;$('dialogBody').insertBefore(p,$('dialogBody').querySelector('.qaMetrics'))}
- if(type==='welcome'){$('dialogEyebrow').textContent='Welcome to BANKSHOT';$('dialogTitle').textContent='How Flow works';$('dialogBody').innerHTML='<ol><li>Drag anywhere to aim, then let go to shoot.</li><li>Bounce off walls to multiply your points. Hitting matching colors sets off chains.</li><li>Each wave gives you five shots. Reach the goal to move on to the next wave.</li><li>Score on shots back to back to build a streak.</li></ol><button class="action main" id="welcomeGo">Let’s play</button>';$('welcomeGo').onclick=()=>{store('bs:v23:onboarded',true);track('onboarding_done');closeDialog()}}}}
+ if(type==='welcome'){$('dialogEyebrow').textContent='Welcome to BANKSHOT';$('dialogTitle').textContent='How Flow works';$('dialogBody').innerHTML='<ol><li>Drag anywhere to aim, then let go to shoot.</li><li>White marks on the wall are bank lanes. Bounce on a mark, then hit the center of a block.</li><li>Clear the wave goal before you run out of shots.</li><li>A precise shot scores several times more than a graze.</li></ol><button class="action main" id="welcomeGo">Let’s play</button>';$('welcomeGo').onclick=()=>{store('bs:v23:onboarded',true);track('onboarding_done');closeDialog()}}}}
 {const o=bank;bank=function(x,y){o(x,y);if(walls===1&&!exporting&&!watchMode&&!read('bs:v23:tipBank',false)){store('bs:v23:tipBank',true);popToast('Nice bank! Every wall bounce multiplies your points')}}}
 {const o=finishFlowWave;finishFlowWave=function(){const w=flowWave;o();if(flowWave>w&&!read('bs:v23:tipWave',false)){store('bs:v23:tipWave',true);setTimeout(()=>popToast('Wave cleared! Goals rise each wave, and there’s no timer'),900)}}}
 track('run_start',{board,seed:mode==='flow'?flowSeed:undefined,initial:true});
 if(param.get('beat')||param.get('clutch')==='1'||param.get('replay'))track('duel_open',{board,seed:param.get('seed')||undefined,beat:Number(param.get('beat'))||0});
 if(mode==='flow'&&!read('bs:v23:onboarded',false)&&playtest.shots===0&&!param.get('beat'))openDialog('welcome');
 window.BANKSHOT_QA={flowGrid:()=>[...flowGrid],flowStats:()=>flowStats(),flow:()=>({seed:flowSeed,wave:flowWave,daily:isDailyFlow(),number:dailyFlowNumber(),steps:[...flowSteps],ghost:flowGhost,link:flowDuelLink(),text:flowShareText()}),startFlow:(s,k)=>startFlow(s,k),exportReplay:i=>exportReplay(i).then(b=>b?{size:b.size,type:b.type}:null),snapshot:()=>({mode,board,score,best,shots,shooting,finished,remaining:targets.filter(t=>t.alive).length,version:VERSION,audioMode,masteryTier:tierFor(best,mode),masteryBook:masteryBook(),sfxCounts:{...sfxCounts},closestMiss:Number.isFinite(closestMiss)?Math.round(closestMiss):null,lastAudioEvent,personalTarget:personalTarget(),shotPoints:runSteps.map((v,i)=>v-(i?runSteps[i-1]:0)),runAngles:runAngles.join(''),runSteps:[...runSteps],watchMode,crowns:crownsEarned(),trail:chosenTrail,lastRun:lastRun,ghostScore:ghostRun?.score||0,ghostChasing,ghostSteps:ghostRun?.steps||[],clutchActive,clutchReady,clutchBase,clutchTargetShot,clutchPlayerShot:clutchActive?score-clutchBase:0,labAttempts:read('bs:v7:lab:attempts:'+board,0),labBestAngle,labBestScore,labRecent:[...labRecent],precisionCode,lastShot,aiming,playbackSpeed,playtest:{...playtest}}),preview:(x,y)=>simulatePreview(aimDir(x,y))};
+Object.assign(window.BANKSHOT_QA,{playAngles(codes){for(const c of codes){fire(0,0,c);for(let n=0;n<1000&&shooting;n++)tick(STEP)}return {score,wave:flowWave,shots,steps:[...runSteps],alive:targets.filter(t=>t.alive).length,rating:lastShot&&lastShot.rating,best:lastShot&&lastShot.best,goal:mode==='flow'?flowGoal():0}},shoot(code){fire(0,0,code);return true},simulateFlowWave,resolveFlow,makeFlowBoard,flowGoal,shotsFor,layoutFor,audio:()=>{const el=$('silentUnlock');return {mode:audioMode,state:audioContext?audioContext.state:'none',silentPlaying:!!(el&&!el.paused),sound}},ids:()=>({player_id:playerId(),session_id:sessionId,runSerial})});
 // Web version runs without a service worker until an actual offline-cache asset is bundled.
 })();
 </script>
