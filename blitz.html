@@ -364,7 +364,7 @@ function updatePaceUI(){
  $('paceTag').textContent=label;$('paceText').textContent=message;$('paceValue').textContent=value;
  $('paceFill').style.width=Math.min(100,Math.max(0,score/Math.max(1,targetScore||goal)*100))+'%';
 }
-function shotRecapHtml(){const prior=runSteps.map((v,i)=>Math.max(0,v-(i?runSteps[i-1]:0)));const peak=Math.max(...prior,0);return prior.map((n,i)=>`<div class="shotBox ${n===peak&&peak>0?'bestShot':''}"><label>SHOT ${i+1}</label><strong>+${fmt(n)}</strong></div>`).join('')}
+function shotRecapHtml(){const prior=runSteps.map((v,i)=>Math.max(0,v-(i?runSteps[i-1]:(mode==='flow'?flowWaveStart:0))));const peak=Math.max(...prior,0);return prior.map((n,i)=>`<div class="shotBox ${n===peak&&peak>0?'bestShot':''}"><label>SHOT ${i+1}</label><strong>+${fmt(n)}</strong></div>`).join('')}
 function endCoachingText(record){if(watchMode)return 'Their replay is complete. Your five shots are next.';
  if(clutchActive){const yours=score-clutchBase,delta=yours-clutchTargetShot;return delta>0?`CLUTCH WIN by ${fmt(delta)}! Your final shot: ${fmt(yours)}. Their final shot: ${fmt(clutchTargetShot)}.`:delta===0?`A TIE! Both final shots scored ${fmt(yours)}. Try a sharper bank.`:`${fmt(-delta+1)} more points to win the clutch. Your shot: ${fmt(yours)} · theirs: ${fmt(clutchTargetShot)}.`;}
  const d=runSteps.map((v,i)=>v-(i?runSteps[i-1]:0)), top=Math.max(...d), shot=d.indexOf(top)+1;
@@ -546,7 +546,7 @@ function finishFlowWave(){
  updateHUD();setURL();popToast('Wave '+(flowWave-1)+' cleared! Keep going');
 }
 function endShot(){if(!shooting)return;shooting=false;playbackSpeed=1;ball=null;shotSeq++;runSteps.push(score);
-lastShot={index:runSteps.length,points:Math.max(0,score-(runSteps.length>1?runSteps.at(-2):0)),hits,walls,angle:runAngles.at(-1)};
+lastShot={index:runSteps.length,points:Math.max(0,score-(runSteps.length>1?runSteps.at(-2):(mode==='flow'?flowWaveStart:0))),hits,walls,angle:runAngles.at(-1)};
 if(watchMode&&shots>0){autoReplayTimer=setTimeout(()=>{if(watchMode&&!shooting&&!finished)fire(0,0,rivalAngles[autoReplayIndex++])},530)}
 
 if(hits===0){addText(W/2,H*.66,closestMiss<15?'SO CLOSE!':'NO HIT — TRY AN ANGLE','#d0defb',true);sfx(closestMiss<15?'near':'miss')}else{addText(W/2,H*.65,'+'+hits+' TARGET'+(hits===1?'':'S')+' HIT','#defff7',true)}
