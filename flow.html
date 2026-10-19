@@ -580,7 +580,7 @@ if(dot<0){b.vx-=2*dot*nx;b.vy-=2*dot*ny}
 const sp=Math.hypot(b.vx,b.vy)||SPEED;b.vx=b.vx/sp*SPEED;b.vy=b.vy/sp*SPEED;
 b.x=t.x+nx*(limit+1);b.y=t.y+ny*(limit+1);collect(t);break}
 if(Math.floor(elapsed*110)%2===0){b.trail.push({x:b.x,y:b.y});if(b.trail.length>27)b.trail.shift()}
-if(b.y>H+22||elapsed>6.25||targets.every(z=>!z.alive)){endShot()}
+if(b.y>H+22||elapsed>6.25||targets.every(z=>!z.alive)){if(elapsed>6.25&&b.y<=H+22){addParticles(b.x,b.y,trailColor(),10,120);addRing(b.x,b.y,trailColor(),6)}endShot()}
 }
 function draw(){let dpr=Math.min(window.devicePixelRatio||1,2.25);const w=Math.max(1,Math.floor(canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(canvas.clientHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}cx.setTransform(w/W,0,0,h/H,0,0);
 const bg=cx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#1c2a4e');bg.addColorStop(.5,'#0f1833');bg.addColorStop(1,'#0a1229');cx.fillStyle=bg;cx.fillRect(0,0,W,H);
