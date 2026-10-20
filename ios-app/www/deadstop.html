@@ -349,6 +349,26 @@ footer {
 #todayHud { min-height: 14px; }
 .hudLeft #rankHud { color: rgba(244, 240, 230, .78); }
 .hudRight { display: flex; gap: 8px; align-items: center; }
+#runBtn { min-width: 72px; padding: 0 14px; }
+#lives {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  margin-left: 2px;
+}
+#lives[hidden] { display: none !important; }
+#lives i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(244, 240, 230, .22);
+}
+#lives i.on {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--glow);
+}
+#app[data-heat="boss"] .digits .main { text-shadow: 0 0 28px rgba(255, 90, 40, .55); }
+#app[data-heat="boss"] #instruction { color: #ffb088; }
 .pill, .round {
   border: 1px solid transparent;
   background: var(--accent);
@@ -738,7 +758,7 @@ footer {
       <header>
       <div class="lockup">
         <div class="logo"><span>DEAD</span><i></i><span>STOP</span></div>
-        <div class="locksub"><span id="dailyN">#1</span><span id="flame" class="flame" hidden><svg viewBox="0 0 16 20" width="12" height="15" aria-hidden="true"><path fill="currentColor" d="M8.2 0c.4 2.4-.2 3.8-1.2 5.2 2.2-.6 3.6.8 3.8 2.6.2 2.6-1.6 5.6-4.4 6.8C3.2 13.4 1 11 1 8.2 1 6.4 1.8 5 3 4c.2 1.8 1.2 2.6 2.2 2.6C4.4 4.2 5.8 2.2 8.2 0z"/></svg><b id="streakN">1</b></span></div>
+        <div class="locksub"><span id="dailyN">#1</span><span id="flame" class="flame" hidden><svg viewBox="0 0 16 20" width="12" height="15" aria-hidden="true"><path fill="currentColor" d="M8.2 0c.4 2.4-.2 3.8-1.2 5.2 2.2-.6 3.6.8 3.8 2.6.2 2.6-1.6 5.6-4.4 6.8C3.2 13.4 1 11 1 8.2 1 6.4 1.8 5 3 4c.2 1.8 1.2 2.6 2.2 2.6C4.4 4.2 5.8 2.2 8.2 0z"/></svg><b id="streakN">1</b></span><span id="lives" hidden><i></i><i></i><i></i></span></div>
       </div>
       <div id="chips" hidden>
         <button class="chip on" id="chip0" type="button">YOU</button>
@@ -767,6 +787,7 @@ footer {
         <div id="rankHud">ROOKIE</div>
       </div>
       <div class="hudRight">
+        <button class="pill" id="runBtn" type="button">RUN</button>
         <button class="pill" id="vsBtn" type="button">VS</button>
         <button class="round" id="infoBtn" type="button" aria-label="About">i</button>
       </div>
@@ -792,7 +813,7 @@ footer {
     <div id="sheet" hidden>
       <div class="sheetHead"><span>DEAD STOP</span><button id="closeSheet" type="button" aria-label="Close">×</button></div>
       <p class="lead" id="sheetLead">Tap to start. At 3.00 the clock goes dark. Stop on 10.00.</p>
-      <p class="fair"><b>PROVABLY FAIR.</b> Start and stop are read from performance.now() at pointerdown, before the screen paints. That gap is rounded to the nearest millisecond and never nudged toward the target. What you hit is what you see. Daily numbers roll at midnight Eastern.</p>
+      <p class="fair"><b>PROVABLY FAIR.</b> Start and stop are read from performance.now() at pointerdown, before the screen paints. That gap is rounded to the nearest millisecond and never nudged toward the target. What you hit is what you see. Daily numbers roll at midnight Eastern. Classic 10.00 never lies. In RUN, the card tells you when the clock is lying.</p>
       <div class="nameRow"><span>NAME</span><input id="nameInput" maxlength="12" autocomplete="off" autocapitalize="characters" value="YOU" aria-label="Your name"></div>
       <div class="rankBlock">
         <div id="sheetRank">ROOKIE</div>
@@ -930,7 +951,8 @@ function loadSave() {
     v: 1, best: null, points: 0, theme: 'ivory', name: 'YOU',
     sound: true, haptics: true, lastPlayed: null, streak: 0,
     daily: null, vsNames: ['YOU', 'ME'], rankSeen: 'rookie',
-    runs: 0, a2hsDismissed: false
+    runs: 0, a2hsDismissed: false,
+    runBest: 0, runBank: 0, runDaily: null, preferRun: false
   };
   try {
     const raw = localStorage.getItem(KEY);
@@ -941,6 +963,8 @@ function loadSave() {
     save.vsNames = save.vsNames.map(n => sanitize(n) || 'YOU');
     save.name = sanitize(save.name) || 'YOU';
     if (!THEMES[save.theme]) save.theme = 'ivory';
+    save.runBest = Math.max(0, Math.round(Number(save.runBest) || 0));
+    save.preferRun = save.preferRun === true;
     return save;
   } catch (e) { return base; }
 }
@@ -982,7 +1006,23 @@ const state = {
   tickBucket: -1,
   rankUntil: 0,
   scale: { x: 1, v: 0 },
-  darkMix: 0
+  darkMix: 0,
+  runStage: 1,
+  runLives: 3,
+  runSpec: null,
+  runMark: 0,
+  runPartials: [],
+  runLast: null,
+  runNote: '',
+  runNew: false,
+  runClearedFlag: false,
+  runBankSession: 0,
+  runTouched: false,
+  cardT0: 0,
+  cardUntil: 0,
+  hitUntil: 0,
+  runRival: null,
+  driftNext: 0
 };
 
 function refreshDay(nowDate) {
@@ -1008,6 +1048,249 @@ function parseRival() {
 function rivalIdleLine() {
   if (!state.rival) return '';
   return 'BEAT ' + state.rival.name + ': ' + formatDelta(state.rival.ms);
+}
+function parseRunRival() {
+  const q = new URLSearchParams(location.search);
+  if (q.has('beat') || !q.has('stage') || !q.has('n')) return null;
+  const stage = Math.round(Number(q.get('stage')));
+  const name = sanitize(q.get('n'));
+  if (!name || !Number.isFinite(stage) || stage < 1 || stage > 99) return null;
+  return { stage, name };
+}
+function runWindow(stage) {
+  if (stage % 10 === 0) return Math.max(18, 36 - Math.floor(stage / 10) * 5);
+  if (stage <= 3) return [260, 230, 200][stage - 1];
+  return Math.max(28, Math.round(118 * Math.pow(0.9, stage - 4)));
+}
+function runSpec(stage, dayN) {
+  const rnd = mulberry32((dayN * 7919 + stage * 104729 + 17) >>> 0);
+  const pick = arr => arr[Math.floor(rnd() * arr.length)];
+  const window = runWindow(stage);
+  const pack = (kind, speed, blackout, marks, win, lie, kicker, line) => ({
+    stage, kind, speed, blackout, marks, window: win, lie, kicker, line
+  });
+  if (stage <= 3) {
+    const table = [
+      { target: 4000, blackout: 2600 },
+      { target: 5000, blackout: 3200 },
+      { target: 5500, blackout: 3000 }
+    ];
+    const t = table[stage - 1];
+    return pack('clean', 1, t.blackout, [t.target], window, 1, 'STOP', 'ON ' + (t.target / 1000).toFixed(2));
+  }
+  if (stage % 10 === 0) {
+    const target = pick([4000, 4500, 5000]);
+    return pack('sudden', 1, target - 1800, [target], window, 1, 'SUDDEN DEATH', 'STOP ON ' + (target / 1000).toFixed(2));
+  }
+  let kinds;
+  if (stage < 6) kinds = ['short', 'early'];
+  else if (stage < 9) kinds = ['short', 'early', 'fast', 'slow'];
+  else if (stage < 14) kinds = ['short', 'early', 'fast', 'slow', 'decoy', 'double', 'drift'];
+  else kinds = ['short', 'early', 'fast', 'slow', 'decoy', 'double', 'drift', 'ring'];
+  const kind = pick(kinds);
+  if (kind === 'double') {
+    return pack('double', 1, 3000, [3000, 8000], Math.max(110, Math.round(window * 1.55)), 1, 'TWO STOPS', '3.00 THEN 8.00');
+  }
+  if (kind === 'early') {
+    const target = pick([4200, 5000]);
+    return pack('early', 1, 1000, [target], Math.max(stage < 12 ? 96 : 64, window), 1, 'VANISHES AT 1.00', 'STOP ON ' + (target / 1000).toFixed(2));
+  }
+  if (kind === 'fast' || kind === 'slow') {
+    const target = pick([5500, 7000, 8000]);
+    const speed = kind === 'fast' ? 1.25 : 0.8;
+    return pack(kind, speed, Math.max(1500, target - 2200), [target], window, 1, kind === 'fast' ? 'DIGITS RUN FAST' : 'DIGITS RUN SLOW', 'STOP ON ' + (target / 1000).toFixed(2));
+  }
+  if (kind === 'decoy') {
+    const target = pick([5000, 7000, 8000]);
+    return pack('decoy', 1, target - 2000, [target], window, 1, 'FAKE FLASH', 'STOP ON ' + (target / 1000).toFixed(2));
+  }
+  if (kind === 'drift') {
+    const target = pick([6000, 7500, 8000]);
+    return pack('drift', 1, target - 2000, [target], window, 1, 'TICKS LIE', 'STOP ON ' + (target / 1000).toFixed(2));
+  }
+  if (kind === 'ring') {
+    const target = pick([5000, 7000, 8000]);
+    const lie = rnd() < 0.5 ? 0.84 : 1.16;
+    return pack('ring', 1, target - 1800, [target], window, lie, 'RING LIES', 'STOP ON ' + (target / 1000).toFixed(2));
+  }
+  const target = pick([4200, 6660, 7770, 8880, 9990]);
+  return pack('short', 1, Math.max(1200, target - 2000), [target], window, 1, 'ODD TIME', 'STOP ON ' + (target / 1000).toFixed(2));
+}
+function touchPlayedDay() {
+  ensureFairDay();
+  if (save.lastPlayed !== state.dayKey) {
+    save.streak = save.lastPlayed === prevKey(state.dayKey) ? save.streak + 1 : 1;
+    save.lastPlayed = state.dayKey;
+  }
+  if (!save.runDaily || save.runDaily.day !== state.dayKey) save.runDaily = { day: state.dayKey, best: 0 };
+  persist();
+}
+function awardPoints(n) {
+  const prev = rankFor(save.points);
+  save.points += n;
+  const next = rankFor(save.points);
+  if (next.id !== prev.id) {
+    save.rankSeen = next.id;
+    if (next.theme) state.equipTheme = next.theme;
+    toast('RANK UP · ' + next.name);
+  }
+  persist();
+}
+function showRunCard(now) {
+  ensureFairDay();
+  state.runSpec = runSpec(state.runStage, state.dayN);
+  state.runMark = 0;
+  state.runPartials = [];
+  state.runLast = null;
+  state.runNote = '';
+  state.phase = 'card';
+  state.cardT0 = now;
+  state.cardUntil = now + (reduceMotion ? 420 : 1000);
+  state.pending = null;
+  state.driftNext = 0;
+  if (!state.runTouched) {
+    state.runTouched = true;
+    touchPlayedDay();
+  }
+  if (state.runSpec.kind === 'sudden' || state.runStage >= 15) buzz([10, 30, 10]);
+  sync();
+}
+function enterRun() {
+  state.mode = 'run';
+  state.vsTurn = 0;
+  state.vs = [null, null];
+  state.pending = null;
+  state.runStage = 1;
+  state.runLives = 3;
+  state.runBankSession = 0;
+  state.runTouched = false;
+  state.runNew = false;
+  save.preferRun = true;
+  persist();
+  hideRank();
+  playUi();
+  showRunCard(performance.now());
+}
+function exitRun() {
+  state.mode = 'solo';
+  state.runSpec = null;
+  state.pending = null;
+  state.phase = 'idle';
+  hideRank();
+  ensureFairDay();
+  playUi();
+  sync();
+}
+function beginRunClock(ts) {
+  if (state.phase !== 'card' || !state.runSpec) return;
+  begin(ts);
+}
+function displayedRunMs(spec, ms, now) {
+  let shown = Math.round(ms * (spec.speed || 1));
+  if (spec.kind === 'decoy') {
+    const slot = ms % 680;
+    if (slot > 560 && slot < 650) shown = Math.max(0, spec.marks[0] - 1800);
+  }
+  return Math.max(0, shown);
+}
+function finishRun(ts) {
+  if (state.phase !== 'run' && state.phase !== 'dark') return;
+  const spec = state.runSpec;
+  if (!spec) return;
+  const ms = Math.max(0, Math.round(ts - state.t0));
+  const mark = spec.marks[state.runMark];
+  const delta = ms - mark;
+  const abs = Math.abs(delta);
+  const good = abs <= spec.window;
+  const hit = { ms, delta, abs, good };
+  state.runLast = hit;
+  if (good && state.runMark < spec.marks.length - 1) {
+    state.runPartials.push(hit);
+    state.runMark += 1;
+    state.targetMs = spec.marks[state.runMark];
+    playHit(2);
+    buzz(12);
+    punch(0.97);
+    state.flash = 0.16;
+    state.flashColor = '#fff';
+    sync();
+    return;
+  }
+  settleRun(good);
+}
+function settleRun(cleared) {
+  const spec = state.runSpec;
+  const hits = state.runPartials.concat([state.runLast]);
+  const perfect = cleared && hits.every(h => h && h.abs <= 10);
+  state.runNote = '';
+  if (!cleared) {
+    state.runLives -= 1;
+    state.shake = reduceMotion ? 0 : (state.runStage >= 15 ? 16 : 9);
+    state.hurt = 1;
+    state.flash = 0.4;
+    state.flashColor = '#ff3a2a';
+    playChoke();
+    buzz([32, 24, 32]);
+  } else {
+    if (perfect) {
+      if (state.runLives < 3) {
+        state.runLives += 1;
+        state.runNote = 'LIFE BACK';
+      } else {
+        state.runBankSession += 1;
+        save.runBank = (save.runBank || 0) + 1;
+        state.runNote = 'BANKED';
+      }
+      playPerfect();
+      buzz([12, 30, 12]);
+    } else {
+      playHit(Math.min(10, Math.ceil(state.runStage / 2)));
+      buzz(14);
+    }
+    const pts = 8 + Math.floor(state.runStage * 1.5) + (perfect ? 24 : 0) + (spec.kind === 'sudden' ? 36 : 0);
+    awardPoints(pts);
+    state.flash = perfect ? 0.45 : 0.14;
+    state.flashColor = '#fff';
+  }
+  state.runClearedFlag = cleared;
+  state.phase = 'hit';
+  state.hitUntil = performance.now() + (reduceMotion ? 280 : 700);
+  save.runs = (save.runs || 0) + 1;
+  persist();
+  sync();
+}
+function advanceAfterHit() {
+  if (state.phase !== 'hit') return;
+  if (state.runLives <= 0) {
+    gameOver();
+    return;
+  }
+  state.runStage += 1;
+  showRunCard(performance.now());
+}
+function gameOver() {
+  const prev = save.runBest || 0;
+  state.runNew = state.runStage > prev;
+  if (state.runStage > prev) save.runBest = state.runStage;
+  if (!save.runDaily || save.runDaily.day !== state.dayKey) save.runDaily = { day: state.dayKey, best: 0 };
+  if (state.runStage > (save.runDaily.best || 0)) save.runDaily.best = state.runStage;
+  persist();
+  state.phase = 'over';
+  state.flash = 0.25;
+  state.flashColor = '#ff3a2a';
+  if (state.runNew) playBest();
+  sync();
+}
+function runShareBody() {
+  const url = runChallengeUrl(state.runStage);
+  const bank = state.runBankSession ? '\n+' + state.runBankSession + ' BANKED' : '';
+  return 'DEAD STOP RUN #' + state.dayN + ' — STAGE ' + state.runStage + bank + '\n' + url;
+}
+function runChallengeUrl(stage) {
+  const u = new URL(publicPlayUrl());
+  u.searchParams.set('stage', String(stage));
+  u.searchParams.set('n', sanitize(save.name) || 'YOU');
+  return u.toString();
 }
 let orbColor = THEMES.ivory.orb;
 function applyTheme() {
@@ -1134,9 +1417,11 @@ function playTick(strong) {
   if (strong) noise(0.02, 0.03, 1800, 1.2);
 }
 function playStart() {
-  tone(196, 0.09, 'sine', 0.11);
-  tone(392, 0.07, 'triangle', 0.045);
+  const bump = state.mode === 'run' ? Math.min(1.7, 1 + (state.runStage - 1) * 0.035) : 1;
+  tone(196 * bump, 0.09, 'sine', 0.11);
+  tone(392 * bump, 0.07, 'triangle', 0.045);
   noise(0.045, 0.07, 1600, 0.7);
+  if (state.mode === 'run' && state.runStage >= 15) tone(62, 0.45, 'sawtooth', 0.05, null, 38);
 }
 function playWhoosh() {
   noise(0.48, 0.16, 2000, 0.45, null, 140);
@@ -1233,6 +1518,7 @@ function compute(ms) {
     isNew = true;
     save.best = { absMs: abs, deltaMs: delta, stoppedMs: ms, targetMs: state.targetMs, day: state.dayKey };
   }
+  if (state.mode === 'solo') save.preferRun = true;
   save.runs = (save.runs || 0) + 1;
   persist();
   let bestLine = '';
@@ -1264,6 +1550,53 @@ function revealPlan(ms, perfect) {
 function targetLine() {
   return 'STOP IT ON ' + (state.targetMs / 1000).toFixed(2);
 }
+function paintRun(phase) {
+  const spec = state.runSpec;
+  const rival = state.runRival ? 'BEAT ' + state.runRival.name + ' · STAGE ' + state.runRival.stage : '';
+  if (phase === 'card' && spec) {
+    setDigits(String(spec.stage), 'num');
+    $('instruction').textContent = 'STAGE ' + spec.stage;
+    $('tier').textContent = spec.kicker;
+    $('tier').className = spec.kind === 'sudden' ? 'tierword' : 'tap';
+    $('near').textContent = spec.line;
+    $('bestline').textContent = '±' + (spec.window / 1000).toFixed(3) + (rival ? '   ' + rival : '');
+    $('sub').textContent = '';
+    $('turnLabel').textContent = '';
+    app.dataset.tier = spec.kind === 'sudden' ? 'CHOKED' : '';
+  } else if ((phase === 'run' || phase === 'dark') && spec) {
+    const mark = spec.marks[state.runMark] || spec.marks[0];
+    $('instruction').textContent = spec.marks.length > 1
+      ? ('STOP ' + (state.runMark + 1) + '  ·  ' + (mark / 1000).toFixed(2))
+      : ('STOP ON ' + (mark / 1000).toFixed(2));
+    $('tier').textContent = '';
+    $('tier').className = '';
+    $('near').textContent = '';
+    $('bestline').textContent = '';
+    $('sub').textContent = '';
+    $('turnLabel').textContent = spec.kind === 'clean' ? '' : spec.kicker;
+    app.dataset.tier = '';
+  } else if (phase === 'hit' && state.runLast) {
+    setDigits(formatDelta(state.runLast.delta), 'num');
+    $('instruction').textContent = state.runClearedFlag ? (state.runNote || 'SAFE') : 'MISS';
+    $('tier').textContent = state.runClearedFlag ? (state.runLast.abs <= 10 ? 'PERFECT' : 'IN') : 'LIFE LOST';
+    $('tier').className = 'tierword';
+    $('near').textContent = '';
+    $('bestline').textContent = '';
+    $('sub').textContent = '';
+    $('turnLabel').textContent = '';
+    app.dataset.tier = state.runClearedFlag ? (state.runLast.abs <= 10 ? 'PERFECT' : 'CLOSE') : 'CHOKED';
+  } else if (phase === 'over') {
+    setDigits(String(state.runStage), 'num');
+    $('instruction').textContent = 'REACHED';
+    $('tier').textContent = 'STAGE ' + state.runStage;
+    $('tier').className = 'tierword';
+    $('near').textContent = state.runNew ? 'NEW BEST STAGE' : ('BEST ' + (save.runBest || state.runStage));
+    $('bestline').textContent = rival;
+    $('sub').textContent = 'TAP TO RUN AGAIN';
+    $('turnLabel').textContent = '';
+    app.dataset.tier = 'CHOKED';
+  }
+}
 function sync() {
   const phase = state.phase;
   app.dataset.phase = phase;
@@ -1274,13 +1607,27 @@ function sync() {
   $('flame').hidden = !(save.streak > 0);
   $('streakN').textContent = String(save.streak);
   const hideFresh = phase === 'reveal' && state.pending;
-  const hudBest = hideFresh ? state.pending.prevBest : save.best;
-  $('bestHud').textContent = hudBest ? 'BEST ' + formatDelta(hudBest.deltaMs) : 'BEST —';
-  const todayDelta = hideFresh ? state.pending.prevToday : (save.daily && save.daily.bestDelta != null ? save.daily.bestDelta : null);
-  $('todayHud').textContent = todayDelta == null ? '' : 'TODAY ' + formatDelta(todayDelta);
-  $('rankHud').textContent = (hideFresh && state.pending.rankUp) ? state.pending.prevRankName : rankFor(save.points).name;
-  const canShare = (phase === 'result' && state.mode === 'solo') || phase === 'winner';
+  if (state.mode === 'run') {
+    $('bestHud').textContent = save.runBest ? 'BEST ' + save.runBest : 'BEST —';
+    const todayStage = save.runDaily && save.runDaily.day === state.dayKey ? save.runDaily.best : 0;
+    $('todayHud').textContent = todayStage ? 'TODAY ' + todayStage : '';
+  } else {
+    const hudBest = hideFresh ? state.pending.prevBest : save.best;
+    $('bestHud').textContent = hudBest ? 'BEST ' + formatDelta(hudBest.deltaMs) : 'BEST —';
+    const todayDelta = hideFresh ? state.pending.prevToday : (save.daily && save.daily.bestDelta != null ? save.daily.bestDelta : null);
+    $('todayHud').textContent = todayDelta == null ? '' : 'TODAY ' + formatDelta(todayDelta);
+  }
+  $('rankHud').textContent = (hideFresh && state.pending && state.pending.rankUp) ? state.pending.prevRankName : rankFor(save.points).name;
+  const canShare = (phase === 'result' && state.mode === 'solo') || phase === 'winner' || phase === 'over';
   $('shareBtn').hidden = !canShare;
+  $('runBtn').textContent = state.mode === 'run' ? '10.00' : 'RUN';
+  $('runBtn').classList.toggle('quiet', state.mode === 'run');
+  const lifeEl = $('lives');
+  lifeEl.hidden = state.mode !== 'run';
+  if (state.mode === 'run') {
+    lifeEl.querySelectorAll('i').forEach((pip, i) => pip.classList.toggle('on', i < state.runLives));
+  }
+  app.dataset.heat = state.mode === 'run' && state.runStage >= 15 ? 'boss' : '';
   $('vsBtn').textContent = state.mode === 'vs' ? 'SOLO' : 'VS';
   $('vsBtn').classList.toggle('quiet', state.mode === 'vs');
   const vsShow = state.mode === 'vs' && phase !== 'winner';
@@ -1292,9 +1639,10 @@ function sync() {
     $('chip0').classList.toggle('on', !second);
     $('chip1').classList.toggle('on', second);
   }
-  $('combo').hidden = state.combo < 2 || phase === 'winner';
+  $('combo').hidden = state.mode === 'run' || state.combo < 2 || phase === 'winner';
   $('combo').textContent = '×' + state.combo;
-  const stamp = phase === 'result' && state.pending && state.pending.isNew;
+  const stamp = (phase === 'result' && state.pending && state.pending.isNew) || (phase === 'over' && state.runNew);
+  $('stamp').textContent = phase === 'over' ? 'NEW BEST STAGE' : 'NEW BEST';
   $('stamp').hidden = !stamp;
   if (stamp) {
     $('stamp').classList.remove('show');
@@ -1306,7 +1654,8 @@ function sync() {
   const heat = Math.min(1, state.combo / 6);
   document.documentElement.style.setProperty('--split', (1 + heat * 1.4) + 'px');
 
-  if (phase === 'idle' || phase === 'run') {
+  if (state.mode === 'run') paintRun(phase);
+  else if (phase === 'idle' || phase === 'run') {
     if (phase === 'idle') setDigits('0.000', 'num');
     $('instruction').textContent = targetLine();
     $('tier').textContent = phase === 'idle' ? 'TAP' : '';
@@ -1433,6 +1782,7 @@ function begin(ts) {
     persist();
   }
   ensureFairDay();
+  if (state.mode === 'run' && state.runSpec) state.targetMs = state.runSpec.marks[state.runMark || 0];
   state.t0 = ts;
   state.stopTs = 0;
   state.stoppedMs = 0;
@@ -1456,6 +1806,7 @@ function enterDark() {
   sync();
 }
 function finish(ts) {
+  if (state.mode === 'run') return finishRun(ts);
   if (state.phase !== 'run' && state.phase !== 'dark') return;
   state.stopTs = ts;
   const ms = Math.max(0, Math.round(ts - state.t0));
@@ -1549,6 +1900,7 @@ function rematch() {
 }
 function enterVs() {
   state.mode = 'vs';
+  ensureFairDay();
   state.vsTurn = 0;
   state.vs = [null, null];
   state.pending = null;
@@ -1571,7 +1923,11 @@ function exitVs() {
 }
 function onStage(ts) {
   const phase = state.phase;
-  if (phase === 'idle') begin(ts);
+  if (phase === 'card') {
+    if (ts - state.cardT0 > 280) beginRunClock(ts);
+  } else if (phase === 'hit') advanceAfterHit();
+  else if (phase === 'over') enterRun();
+  else if (phase === 'idle') begin(ts);
   else if (phase === 'pass') {
     state.vsTurn = 1;
     begin(ts);
@@ -1600,6 +1956,7 @@ function vsShareBody() {
   return 'DEAD STOP VS — ' + save.vsNames[w] + ' beat ' + save.vsNames[1 - w] + ' by ' + margin + '\n' + url;
 }
 function currentShareText() {
+  if (state.phase === 'over' && state.mode === 'run') return runShareBody();
   if (state.phase === 'winner') return vsShareBody();
   if (state.pending) return shareBody(state.pending);
   return '';
@@ -1672,6 +2029,41 @@ function drawCard(r) {
   g.fillText('play at ' + PUBLIC_LABEL, 540, 1820);
   return new Promise(res => c.toBlob(b => res(b), 'image/png'));
 }
+function drawRunCard(stage) {
+  const W = 1080, H = 1920;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const boss = stage >= 15;
+  g.fillStyle = '#07060b';
+  g.fillRect(0, 0, W, H);
+  const rg = g.createRadialGradient(540, 780, 40, 540, 780, 860);
+  rg.addColorStop(0, boss ? 'rgba(180,40,20,.4)' : 'rgba(180,120,50,.3)');
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, W, H);
+  g.textAlign = 'center';
+  g.fillStyle = '#e4c27a';
+  g.font = '700 42px Helvetica, Arial, sans-serif';
+  g.fillText('DEAD  ·  STOP', 540, 340);
+  g.fillStyle = 'rgba(244,240,230,.72)';
+  g.font = '600 34px Helvetica, Arial, sans-serif';
+  g.fillText('RUN  #' + state.dayN, 540, 410);
+  g.fillStyle = boss ? '#ffb088' : '#fff6d4';
+  g.font = '800 280px Helvetica, Arial, sans-serif';
+  g.fillText(String(stage), 540, 860);
+  g.fillStyle = '#e4c27a';
+  g.font = '800 84px Helvetica, Arial, sans-serif';
+  g.fillText('STAGE', 540, 980);
+  g.fillStyle = 'rgba(244,240,230,.75)';
+  g.font = '600 36px Helvetica, Arial, sans-serif';
+  g.fillText('BEST  ' + (save.runBest || stage), 540, 1560);
+  if (state.runBankSession) g.fillText('+' + state.runBankSession + ' BANKED', 540, 1640);
+  g.fillStyle = 'rgba(228,194,122,.62)';
+  g.font = '500 28px Helvetica, Arial, sans-serif';
+  g.fillText('play at ' + PUBLIC_LABEL, 540, 1820);
+  return new Promise(res => c.toBlob(b => res(b), 'image/png'));
+}
 function roundRect(g, x, y, w, h, r) {
   g.beginPath();
   g.moveTo(x + r, y);
@@ -1704,9 +2096,12 @@ async function doShare() {
   const text = currentShareText();
   if (!text) return;
   const solo = state.phase === 'result' && state.pending && state.mode === 'solo';
+  const runOver = state.phase === 'over' && state.mode === 'run';
   let blob = null;
   if (solo) {
     try { blob = await drawCard(state.pending); } catch (e) { blob = null; }
+  } else if (runOver) {
+    try { blob = await drawRunCard(state.runStage); } catch (e) { blob = null; }
   }
   if (blob && navigator.canShare) {
     try {
@@ -1745,7 +2140,9 @@ function toast(msg) {
 }
 
 function openSheet() {
-  $('sheetLead').textContent = 'Tap to start. At 3.00 the clock goes dark. Stop on ' + (state.targetMs / 1000).toFixed(2) + '.';
+  $('sheetLead').textContent = state.mode === 'run'
+    ? 'RUN is the gauntlet. Three lives. Read the card. Stop inside the window. A perfect stop gives a life back.'
+    : 'Tap to start. At 3.00 the clock goes dark. Stop on ' + (state.targetMs / 1000).toFixed(2) + '.';
   $('nameInput').value = save.name;
   const cur = rankFor(save.points);
   $('sheetRank').textContent = cur.name;
@@ -1826,8 +2223,15 @@ function handleButton(btn, e) {
   buzz(8);
   btn.classList.add('pressed');
   setTimeout(() => btn.classList.remove('pressed'), 120);
+  if (btn.id === 'runBtn') {
+    const idleish = state.phase === 'idle' || state.phase === 'result' || state.phase === 'pass' || state.phase === 'winner' || state.phase === 'card' || state.phase === 'hit' || state.phase === 'over';
+    if (!idleish) return;
+    if (state.mode === 'run') exitRun();
+    else enterRun();
+    return;
+  }
   if (btn.id === 'vsBtn') {
-    const idleish = state.phase === 'idle' || state.phase === 'result' || state.phase === 'pass' || state.phase === 'winner';
+    const idleish = state.phase === 'idle' || state.phase === 'result' || state.phase === 'pass' || state.phase === 'winner' || state.phase === 'card' || state.phase === 'hit' || state.phase === 'over';
     if (!idleish) return;
     if (state.mode === 'vs') exitVs();
     else enterVs();
@@ -1955,6 +2359,14 @@ function drawBg(now, dt) {
   rad.addColorStop(1, 'rgba(0,0,0,0)');
   gtx.fillStyle = rad;
   gtx.fillRect(0, 0, viewW, viewH);
+  const boss = state.mode === 'run' ? Math.min(1, Math.max(0, (state.runStage - 8) / 14)) : 0;
+  if (boss > 0) {
+    rad = gtx.createRadialGradient(viewW * 0.5, viewH * 0.42, 0, viewW * 0.5, viewH * 0.42, viewW * 0.75);
+    rad.addColorStop(0, 'rgba(150,30,16,' + (0.22 * boss).toFixed(3) + ')');
+    rad.addColorStop(1, 'rgba(0,0,0,0)');
+    gtx.fillStyle = rad;
+    gtx.fillRect(0, 0, viewW, viewH);
+  }
   const ox2 = viewW * (0.7 + 0.1 * Math.cos(t * 0.11));
   const oy2 = viewH * (0.78 + 0.04 * Math.sin(t * 0.09));
   rad = gtx.createRadialGradient(ox2, oy2, 0, ox2, oy2, viewW * 0.5);
@@ -2003,7 +2415,8 @@ function drawBezel(t) {
   let lit = 0;
   if (state.phase === 'run') {
     const ms = Math.max(0, performance.now() - state.t0);
-    lit = Math.min(60, (ms / BLACKOUT_MS) * 60);
+    const gate = state.mode === 'run' && state.runSpec ? state.runSpec.blackout : BLACKOUT_MS;
+    lit = Math.min(60, (ms / gate) * 60);
   }
   const travel = (t * 3.5) % 60;
   for (let i = 0; i < 60; i++) {
@@ -2020,6 +2433,18 @@ function drawBezel(t) {
     if (state.phase !== 'run') hot = hot && !dark;
     gtx.strokeStyle = on || hot ? 'rgba(228,194,122,.95)' : (dark ? 'rgba(244,240,230,.22)' : 'rgba(244,240,230,.32)');
     gtx.lineWidth = major ? 2 : 1;
+    gtx.stroke();
+  }
+  if (state.mode === 'run' && state.runSpec && (state.phase === 'run' || state.phase === 'card')) {
+    const spec = state.runSpec;
+    const goal = (spec.marks[state.runMark] || spec.marks[0]) * (spec.kind === 'ring' ? spec.lie : 1);
+    const ms = state.phase === 'run' ? Math.max(0, performance.now() - state.t0) : 0;
+    const p = goal ? Math.min(1, ms / goal) : 0;
+    gtx.beginPath();
+    gtx.arc(0, 0, Math.max(12, r * (1 - 0.7 * p)), 0, Math.PI * 2);
+    const hot = spec.kind === 'sudden' || state.runStage >= 15;
+    gtx.strokeStyle = hot ? 'rgba(255,90,48,' + (0.45 + p * 0.5) + ')' : 'rgba(228,194,122,' + (0.28 + p * 0.6) + ')';
+    gtx.lineWidth = state.runStage >= 15 ? 3 : 1.6;
     gtx.stroke();
   }
   gtx.restore();
@@ -2059,7 +2484,27 @@ function frame(now) {
   last = now;
   if (state.phase === 'run') {
     const ms = Math.round(now - state.t0);
-    if (ms >= BLACKOUT_MS) enterDark();
+    if (state.mode === 'run' && state.runSpec) {
+      const spec = state.runSpec;
+      if (ms >= spec.blackout) enterDark();
+      else {
+        setDigits(formatTime(displayedRunMs(spec, ms)), 'num');
+        if (spec.kind === 'drift') {
+          if (!state.driftNext) state.driftNext = 140;
+          if (ms >= state.driftNext) {
+            playTick(false);
+            const late = ms / Math.max(1, spec.marks[spec.marks.length - 1]);
+            state.driftNext = ms + Math.round(90 + late * 220);
+          }
+        } else {
+          const bucket = Math.floor(ms / 100);
+          if (bucket !== state.tickBucket && bucket > 0) {
+            state.tickBucket = bucket;
+            playTick(bucket % 10 === 0);
+          }
+        }
+      }
+    } else if (ms >= BLACKOUT_MS) enterDark();
     else {
       setDigits(formatTime(Math.max(0, ms)), 'num');
       const bucket = Math.floor(ms / 100);
@@ -2069,6 +2514,8 @@ function frame(now) {
       }
     }
   } else if (state.phase === 'reveal') advanceReveal(now);
+  else if (state.phase === 'card' && now >= state.cardUntil) beginRunClock(now);
+  else if (state.phase === 'hit' && now >= state.hitUntil) advanceAfterHit();
   if (state.rankUntil && now > state.rankUntil) hideRank();
   const scaleTarget = state.freeze > 0 ? 1.045 : 1;
   stepSpring(state.scale, scaleTarget, dt);
@@ -2115,10 +2562,12 @@ $('nameInput').addEventListener('blur', () => {
 
 refreshDay(new Date());
 state.rival = parseRival();
+state.runRival = parseRunRival();
 applyTheme();
 resize();
 sync();
 requestAnimationFrame(frame);
+if (state.runRival || (save.preferRun && !state.rival)) enterRun();
 if ((location.protocol === 'http:' || location.protocol === 'https:') && 'serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
 }
@@ -2146,7 +2595,21 @@ window.__ds = {
   pointsFor,
   rankFor,
   drawCard,
+  drawRunCard,
   publicPlayUrl,
+  runSpec,
+  runWindow,
+  jumpRun: (stage) => {
+    state.mode = 'run';
+    state.runLives = 3;
+    state.runStage = stage;
+    state.runNew = false;
+    showRunCard(performance.now());
+  },
+  runStage: () => state.runStage,
+  runRival: () => state.runRival,
+  runLives: () => state.runLives,
+  runSpecNow: () => state.runSpec,
   save: () => save
 };
 </script>

@@ -1,5 +1,5 @@
 /* DEAD STOP offline cache. Network first for the page so a new daily number can arrive, cache if the phone is offline. */
-const CACHE = 'deadstop-v1';
+const CACHE = 'deadstop-v2';
 const ASSETS = [
   './deadstop.html',
   './manifest.webmanifest',
