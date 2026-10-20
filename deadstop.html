@@ -6,8 +6,25 @@
 <meta name="theme-color" content="#07060b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="Stop the clock on 10.00. DEAD STOP, the street challenge.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2307060b'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23e4c27a' stroke-width='1.4'/%3E%3C/svg%3E">
+<meta name="description" content="Stop the clock on 10.00. Tap to start. Tap to stop. No download.">
+<meta name="apple-mobile-web-app-title" content="DEAD STOP">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="DEAD STOP">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DEAD STOP">
+<meta property="og:description" content="Stop the clock on 10.00. Tap to start. Tap to stop.">
+<meta property="og:url" content="https://beryishaan-sketch.github.io/ChapterOS/deadstop.html">
+<meta property="og:image" content="https://beryishaan-sketch.github.io/ChapterOS/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DEAD STOP">
+<meta name="twitter:description" content="Stop the clock on 10.00. Tap to start. Tap to stop.">
+<meta name="twitter:image" content="https://beryishaan-sketch.github.io/ChapterOS/og.png">
+<link rel="canonical" href="https://beryishaan-sketch.github.io/ChapterOS/deadstop.html">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
 <title>DEAD STOP</title>
 <style>
 :root {
@@ -473,6 +490,50 @@ footer {
   color: var(--faint);
   font-weight: 700;
 }
+.wPlay {
+  margin-top: 14px;
+  font-size: 11px;
+  letter-spacing: .08em;
+  font-weight: 650;
+  color: rgba(244, 240, 230, .55);
+}
+#a2hs {
+  position: absolute;
+  z-index: 7;
+  left: 14px;
+  right: 14px;
+  top: calc(env(safe-area-inset-top) + 8px);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 8px 8px 12px;
+  border-radius: 14px;
+  background: rgba(12, 11, 16, .94);
+  border: 1px solid rgba(228, 194, 122, .4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  text-align: left;
+}
+#a2hs[hidden] { display: none !important; }
+#a2hs p {
+  margin: 0;
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.35;
+  letter-spacing: .01em;
+  color: rgba(244, 240, 230, .88);
+  font-weight: 650;
+}
+#a2hs b { color: var(--accent); }
+#a2hs button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+}
 #rankup {
   left: 50%;
   top: calc(env(safe-area-inset-top) + 78px);
@@ -669,8 +730,12 @@ footer {
   <div id="flash"></div>
   <div id="hurt"></div>
   <div id="combo" hidden>×2</div>
-  <div id="stage">
-    <header>
+    <div id="a2hs" hidden>
+      <p>Keep it on your Home Screen. Tap Share, then <b>Add to Home Screen</b>.</p>
+      <button id="a2hsClose" type="button" aria-label="Dismiss">×</button>
+    </div>
+    <div id="stage">
+      <header>
       <div class="lockup">
         <div class="logo"><span>DEAD</span><i></i><span>STOP</span></div>
         <div class="locksub"><span id="dailyN">#1</span><span id="flame" class="flame" hidden><svg viewBox="0 0 16 20" width="12" height="15" aria-hidden="true"><path fill="currentColor" d="M8.2 0c.4 2.4-.2 3.8-1.2 5.2 2.2-.6 3.6.8 3.8 2.6.2 2.6-1.6 5.6-4.4 6.8C3.2 13.4 1 11 1 8.2 1 6.4 1.8 5 3 4c.2 1.8 1.2 2.6 2.2 2.6C4.4 4.2 5.8 2.2 8.2 0z"/></svg><b id="streakN">1</b></span></div>
@@ -718,6 +783,7 @@ footer {
         <div id="wB"></div>
       </div>
       <div id="wTap">TAP TO REMATCH</div>
+      <div class="wPlay">play at beryishaan-sketch.github.io/ChapterOS</div>
     </div>
     <div id="rankup" hidden>
       <div class="kicker">RANK UP</div>
@@ -753,6 +819,8 @@ footer {
 const EPOCH = Date.UTC(2026, 9, 20);
 const BLACKOUT_MS = 3000;
 const KEY = 'deadstop:v1';
+const PUBLIC_PLAY = 'https://beryishaan-sketch.github.io/ChapterOS/deadstop.html';
+const PUBLIC_LABEL = 'beryishaan-sketch.github.io/ChapterOS';
 const COMBO_KEY = 'deadstop:combo';
 const TIERS = [
   { name: 'PERFECT', max: 10 },
@@ -861,7 +929,8 @@ function loadSave() {
   const base = {
     v: 1, best: null, points: 0, theme: 'ivory', name: 'YOU',
     sound: true, haptics: true, lastPlayed: null, streak: 0,
-    daily: null, vsNames: ['YOU', 'ME'], rankSeen: 'rookie'
+    daily: null, vsNames: ['YOU', 'ME'], rankSeen: 'rookie',
+    runs: 0, a2hsDismissed: false
   };
   try {
     const raw = localStorage.getItem(KEY);
@@ -1164,6 +1233,7 @@ function compute(ms) {
     isNew = true;
     save.best = { absMs: abs, deltaMs: delta, stoppedMs: ms, targetMs: state.targetMs, day: state.dayKey };
   }
+  save.runs = (save.runs || 0) + 1;
   persist();
   let bestLine = '';
   if (prevBest && abs > prevBest.absMs) bestLine = (abs - prevBest.absMs) + 'ms OFF YOUR BEST';
@@ -1235,7 +1305,6 @@ function sync() {
   if (phase === 'winner') fillWinner();
   const heat = Math.min(1, state.combo / 6);
   document.documentElement.style.setProperty('--split', (1 + heat * 1.4) + 'px');
-  measure();
 
   if (phase === 'idle' || phase === 'run') {
     if (phase === 'idle') setDigits('0.000', 'num');
@@ -1286,7 +1355,44 @@ function sync() {
     $('sub').textContent = '';
     $('turnLabel').textContent = '';
   }
+
+  maybeShowA2hs();
+  measure();
 }
+function isIosSafari() {
+  const ua = navigator.userAgent || '';
+  const iphone = /iPhone|iPad|iPod/i.test(ua);
+  const ipadOs = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return iphone || ipadOs;
+}
+function isStandalone() {
+  return navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+}
+function maybeShowA2hs() {
+  const el = $('a2hs');
+  if (!el) return;
+  const quiet = state.mode === 'solo' && (state.phase === 'idle' || state.phase === 'result');
+  const show = !save.a2hsDismissed && (save.runs || 0) >= 3 && isIosSafari() && !isStandalone() && quiet;
+  el.hidden = !show;
+}
+function dismissA2hs() {
+  save.a2hsDismissed = true;
+  persist();
+  $('a2hs').hidden = true;
+}
+function publicPlayUrl() {
+  const host = location.hostname;
+  const local = !host || host === 'localhost' || host === '127.0.0.1' || location.protocol === 'file:';
+  const proxied = /githack\.com$|jsdelivr\.net$|statically\.io$|githubusercontent\.com$/.test(host);
+  if (!local && !proxied) {
+    const u = new URL(location.href);
+    u.search = '';
+    u.hash = '';
+    return u.toString();
+  }
+  return PUBLIC_PLAY;
+}
+
 function fillWinner() {
   const a = state.vs[0], b = state.vs[1];
   const na = save.vsNames[0], nb = save.vsNames[1];
@@ -1486,11 +1592,12 @@ function shareBody(r) {
 }
 function vsShareBody() {
   const a = state.vs[0], b = state.vs[1];
+  const url = publicPlayUrl();
   if (!a || !b) return shareBody(state.pending);
-  if (a.abs === b.abs) return 'DEAD STOP VS — ' + save.vsNames[0] + ' tied ' + save.vsNames[1];
+  if (a.abs === b.abs) return 'DEAD STOP VS — ' + save.vsNames[0] + ' tied ' + save.vsNames[1] + '\n' + url;
   const w = a.abs < b.abs ? 0 : 1;
   const margin = formatTime(Math.abs(a.abs - b.abs));
-  return 'DEAD STOP VS — ' + save.vsNames[w] + ' beat ' + save.vsNames[1 - w] + ' by ' + margin;
+  return 'DEAD STOP VS — ' + save.vsNames[w] + ' beat ' + save.vsNames[1 - w] + ' by ' + margin + '\n' + url;
 }
 function currentShareText() {
   if (state.phase === 'winner') return vsShareBody();
@@ -1498,9 +1605,7 @@ function currentShareText() {
   return '';
 }
 function challengeUrl(deltaMs) {
-  const u = new URL(location.href);
-  u.search = '';
-  u.hash = '';
+  const u = new URL(publicPlayUrl());
   u.searchParams.set('beat', String(deltaMs));
   u.searchParams.set('n', sanitize(save.name) || 'YOU');
   return u.toString();
@@ -1562,6 +1667,9 @@ function drawCard(r) {
     g.font = '700 32px Helvetica, Arial, sans-serif';
     g.fillText('BEST  ' + formatDelta(save.best.deltaMs), 540, 1680);
   }
+  g.fillStyle = 'rgba(228,194,122,.62)';
+  g.font = '500 28px Helvetica, Arial, sans-serif';
+  g.fillText('play at ' + PUBLIC_LABEL, 540, 1820);
   return new Promise(res => c.toBlob(b => res(b), 'image/png'));
 }
 function roundRect(g, x, y, w, h, r) {
@@ -1757,6 +1865,11 @@ function onPointerDown(e) {
   if (e.button != null && e.button !== 0) return;
   const ts = performance.now();
   if (getComputedStyle($('land')).display !== 'none') return;
+  if (e.target.closest('#a2hs')) {
+    e.preventDefault();
+    if (e.target.closest('#a2hsClose')) dismissA2hs();
+    return;
+  }
   if (!$('cardView').hidden) {
     const btn = e.target.closest('button');
     if (btn) handleButton(btn, e);
@@ -2006,6 +2119,9 @@ applyTheme();
 resize();
 sync();
 requestAnimationFrame(frame);
+if ((location.protocol === 'http:' || location.protocol === 'https:') && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+}
 
 window.__ds = {
   phase: () => state.phase,
@@ -2030,6 +2146,7 @@ window.__ds = {
   pointsFor,
   rankFor,
   drawCard,
+  publicPlayUrl,
   save: () => save
 };
 </script>

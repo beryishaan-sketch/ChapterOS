@@ -1,0 +1,32 @@
+{
+  "id": "./deadstop.html",
+  "name": "DEAD STOP",
+  "short_name": "DEAD STOP",
+  "description": "Stop the clock on 10.00. Tap to start. Tap to stop.",
+  "start_url": "./deadstop.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07060b",
+  "theme_color": "#07060b",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
