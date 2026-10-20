@@ -1,0 +1,17 @@
+{
+  "name": "dead-stop-ios",
+  "private": true,
+  "version": "1.0.0",
+  "description": "iOS wrapper for DEAD STOP. The game itself is deadstop.html at the repo root.",
+  "scripts": {
+    "sync-www": "sh sync-www.sh",
+    "sync": "sh sync-www.sh && npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "7.4.3",
+    "@capacitor/ios": "7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.4.3"
+  }
+}

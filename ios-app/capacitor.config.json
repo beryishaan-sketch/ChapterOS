@@ -1,0 +1,11 @@
+{
+  "appId": "com.beryishaan.deadstop",
+  "appName": "DEAD STOP",
+  "webDir": "www",
+  "backgroundColor": "#07060b",
+  "ios": {
+    "backgroundColor": "#07060b",
+    "contentInset": "never",
+    "preferredContentMode": "mobile"
+  }
+}
