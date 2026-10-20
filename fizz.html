@@ -1,0 +1,2843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0c0a10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FIZZ</title>
+<meta name="description" content="Hold to pour. Release early. The fizz keeps rising. Fill the glass to the rim.">
+<style>
+  html, body {
+    margin: 0; height: 100%; background: #0c0a10; color: #f4efe6;
+    font-family: "SF Pro Display", Inter, "Noto Sans Display", "Helvetica Neue", sans-serif;
+    overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+    overscroll-behavior: none;
+  }
+  #c { display: block; width: 100%; height: 100%; }
+  #sat { position: fixed; left: 0; top: 0; height: env(safe-area-inset-top); width: 0; }
+  #sab { position: fixed; left: 0; bottom: 0; height: env(safe-area-inset-bottom); width: 0; }
+  .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+</style>
+</head>
+<body>
+<audio id="sil" loop playsinline webkit-playsinline preload="auto"
+  src="data:audio/wav;base64,UklGRmQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"></audio>
+<div id="sat"></div>
+<div id="sab"></div>
+<canvas id="c" aria-label="FIZZ. Hold anywhere to pour. Release to stop. The foam keeps rising."></canvas>
+<div id="live" class="sr" aria-live="polite"></div>
+<script>
+'use strict';
+/*
+  FIZZ — midnight jewel bar.
+  Crystal glass, warm spotlight, brass, jewel sodas. One verb: hold to pour.
+  The foam keeps climbing after you let go. Same seed, same glasses.
+*/
+
+const TUNE = {
+  holdEasy: 5.1,
+  holdHard: 2.55,
+  slowStart: 2.05,
+  slowEnd: 0.34,
+  riseMin: 1.05,
+  riseMax: 1.95,
+  cleanAt: 95,
+  perfectAt: 99,
+  slowmoAt: 0.86,
+  slowmo: 0.46,
+  zoomIn: 1.075
+};
+
+const FONT = '"SF Pro Display", Inter, "Noto Sans Display", "Helvetica Neue", sans-serif';
+const SERIF = '"Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif';
+
+const DRINKS = [
+  { name: 'LYCHEE CREAM', deep: '#8d4458', mid: '#e7a3b6', lit: '#ffd6e2', foam: '#fff7f8', caustic: '#ffd0dc', bubble: '#fff0f4' },
+  { name: 'PEACH SODA', deep: '#9a3d22', mid: '#f08448', lit: '#ffc49a', foam: '#fff4ee', caustic: '#ffb07a', bubble: '#ffe8d8' },
+  { name: 'COLA NOIR', deep: '#1a0704', mid: '#7a2e12', lit: '#ff9a3c', foam: '#f3e6d4', caustic: '#ffb15a', bubble: '#ffd7a8' },
+  { name: 'GINGER GOLD', deep: '#8a3a0c', mid: '#e07a22', lit: '#ffd27a', foam: '#fff6e8', caustic: '#ffc46a', bubble: '#ffe6b0' },
+  { name: 'YUZU HIGHBALL', deep: '#5c7010', mid: '#c6d84a', lit: '#f4ffb0', foam: '#fbfff2', caustic: '#e4ff6a', bubble: '#f3ffc4' },
+  { name: 'BLUE TONIC', deep: '#08245c', mid: '#1f6fe0', lit: '#b9e6ff', foam: '#f4fbff', caustic: '#7ad4ff', bubble: '#e4f6ff' }
+];
+
+const SHAPES = {
+  tumbler:  { rimHW: 76, baseHW: 66, bulge: 5,  h: 236, lip: 0.18, capacity: 1.18, stem: 0,  foot: 70 },
+  highball: { rimHW: 52, baseHW: 46, bulge: 2,  h: 318, lip: 0.20, capacity: 1.00, stem: 0,  foot: 52 },
+  flute:    { rimHW: 28, baseHW: 15, bulge: 4,  h: 352, lip: 0.32, capacity: 0.66, stem: 64, foot: 40 },
+  tulip:    { rimHW: 38, baseHW: 24, bulge: 20, h: 292, lip: 0.24, capacity: 0.86, stem: 58, foot: 42 },
+  coupe:    { rimHW: 80, baseHW: 18, bulge: 6,  h: 168, lip: 0.15, capacity: 0.92, stem: 96, foot: 46 }
+};
+
+const CUPS = {
+  crystal: { edge: 'rgba(255,252,247,0.82)', rim: '#f7f1e6', body: 0.055, frost: 0,    ribs: false, name: 'CRYSTAL' },
+  brass:   { edge: 'rgba(255,228,186,0.88)', rim: '#e6c98a', body: 0.07,  frost: 0,    ribs: false, name: 'BRASS' },
+  frost:   { edge: 'rgba(255,255,255,0.9)',  rim: '#ffffff', body: 0.20,  frost: 0.16, ribs: false, name: 'FROST' },
+  rib:     { edge: 'rgba(255,252,247,0.78)', rim: '#f4efe6', body: 0.07,  frost: 0,    ribs: true,  name: 'RIBBED' }
+};
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+const params = new URLSearchParams(location.search);
+
+let W = 390, H = 844, DPR = 1, SAT = 0, SAB = 0;
+let bgCanvas = null, marbleCanvas = null, noiseCanvas = null;
+
+const G = {
+  screen: 'title',
+  mode: 'challenge',
+  seed: 1,
+  day: 1,
+  dailySeed: 1,
+  isDaily: false,
+  serveIndex: 0,
+  serve: null,
+  phase: 'ready',
+  phaseT: 0,
+  holding: false,
+  pressed: null,
+  fingerX: 200,
+  fingerY: 400,
+  results: [],
+  strikes: 0,
+  runScore: 0,
+  runStreak: 0,
+  bestRunStreak: 0,
+  timeScale: 1,
+  zoom: 1,
+  shake: 0,
+  shakeX: 0,
+  shakeY: 0,
+  callout: null,
+  toast: null,
+  buttons: [],
+  hud: true,
+  cup: 'crystal',
+  payout: ['$1', '$2', '$5'],
+  ghost: null,
+  displayPct: 0,
+  t: 0,
+  simT: 0,
+  arm: null,
+  seenCoach: false,
+  audioOn: true,
+  zenTap: false,
+  confettiAge: 0,
+  showConfetti: false,
+  endSnap: null,
+  faucetTip: { x: 195, y: 200 },
+  streamLean: 0,
+  demo: null
+};
+
+/* ---------- utils ---------- */
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeOut(t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); }
+function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+function announced(s) { const n = document.getElementById('live'); if (n) n.textContent = s; }
+function rrect(c, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  c.beginPath();
+  c.moveTo(x + rr, y);
+  c.arcTo(x + w, y, x + w, y + h, rr);
+  c.arcTo(x + w, y + h, x, y + h, rr);
+  c.arcTo(x, y + h, x, y, rr);
+  c.arcTo(x, y, x + w, y, rr);
+  c.closePath();
+}
+function hashString(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function hashParts() { return hashString(Array.prototype.join.call(arguments, '|')); }
+function mulberry32(a) {
+  let t = a >>> 0;
+  return function () {
+    t = (t + 0x6D2B79F5) >>> 0;
+    let x = Math.imul(t ^ (t >>> 15), t | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function dailyNumber(d) {
+  d = d || new Date();
+  const utc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  const epoch = Date.UTC(2026, 0, 1);
+  return Math.floor((utc - epoch) / 86400000) + 1;
+}
+function seedCode(seed) { return (seed >>> 0).toString(36).toUpperCase().padStart(4, '0').slice(-5); }
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); }
+  catch (e) { return fallback; }
+}
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+function shownPct(frac) { return Math.round(clamp(frac, 0, 1.5) * 1000) / 10; }
+function pipsOf(fizz) {
+  if (fizz < 0.15) return 1;
+  if (fizz < 0.24) return 2;
+  if (fizz < 0.34) return 3;
+  if (fizz < 0.45) return 4;
+  return 5;
+}
+
+/* ---------- shapes ---------- */
+function halfWidth(shape, t) {
+  const e = t * t * (3 - 2 * t);
+  return shape.baseHW + (shape.rimHW - shape.baseHW) * e + shape.bulge * Math.sin(Math.PI * t);
+}
+function buildVolumes() {
+  Object.keys(SHAPES).forEach(function (name) {
+    const shape = SHAPES[name];
+    const N = 48;
+    const raw = [];
+    let sum = 0;
+    for (let i = 0; i < N; i++) {
+      const t = (i + 0.5) / N;
+      const r = Math.max(2, halfWidth(shape, t) * 0.84);
+      const a = r * r;
+      raw.push(a); sum += a;
+    }
+    const cum = [0];
+    let c = 0;
+    for (let i = 0; i < N; i++) { c += raw[i]; cum.push(c / sum); }
+    shape.vol = cum;
+  });
+}
+function volToT(shape, frac) {
+  const table = shape.vol;
+  frac = clamp(frac, 0, 1);
+  const N = table.length - 1;
+  for (let i = 1; i <= N; i++) {
+    if (table[i] >= frac - 1e-8) {
+      const span = table[i] - table[i - 1] || 1;
+      return ((i - 1) + (frac - table[i - 1]) / span) / N;
+    }
+  }
+  return 1;
+}
+
+/* ---------- board generation (deterministic) ---------- */
+function makeSpec(mode, index, rng) {
+  const j = (rng() - 0.5) * 0.06;
+  if (mode === 'challenge') {
+    const plans = [
+      { d: clamp(0.05 + j, 0, 1), shape: 'tumbler', tower: null, sleeve: false },
+      { d: clamp(0.18 + j, 0, 1), shape: 'highball', tower: null, sleeve: false },
+      { d: clamp(0.34 + j, 0, 1), shape: rng() < 0.55 ? 'tulip' : 'highball', tower: null, sleeve: false },
+      { d: clamp(0.58 + j * 0.5, 0, 1), shape: 'flute', tower: null, sleeve: false },
+      { d: clamp(0.40 + j, 0, 1), shape: 'highball', tower: 'stack', sleeve: false }
+    ];
+    return plans[Math.min(index, plans.length - 1)];
+  }
+  if (mode === 'zen') {
+    const shapes = ['tumbler', 'highball', 'tulip', 'flute', 'coupe', 'highball'];
+    const tower = index % 3 === 2 ? (index % 6 === 5 ? 'pyramid' : 'stack') : null;
+    return {
+      d: (index * 0.173) % 1,
+      shape: shapes[index % shapes.length],
+      tower: tower,
+      sleeve: false,
+      spill: index % 11 === 8
+    };
+  }
+  const n = index + 1;
+  const relief = n % 5 === 0;
+  let d = relief ? 0.10 : clamp(0.06 + index * 0.05 + j, 0, 0.95);
+  let shape = 'highball';
+  if (d < 0.16) shape = 'tumbler';
+  else if (d > 0.62) shape = rng() < 0.65 ? 'flute' : 'tulip';
+  else if (d > 0.38) shape = rng() < 0.5 ? 'tulip' : 'highball';
+  if (relief) shape = rng() < 0.5 ? 'tumbler' : 'coupe';
+  let tower = null;
+  if (!relief && n >= 6 && n % 4 === 2) tower = 'stack';
+  if (!relief && n >= 11 && n % 5 === 1) tower = 'pyramid';
+  const sleeve = !relief && !tower && n >= 8 && n % 4 === 0;
+  return { d: d, shape: shape, tower: tower, sleeve: sleeve, spill: false };
+}
+
+function makeGlass(shapeName, diff, rng, sleeve) {
+  const shape = SHAPES[shapeName] || SHAPES.highball;
+  const d = clamp(diff, 0, 1);
+  const pipsTarget = d < 0.13 ? 1 : d < 0.27 ? 2 : d < 0.42 ? 3 : d < 0.60 ? 4 : d < 0.78 ? 5 : 6;
+  const bands = [
+    [0.09, 0.14], [0.16, 0.23], [0.25, 0.33], [0.35, 0.44], [0.46, 0.56], [0.52, 0.62]
+  ];
+  const band = bands[pipsTarget - 1];
+  const fizz = lerp(band[0], band[1], rng());
+  const foamNow = lerp(0.035, 0.15, (pipsTarget - 1) / 5) * lerp(0.88, 1.12, rng());
+  const riseTime = lerp(TUNE.riseMin, TUNE.riseMax, rng());
+  const hold = lerp(TUNE.holdEasy, TUNE.holdHard, d);
+  const capacity = shape.capacity * lerp(0.96, 1.04, rng());
+  const pourRate = capacity / ((1 + fizz) * hold);
+  const drink = DRINKS[Math.min(DRINKS.length - 1, pipsTarget - 1)];
+  const drops = [];
+  const nd = 8 + Math.floor(rng() * 6);
+  for (let i = 0; i < nd; i++) {
+    const side = rng() < 0.5 ? -1 : 1;
+    drops.push({
+      t: 0.12 + rng() * 0.72,
+      u: side * (0.72 + rng() * 0.28),
+      r: 1.1 + rng() * 2.1,
+      slide: 0.008 + rng() * 0.02
+    });
+  }
+  return {
+    shapeName: shapeName, shape: shape, capacity: capacity, pourRate: pourRate,
+    fizz: fizz, foamNow: foamNow, riseTime: riseTime, drink: drink,
+    pips: Math.min(5, pipsTarget), sleeve: !!sleeve, drops: drops,
+    childIdx: [], body: 0, foam: 0, pending: 0, spilled: false, spillAmt: 0,
+    spillPlayed: false, wave: 0, waveV: 0, tilt: 0, tiltV: 0, rip: rng() * 6,
+    present: 0, squash: 1, inflow: 0, overflowVis: 0, bubbleAcc: 0,
+    x: 195, footY: 640, scale: 1, h: shape.h, stem: shape.stem
+  };
+}
+
+function buildServe(mode, seed, index) {
+  const rng = mulberry32(hashParts('fizz-serve-v1', seed, mode, index));
+  const spec = makeSpec(mode, index, rng);
+  const glasses = [];
+  if (!spec.tower) {
+    glasses.push(makeGlass(spec.shape, spec.d, rng, spec.sleeve));
+  } else if (spec.tower === 'stack') {
+    const top = makeGlass('highball', spec.d, rng, false);
+    const bot = makeGlass('tumbler', Math.max(0.08, spec.d * 0.55), rng, false);
+    bot.drink = top.drink;
+    bot.pips = Math.max(1, top.pips - 1);
+    bot.fizz = top.fizz * 0.25;
+    top.fizz *= 0.55;
+    top.childIdx = [1];
+    top.capacity *= 0.7;
+    top.pourRate *= 0.7;
+    bot.capacity = top.capacity * 0.78;
+    glasses.push(top, bot);
+  } else {
+    const top = makeGlass('tulip', spec.d, rng, false);
+    const a = makeGlass('highball', spec.d * 0.4, rng, false);
+    const b = makeGlass('highball', spec.d * 0.4, rng, false);
+    b.capacity = a.capacity;
+    top.fizz *= 0.55;
+    b.fizz = a.fizz = top.fizz * 0.35;
+    b.foamNow = a.foamNow;
+    b.drink = a.drink = top.drink;
+    b.pips = a.pips = Math.max(1, top.pips - 1);
+    b.pourRate = a.pourRate;
+    top.childIdx = [1, 2];
+    top.capacity *= 0.66;
+    top.pourRate *= 0.66;
+    a.capacity = top.capacity * 0.48;
+    b.capacity = a.capacity;
+    glasses.push(top, a, b);
+  }
+  glasses.forEach(function (g) {
+    g.body = 0; g.foam = 0; g.pending = 0; g.spilled = false; g.spillAmt = 0;
+    g.spillPlayed = false; g.wave = 0; g.waveV = 0; g.present = 0; g.squash = 1; g.inflow = 0;
+  });
+  return { glasses: glasses, spec: spec, salt: rng() * 0.018, mode: mode, index: index };
+}
+
+/* ---------- sim ---------- */
+function rateNow(g, serve) {
+  let vis = clamp((g.body + g.foam) / g.capacity, 0, 1);
+  // Once the top glass is full, the danger moves to the glass catching the overflow.
+  if (serve && g.childIdx && g.childIdx.length && vis >= 0.992) {
+    let childVis = 0;
+    for (let i = 0; i < g.childIdx.length; i++) {
+      const c = serve.glasses[g.childIdx[i]];
+      childVis = Math.max(childVis, (c.body + c.foam) / c.capacity);
+    }
+    vis = childVis;
+  }
+  const cascading = serve && g.childIdx && g.childIdx.length && (g.body + g.foam) / g.capacity >= 0.992;
+  const k = smooth(clamp((vis - 0.4) / 0.5, 0, 1));
+  // A cascade should move, then crawl once the lower glass is near the rim.
+  let m = cascading ? lerp(1.85, 0.22, k) : lerp(TUNE.slowStart, TUNE.slowEnd, k);
+  if (vis > 0.88) m *= lerp(1, 0.55, clamp((vis - 0.88) / 0.12, 0, 1));
+  return g.pourRate * m;
+}
+function stepGlassLocal(g, dt, pouring, serve) {
+  if (pouring) {
+    const q = rateNow(g, serve) * dt;
+    g.body += q * (1 - g.foamNow);
+    g.foam += q * g.foamNow;
+    g.pending += q * g.fizz;
+  }
+  const convert = pouring ? 0.22 : (-Math.log(0.05) / Math.max(0.4, g.riseTime));
+  const k = 1 - Math.exp(-convert * dt);
+  const d = g.pending * k;
+  g.pending -= d;
+  g.foam += d;
+}
+function resolveOverflow(serve) {
+  const glasses = serve.glasses;
+  for (let i = 0; i < glasses.length; i++) {
+    const g = glasses[i];
+    g.inflow = 0;
+  }
+  for (let i = 0; i < glasses.length; i++) {
+    const g = glasses[i];
+    let occ = g.body + g.foam;
+    if (occ > g.capacity) {
+      const excess = occ - g.capacity;
+      let e = excess;
+      const takeF = Math.min(g.foam, e);
+      g.foam -= takeF;
+      e -= takeF;
+      g.body = Math.max(0, g.body - e);
+      if (g.childIdx.length) {
+        const share = excess / g.childIdx.length;
+        for (let c = 0; c < g.childIdx.length; c++) {
+          const ch = glasses[g.childIdx[c]];
+          ch.body += share * 0.68;
+          ch.foam += share * 0.24;
+          ch.pending += share * 0.08;
+          ch.inflow += share;
+          g.overflowVis += share;
+        }
+      } else {
+        g.spilled = true;
+        g.spillAmt += excess;
+      }
+    }
+  }
+}
+function stepServe(serve, dt, pouring) {
+  const root = serve.glasses[0];
+  const blocked = serve.glasses.some(function (g) { return g.spilled; });
+  stepGlassLocal(root, dt, pouring && !blocked, serve);
+  for (let i = 1; i < serve.glasses.length; i++) stepGlassLocal(serve.glasses[i], dt, false, serve);
+  resolveOverflow(serve);
+}
+function predictFractions(serve) {
+  const glasses = serve.glasses;
+  const body = glasses.map(function (g) { return g.body; });
+  const foam = glasses.map(function (g) { return g.foam + g.pending; });
+  const spilled = glasses.map(function () { return false; });
+  for (let i = 0; i < glasses.length; i++) {
+    const cap = glasses[i].capacity;
+    const occ = body[i] + foam[i];
+    if (occ > cap + 1e-5) {
+      const excess = occ - cap;
+      const kids = glasses[i].childIdx;
+      if (!kids.length) spilled[i] = true;
+      else {
+        const share = excess / kids.length;
+        for (let k = 0; k < kids.length; k++) {
+          const j = kids[k];
+          body[j] += share * 0.68;
+          foam[j] += share * 0.32;
+        }
+      }
+      let e = excess;
+      const takeF = Math.min(foam[i], e);
+      foam[i] -= takeF;
+      e -= takeF;
+      body[i] = Math.max(0, body[i] - e);
+    }
+  }
+  return glasses.map(function (g, i) {
+    if (spilled[i]) return 9;
+    return (body[i] + foam[i]) / g.capacity;
+  });
+}
+function zenShouldStop(serve) {
+  if (serve.spec && serve.spec.spill) return false;
+  if (serve.glasses.some(function (g) { return g.spilled; })) return true;
+  const target = 0.968 + (serve.salt || 0);
+  const preds = predictFractions(serve);
+  if (preds.some(function (p) { return p >= 9; })) return true;
+  if (preds.every(function (p) { return p >= target && p <= 1.002; })) return true;
+  return false;
+}
+function stepWaves(serve, dt, pouring) {
+  for (let i = 0; i < serve.glasses.length; i++) {
+    const g = serve.glasses[i];
+    const driven = pouring && i === 0;
+    const drive = driven ? Math.sin(G.simT * 13) * 7 : 0;
+    g.waveV += (drive - g.wave * 40 - g.waveV * 6.4) * dt;
+    g.wave += g.waveV * dt;
+    g.wave = clamp(g.wave, -11, 11);
+    const tiltDrive = driven ? clamp((G.fingerX - g.x) / Math.max(1, W), -1, 1) * 0.9 : 0;
+    g.tiltV += (tiltDrive - g.tilt * 24 - g.tiltV * 5.2) * dt;
+    g.tilt += g.tiltV * dt;
+    g.tilt = clamp(g.tilt, -1.3, 1.3);
+    g.rip += dt * (driven ? 6.5 : 2.4);
+    g.overflowVis = Math.max(0, g.overflowVis - dt * 1.4);
+    for (let d = 0; d < g.drops.length; d++) {
+      g.drops[d].t -= g.drops[d].slide * dt;
+      if (g.drops[d].t < 0.08) g.drops[d].t = 0.78;
+    }
+  }
+}
+
+/* ---------- particles ---------- */
+const bubbles = Array.from({ length: 140 }, function () { return { alive: false }; });
+const sparks = Array.from({ length: 90 }, function () { return { alive: false }; });
+const drops = Array.from({ length: 120 }, function () { return { alive: false }; });
+const bits = Array.from({ length: 90 }, function () { return { alive: false }; });
+function spawn(pool, init) {
+  for (let i = 0; i < pool.length; i++) if (!pool[i].alive) { init(pool[i]); pool[i].alive = true; return pool[i]; }
+  return null;
+}
+function killAll(pool) { for (let i = 0; i < pool.length; i++) pool[i].alive = false; }
+function spawnBubble(g) {
+  const frac = clamp((g.body + g.foam) / g.capacity, 0, 1);
+  if (frac < 0.02) return;
+  spawn(bubbles, function (b) {
+    b.g = g;
+    b.t = Math.random() * Math.max(0.04, volToT(g.shape, frac) * 0.92);
+    b.u = (Math.random() * 2 - 1) * 0.78;
+    b.r = 0.7 + Math.random() * (1.6 + g.pips * 0.35);
+    b.speed = 28 + Math.random() * 70;
+    b.ph = Math.random() * 6.28;
+    b.wob = 1.5 + Math.random() * 3;
+  });
+}
+function updateBubbles(dt) {
+  const list = [];
+  if (G.screen === 'title' && G.demo) list.push(G.demo);
+  else if (G.serve) list.push.apply(list, G.serve.glasses);
+  for (let i = 0; i < list.length; i++) {
+    const g = list[i];
+    const active = (g.body + g.foam) > g.capacity * 0.02;
+    if (!active) continue;
+    const pouring = G.screen === 'title' ? !!g._pour : (G.phase === 'pour' && i === 0);
+    const fizzy = pouring || g.pending > g.capacity * 0.008;
+    const rate = (fizzy ? 10 : 3) + g.pips * (fizzy ? 5 : 1.2);
+    g.bubbleAcc += rate * dt;
+    let guard = 0;
+    while (g.bubbleAcc > 1 && guard < 6) { g.bubbleAcc -= 1; spawnBubble(g); guard++; }
+  }
+  for (let i = 0; i < bubbles.length; i++) {
+    const b = bubbles[i];
+    if (!b.alive) continue;
+    const g = b.g;
+    if (!g) { b.alive = false; continue; }
+    b.t += (b.speed * dt) / Math.max(40, g.h);
+    b.u += Math.sin(G.t * b.wob + b.ph) * dt * 0.15;
+    const surf = volToT(g.shape, clamp((g.body) / g.capacity, 0, 1));
+    if (b.t >= surf - 0.01 || b.t > 1) {
+      b.alive = false;
+      const p = bubbleXY(g, b);
+      spawn(sparks, function (s) {
+        s.x = p.x; s.y = p.y; s.life = 0.28; s.age = 0; s.r = b.r;
+        s.vx = (Math.random() - 0.5) * 20; s.vy = -10 - Math.random() * 20;
+      });
+    }
+  }
+  for (let i = 0; i < sparks.length; i++) {
+    const s = sparks[i];
+    if (!s.alive) continue;
+    s.age += dt;
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    if (s.age > s.life) s.alive = false;
+  }
+  for (let i = 0; i < drops.length; i++) {
+    const d = drops[i];
+    if (!d.alive) continue;
+    d.age += dt;
+    d.vy += 980 * dt;
+    d.vx *= Math.exp(-0.8 * dt);
+    d.x += d.vx * dt; d.y += d.vy * dt;
+    if (d.y > G.floor && d.vy > 0 && !d.puddle) {
+      d.puddle = true;
+      d.vy *= -0.18;
+      d.vx *= 0.4;
+      if (d.splash) addPuddle(d.x, d.color, d.r);
+    }
+    if (d.age > d.life || d.y > H + 20) d.alive = false;
+  }
+  for (let i = 0; i < bits.length; i++) {
+    const b = bits[i];
+    if (!b.alive) continue;
+    b.age += dt;
+    b.vy += 280 * dt;
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    b.rot += b.vr * dt;
+    if (b.age > b.life) b.alive = false;
+  }
+}
+function bubbleXY(g, b) {
+  const width = innerHW(g, clamp(b.t, 0, 1));
+  return { x: g.x + b.u * width, y: tToY(g, clamp(b.t, 0, 1)) };
+}
+const puddles = [];
+function addPuddle(x, color, r) {
+  puddles.push({ x: x, color: color, r: 4 + r * 2, a: 0.45, life: 2.4 });
+  if (puddles.length > 12) puddles.shift();
+}
+function spawnSplash(g, color, power) {
+  const lip = rimPoint(g);
+  const n = 18 + Math.floor(power * 10);
+  for (let i = 0; i < n; i++) {
+    spawn(drops, function (d) {
+      const ang = -Math.PI * (0.15 + Math.random() * 0.7) * (Math.random() < 0.5 ? 1 : -1);
+      const sp = 80 + Math.random() * 280 * power;
+      d.x = lip.x + (Math.random() - 0.5) * 10;
+      d.y = lip.y;
+      d.vx = Math.cos(ang) * sp * (Math.random() < 0.5 ? -1 : 1) * 0.35 + (Math.random() - 0.5) * 160;
+      d.vy = -Math.abs(Math.sin(ang)) * sp - 40;
+      d.r = 1.2 + Math.random() * 3.2;
+      d.life = 0.7 + Math.random() * 0.55;
+      d.age = 0;
+      d.color = Math.random() < 0.25 ? '#fff6ee' : color;
+      d.splash = true;
+      d.puddle = false;
+    });
+  }
+}
+function spawnConfetti(x, y, color) {
+  const cols = [color, '#f4efe6', '#e6c98a', '#e9ff8a', '#ffffff'];
+  for (let i = 0; i < 42; i++) {
+    spawn(bits, function (b) {
+      const ang = Math.random() * Math.PI * 2;
+      const sp = 60 + Math.random() * 280;
+      b.x = x; b.y = y;
+      b.vx = Math.cos(ang) * sp;
+      b.vy = Math.sin(ang) * sp - 180;
+      b.life = 1.1 + Math.random() * 0.8;
+      b.age = 0;
+      b.rot = Math.random() * 6;
+      b.vr = (Math.random() - 0.5) * 8;
+      b.w = 3 + Math.random() * 4;
+      b.h = 2 + Math.random() * 3;
+      b.color = cols[i % cols.length];
+    });
+  }
+}
+function spawnImpact(x, y, color) {
+  if (Math.random() > 0.55) return;
+  spawn(drops, function (d) {
+    d.x = x; d.y = y;
+    d.vx = (Math.random() - 0.5) * 50;
+    d.vy = -30 - Math.random() * 70;
+    d.r = 0.8 + Math.random() * 1.6;
+    d.life = 0.28;
+    d.age = 0;
+    d.color = color;
+    d.splash = false;
+    d.puddle = false;
+  });
+}
+
+/* ---------- geometry helpers used by sim+draw ---------- */
+function bowlBottom(g) { return g.footY - g.stem * g.scale; }
+function tToY(g, t) { return bowlBottom(g) - t * g.h; }
+function rimY(g) { return tToY(g, 1); }
+function innerHW(g, t) {
+  const outer = halfWidth(g.shape, clamp(t, 0, 1)) * g.scale;
+  return Math.max(3.5, outer - Math.min(10, outer * 0.15));
+}
+function outerHW(g, t) { return halfWidth(g.shape, clamp(t, 0, 1)) * g.scale; }
+function rimPoint(g) { return { x: g.x, y: rimY(g) }; }
+
+/* ---------- layout ---------- */
+function layoutServe(serve) {
+  if (!serve) return;
+  const floor = Math.min(H - Math.max(SAB, 18) - 8, H * 0.78);
+  const faucetY = SAT + 204;
+  const topLimit = faucetY + 78;
+  let scale = 1;
+  const widest = serve.glasses.reduce(function (m, g) { return Math.max(m, g.shape.rimHW); }, 1);
+  scale = Math.min(scale, (W * 0.78) / (widest * 2));
+  if (serve.glasses.length === 3) scale = Math.min(scale, (W * 0.30) / (SHAPES.highball.rimHW * 2));
+  function place(sc) {
+    serve.glasses.forEach(function (g) {
+      g.scale = sc;
+      g.h = g.shape.h * sc;
+      g.stem = g.shape.stem * sc;
+    });
+    if (serve.glasses.length === 1) {
+      const g = serve.glasses[0];
+      g.x = W / 2;
+      g.footY = floor;
+    } else if (serve.glasses.length === 2) {
+      const top = serve.glasses[0], bot = serve.glasses[1];
+      bot.x = W / 2;
+      bot.footY = floor;
+      top.x = W / 2;
+      top.footY = rimY(bot) + top.stem + 10;
+    } else {
+      const top = serve.glasses[0], a = serve.glasses[1], b = serve.glasses[2];
+      const gap = Math.min(W * 0.22, 92 * sc);
+      a.x = W / 2 - gap;
+      b.x = W / 2 + gap;
+      a.footY = b.footY = floor;
+      top.x = W / 2;
+      top.footY = rimY(a) + top.stem + 12;
+    }
+  }
+  place(scale);
+  for (let iter = 0; iter < 5; iter++) {
+    const rim = Math.min.apply(null, serve.glasses.map(rimY));
+    if (rim < topLimit) { scale *= 0.9; place(scale); }
+    else break;
+  }
+  // keep feet on the bar even if the rim is low
+  G.floor = floor;
+  G.faucetY = faucetY;
+}
+function titleMetrics() {
+  const bw = Math.min(300, W - 48);
+  const bh = 54;
+  const gap = 8;
+  const block = bh * 3 + gap * 2;
+  const y0 = H - Math.max(SAB, 16) - 30 - block;
+  return {
+    cx: W / 2,
+    sealY: SAT + 46,
+    wordY: SAT + 98,
+    tagY: SAT + 132,
+    bw: bw, bh: bh, gap: gap, y0: y0,
+    bx: (W - bw) / 2
+  };
+}
+function layoutDemo() {
+  if (!G.demo) return;
+  const g = G.demo;
+  const m = titleMetrics();
+  g.footY = m.y0 - 36;
+  const avail = g.footY - (m.tagY + 86);
+  const sc = Math.min(0.96, avail / g.shape.h, (W * 0.5) / (g.shape.rimHW * 2));
+  g.scale = Math.max(0.45, sc);
+  g.h = g.shape.h * g.scale;
+  g.stem = g.shape.stem * g.scale;
+  g.x = W / 2;
+  G.floor = g.footY + 6;
+  G.faucetY = rimY(g) - 96;
+}
+
+/* ---------- flow ---------- */
+function setPhase(p) { G.phase = p; G.phaseT = 0; }
+function storyGlass(serve) {
+  if (!serve) return null;
+  const g0 = serve.glasses[0];
+  if (!g0.childIdx.length) return g0;
+  const vis = (g0.body + g0.foam) / g0.capacity;
+  const pendingFrac = g0.pending / g0.capacity;
+  if (vis < 0.995 && vis + pendingFrac < 1.02) return g0;
+  let best = serve.glasses[g0.childIdx[0]];
+  for (let i = 0; i < g0.childIdx.length; i++) {
+    const c = serve.glasses[g0.childIdx[i]];
+    if ((c.body + c.foam) > (best.body + best.foam)) best = c;
+  }
+  return best;
+}
+function glassFraction(g) { return (g.body + g.foam) / g.capacity; }
+function serveSummary(serve) {
+  const pcts = serve.glasses.map(function (g) { return g.spilled ? 0 : shownPct(glassFraction(g)); });
+  const spill = serve.glasses.some(function (g) { return g.spilled; });
+  const min = spill ? 0 : Math.min.apply(null, pcts);
+  const perfect = !spill && pcts.every(function (p) { return p >= TUNE.perfectAt; });
+  const clean = !spill && pcts.every(function (p) { return p >= TUNE.cleanAt; });
+  let note = '';
+  if (spill) {
+    const over = serve.glasses.reduce(function (m, g) { return Math.max(m, g.spillAmt / g.capacity); }, 0);
+    if (over > 0 && over < 0.04) note = 'So close: spilled by a hair';
+  } else if (!perfect) {
+    if (min >= 97 && min < TUNE.perfectAt) {
+      const dist = Math.round((100 - min) * 10) / 10;
+      note = 'So close: ' + dist.toFixed(1) + '% from perfect';
+    } else if (min >= 90 && min < TUNE.cleanAt) {
+      const dist = Math.round((TUNE.cleanAt - min) * 10) / 10;
+      note = 'So close: ' + dist.toFixed(1) + '% under the line';
+    }
+  }
+  return { pcts: pcts, pct: min, spill: spill, perfect: perfect, clean: clean, note: note, drink: serve.glasses[0].drink.name };
+}
+function beginPour() {
+  if (G.phase !== 'ready' && G.phase !== 'enter') return;
+  setPhase('pour');
+  if (G.serve) G.serve.glasses[0].squash = 0.965;
+  tone(520, 0.05, 'triangle', 0.04);
+}
+function beginRise() {
+  if (G.phase !== 'pour') return;
+  setPhase('rise');
+  if (G.serve) {
+    G.serve.glasses.forEach(function (g) { g.waveV += 16; });
+  }
+  G.seenCoach = true;
+  save('fizz:coached', true);
+}
+function finishServe() {
+  if (G.phase === 'result' || G.phase === 'end' || G.phase === 'exit') return;
+  const sum = serveSummary(G.serve);
+  sum.index = G.serveIndex;
+  G.results.push(sum);
+  if (sum.spill) {
+    G.strikes += 1;
+    G.runStreak = 0;
+    call('SPILL', sum.note || '0', 'spill');
+    G.displayPct = 0;
+    announced('Spill. Score 0.');
+  } else {
+    G.runScore += sum.pct;
+    if (sum.clean) G.runStreak += 1;
+    else G.runStreak = 0;
+    G.bestRunStreak = Math.max(G.bestRunStreak, G.runStreak);
+    if (sum.perfect) {
+      call('PERFECT', sum.pct.toFixed(1) + '%', 'perfect');
+      const g = storyGlass(G.serve);
+      spawnConfetti(g.x, rimY(g), g.drink.lit);
+      G.showConfetti = true;
+      perfectChime();
+      G.shake = Math.max(G.shake, 0.45);
+    } else if (sum.clean) {
+      call('CLEAN', sum.pct.toFixed(1) + '%', 'clean');
+      tone(660, 0.08, 'sine', 0.06);
+    } else if (sum.note) {
+      call('SO CLOSE', sum.note.replace(/^So close:\s*/, ''), 'close');
+      tone(310, 0.14, 'sine', 0.05);
+    } else {
+      call('SHORT', 'UNDER 95', 'short');
+      tone(220, 0.12, 'sine', 0.05);
+    }
+    announced((sum.perfect ? 'Perfect ' : sum.clean ? 'Clean ' : '') + sum.pct.toFixed(1) + ' percent. ' + (sum.note || ''));
+  }
+  setPhase('result');
+}
+function shouldEnd() {
+  if (G.mode === 'challenge') return G.results.length >= 5;
+  if (G.mode === 'run') return G.strikes >= 3;
+  return false;
+}
+function advance() {
+  if (G.phase !== 'result') return;
+  if (shouldEnd()) { openEnd(); return; }
+  setPhase('exit');
+}
+function openEnd() {
+  G.screen = 'end';
+  setPhase('end');
+  const out = outcome();
+  G.endSnap = out;
+  if (out.win) {
+    G.showConfetti = true;
+    const g = G.serve ? storyGlass(G.serve) : null;
+    spawnConfetti(g ? g.x : W / 2, g ? rimY(g) - 20 : H * 0.4, '#e6c98a');
+    perfectChime();
+  } else {
+    tone(140, 0.28, 'sine', 0.07);
+  }
+  persistEnd(out);
+  announced(out.win ? 'You win ' + (out.payout || '') : 'Not this time');
+}
+function nextServe() {
+  G.serveIndex += 1;
+  if (G.mode === 'challenge' && G.serveIndex >= 5) { openEnd(); return; }
+  killAll(bubbles);
+  G.serve = buildServe(G.mode, G.seed, G.serveIndex);
+  layoutServe(G.serve);
+  setPhase('enter');
+  clink();
+}
+function outcome() {
+  if (G.mode === 'run' || G.mode === 'zen') {
+    const best = load('fizz:best:run', 0) || 0;
+    return {
+      win: false, kind: 'run', score: Math.round(G.runScore), best: best,
+      streak: G.runStreak, bestStreak: Math.max(G.bestRunStreak, load('fizz:best:streak', 0) || 0),
+      payout: null, cleans: G.results.filter(function (r) { return r.clean; }).length,
+      note: (G.results[G.results.length - 1] && G.results[G.results.length - 1].note) || ''
+    };
+  }
+  const cleans = G.results.filter(function (r) { return r.clean; }).length;
+  let payout = null;
+  if (cleans >= 5) payout = G.payout[2];
+  else if (cleans >= 4) payout = G.payout[1];
+  else if (cleans >= 3) payout = G.payout[0];
+  const avg = G.results.length ? G.results.reduce(function (s, r) { return s + r.pct; }, 0) / G.results.length : 0;
+  return { win: !!payout, kind: 'challenge', cleans: cleans, payout: payout, avg: avg, note: nearMissLine() };
+}
+function nearMissLine() {
+  for (let i = G.results.length - 1; i >= 0; i--) if (G.results[i].note) return 'Glass ' + (i + 1) + ' — ' + G.results[i].note;
+  return '';
+}
+function persistEnd(out) {
+  if (G.mode === 'run') {
+    const best = load('fizz:best:run', 0) || 0;
+    if (out.score > best) save('fizz:best:run', out.score);
+    const bs = load('fizz:best:streak', 0) || 0;
+    if (G.bestRunStreak > bs) save('fizz:best:streak', G.bestRunStreak);
+  }
+  if (G.mode === 'challenge' && G.isDaily) {
+    const key = 'fizz:best:daily:' + G.day;
+    const prev = load(key, null);
+    const avg = out.avg || 0;
+    if (!prev || out.cleans > prev.cleans || (out.cleans === prev.cleans && avg > prev.avg)) {
+      save(key, { cleans: out.cleans, avg: Math.round(avg * 10) / 10, payout: out.payout });
+    }
+    const st = load('fizz:streak', { n: 0, last: 0 });
+    if (st.last !== G.day) {
+      const n = st.last === G.day - 1 ? (st.n || 0) + 1 : 1;
+      save('fizz:streak', { n: n, last: G.day });
+    }
+    save('fizz:played', true);
+  }
+}
+function call(text, sub, kind) {
+  G.callout = { text: text, sub: sub, age: 0, kind: kind };
+}
+function startMode(mode, seed, opts) {
+  opts = opts || {};
+  if (opts.clearGhost) G.ghost = null;
+  G.mode = mode;
+  G.seed = seed >>> 0;
+  G.isDaily = mode === 'challenge' && G.seed === G.dailySeed && !G.ghost;
+  G.serveIndex = 0;
+  G.results = [];
+  G.strikes = 0;
+  G.runScore = 0;
+  G.runStreak = 0;
+  G.bestRunStreak = 0;
+  G.holding = false;
+  G.arm = null;
+  G.callout = null;
+  G.showConfetti = false;
+  G.displayPct = 0;
+  G.screen = 'play';
+  G.timeScale = 1;
+  G.zoom = 1;
+  killAll(bubbles); killAll(drops); killAll(bits); killAll(sparks);
+  puddles.length = 0;
+  if (mode === 'zen') G.hud = params.get('hud') === '1';
+  else G.hud = true;
+  G.serve = buildServe(mode, G.seed, 0);
+  layoutServe(G.serve);
+  setPhase('enter');
+  clink();
+  announced(mode === 'zen' ? 'Zen pour' : mode === 'run' ? 'Endless run' : 'Challenge, five glasses');
+}
+function restart() { startMode(G.mode, G.seed); }
+function goTitle() {
+  G.screen = 'title';
+  G.holding = false;
+  G.callout = null;
+  killAll(bubbles); killAll(drops);
+  ensureDemo();
+  layoutDemo();
+}
+
+/* ---------- audio (silent <audio> unlock + AudioContext resume on the gesture) ---------- */
+let actx = null, master = null, pourGain = null, pourFilter = null, pourOsc = null, pourOscGain = null, fizzGain = null, fizzFilter = null;
+function setupAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC || actx) return;
+  actx = new AC();
+  master = actx.createGain();
+  master.gain.value = 0.85;
+  const comp = actx.createDynamicsCompressor();
+  comp.threshold.value = -14;
+  comp.knee.value = 10;
+  comp.ratio.value = 3.2;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.16;
+  master.connect(comp);
+  comp.connect(actx.destination);
+  const noise = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
+  const data = noise.getChannelData(0);
+  let s = 22222;
+  for (let i = 0; i < data.length; i++) { s = (s * 16807) % 2147483647; data[i] = s / 2147483647 * 2 - 1; }
+  function loop(filterType, freq) {
+    const src = actx.createBufferSource();
+    src.buffer = noise; src.loop = true;
+    const f = actx.createBiquadFilter();
+    f.type = filterType; f.frequency.value = freq; f.Q.value = 0.7;
+    const g = actx.createGain(); g.gain.value = 0;
+    src.connect(f); f.connect(g); g.connect(master); src.start();
+    return { filter: f, gain: g };
+  }
+  const pour = loop('bandpass', 480);
+  pourGain = pour.gain; pourFilter = pour.filter;
+  const fizz = loop('highpass', 1600);
+  fizzGain = fizz.gain; fizzFilter = fizz.filter;
+  pourOsc = actx.createOscillator();
+  pourOsc.type = 'sine';
+  pourOsc.frequency.value = 150;
+  pourOscGain = actx.createGain();
+  pourOscGain.gain.value = 0;
+  pourOsc.connect(pourOscGain); pourOscGain.connect(master);
+  pourOsc.start();
+}
+function unlockAudio() {
+  const a = document.getElementById('sil');
+  if (a) {
+    a.muted = false;
+    a.volume = 0.04;
+    const p = a.play();
+    if (p && p.catch) p.catch(function () {});
+  }
+  setupAudio();
+  if (actx && actx.state === 'suspended') actx.resume().catch(function () {});
+}
+function tone(freq, dur, type, gain, delay) {
+  if (!actx || !G.audioOn) return;
+  const t0 = actx.currentTime + (delay || 0);
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(Math.max(40, freq), t0);
+  o.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 0.62), t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(master);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function noiseHit(dur, gain, freq) {
+  if (!actx || !G.audioOn) return;
+  const t0 = actx.currentTime;
+  const len = Math.floor(actx.sampleRate * dur);
+  const buf = actx.createBuffer(1, len, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  let s = 999;
+  for (let i = 0; i < len; i++) { s = (s * 16807) % 2147483647; d[i] = (s / 2147483647 * 2 - 1) * (1 - i / len); }
+  const src = actx.createBufferSource();
+  src.buffer = buf;
+  const f = actx.createBiquadFilter();
+  f.type = 'bandpass'; f.frequency.value = freq || 700; f.Q.value = 0.6;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(f); f.connect(g); g.connect(master);
+  src.start(t0);
+}
+function clink() { tone(1860, 0.09, 'sine', 0.07); tone(3120, 0.07, 'sine', 0.035, 0.012); }
+function splashSound() { noiseHit(0.34, 0.5, 420); tone(92, 0.32, 'sine', 0.18); tone(180, 0.18, 'triangle', 0.06); }
+function perfectChime() {
+  [523, 659, 784, 1046].forEach(function (f, i) { tone(f, 0.22, 'sine', 0.06, i * 0.055); });
+}
+function updateAudio() {
+  if (!actx) return;
+  const pouring = G.phase === 'pour' || (G.screen === 'title' && G.demo && G.demo._pour);
+  const g = G.screen === 'title' ? G.demo : (G.serve ? storyGlass(G.serve) : null);
+  const frac = g ? clamp(glassFraction(g), 0, 1) : 0;
+  const now = actx.currentTime;
+  const on = G.audioOn;
+  pourGain.gain.setTargetAtTime(on && pouring ? 0.20 : 0, now, 0.035);
+  pourOscGain.gain.setTargetAtTime(on && pouring ? 0.055 : 0, now, 0.05);
+  if (pourOsc) pourOsc.frequency.setTargetAtTime(130 + frac * 110, now, 0.08);
+  if (pourFilter) pourFilter.frequency.setTargetAtTime(360 + frac * 640, now, 0.08);
+  const closeness = clamp((frac - 0.68) / 0.32, 0, 1);
+  const fizzing = on && g && (pouring || g.pending > g.capacity * 0.01);
+  if (fizzFilter) fizzFilter.frequency.setTargetAtTime(1100 + closeness * 3600 + (g ? g.pips * 140 : 0), now, 0.06);
+  if (fizzing && Math.random() < 0.22 + closeness * 0.6) {
+    const amp = 0.035 + closeness * 0.16 + (g.pips / 5) * 0.05;
+    fizzGain.gain.cancelScheduledValues(now);
+    fizzGain.gain.setValueAtTime(amp, now);
+    fizzGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04 + Math.random() * 0.04);
+  } else if (!fizzing && fizzGain) {
+    fizzGain.gain.setTargetAtTime(0.0001, now, 0.06);
+  }
+}
+
+/* ---------- update ---------- */
+function desiredScale() {
+  if (!G.serve || G.phase !== 'rise' || G.mode === 'zen') return 1;
+  const g = storyGlass(G.serve);
+  if (!g || g.spilled) return 1;
+  const frac = glassFraction(g);
+  if (frac > TUNE.slowmoAt && g.pending > g.capacity * 0.008) return TUNE.slowmo;
+  return 1;
+}
+function updatePlay(dt) {
+  if (!G.serve) return;
+  if (G.mode !== 'zen') {
+    if ((G.phase === 'ready') && G.holding) beginPour();
+    if (G.phase === 'pour' && !G.holding) beginRise();
+  } else {
+    const wait = 0.28 + (G.serve.salt || 0) * 18;
+    if (G.phase === 'ready' && G.phaseT > wait) beginPour();
+    if (G.phase === 'pour' && zenShouldStop(G.serve)) beginRise();
+  }
+  const targetScale = desiredScale();
+  G.timeScale += (targetScale - G.timeScale) * Math.min(1, dt * 6);
+  const simBudget = dt * (G.phase === 'rise' ? G.timeScale : 1);
+  let acc = simBudget;
+  const step = 1 / 60;
+  let guard = 0;
+  while (acc > 0 && guard < 8) {
+    const h = Math.min(step, acc);
+    if (G.arm != null && G.phase === 'pour') {
+      G.arm -= h;
+      if (G.arm <= 0) { G.arm = null; G.holding = false; beginRise(); }
+    }
+    const pouring = G.phase === 'pour';
+    stepServe(G.serve, h, pouring);
+    stepWaves(G.serve, h, pouring);
+    G.simT += h;
+    acc -= h;
+    guard++;
+    if (G.serve.glasses.some(function (g) { return g.spilled; }) && G.phase === 'pour') beginRise();
+  }
+  // spill juice once
+  G.serve.glasses.forEach(function (g) {
+    if (g.spilled && !g.spillPlayed) {
+      g.spillPlayed = true;
+      g.squash = 1.06;
+      spawnSplash(g, g.drink.lit, 1);
+      splashSound();
+      G.shake = 1;
+      if (navigator.vibrate) navigator.vibrate(28);
+    }
+    const targetP = (G.phase === 'exit') ? 0 : 1;
+    g.present += (targetP - g.present) * Math.min(1, dt * 7);
+    g.squash += (1 - g.squash) * Math.min(1, dt * 7);
+  });
+  // stream droplets while pouring
+  if (G.phase === 'pour') {
+    const g = G.serve.glasses[0];
+    const hit = streamHit(g);
+    if (Math.random() < 0.7) spawnImpact(hit.x, hit.y, g.drink.lit);
+  }
+  G.serve.glasses.forEach(function (g) {
+    if (g.inflow > 0.0001) {
+      const parent = G.serve.glasses[0];
+      const from = { x: parent.x + (g.x - parent.x) * 0.15, y: rimY(parent) };
+      if (Math.random() < 0.8) {
+        spawn(drops, function (d) {
+          d.x = from.x + (Math.random() - 0.5) * 8;
+          d.y = from.y;
+          d.vx = (g.x - from.x) * 1.4 + (Math.random() - 0.5) * 20;
+          d.vy = 40 + Math.random() * 80;
+          d.r = 1 + Math.random() * 1.8;
+          d.life = 0.35;
+          d.age = 0;
+          d.color = g.drink.lit;
+          d.splash = false;
+          d.puddle = false;
+        });
+      }
+    }
+  });
+  G.phaseT += dt;
+  if (G.phase === 'enter' && G.phaseT > 0.48) setPhase('ready');
+  if (G.phase === 'rise') {
+    const settled = G.serve.glasses.every(function (g) { return g.pending < g.capacity * 0.0035; });
+    const spilled = G.serve.glasses.some(function (g) { return g.spilled; });
+    if ((settled && G.phaseT > 0.28) || G.phaseT > 3.4 || (spilled && G.phaseT > 0.62)) finishServe();
+  }
+  if (G.phase === 'result') {
+    const wait = G.mode === 'zen' ? 0.95 : (G.callout && G.callout.kind === 'perfect' ? 1.55 : 1.28);
+    if (G.phaseT > wait) advance();
+  }
+  if (G.phase === 'exit' && G.phaseT > 0.30) nextServe();
+  // camera
+  const zTarget = (G.timeScale < 0.75 && G.phase === 'rise') ? TUNE.zoomIn : 1;
+  G.zoom += (zTarget - G.zoom) * Math.min(1, dt * 4);
+  if (G.shake > 0) {
+    G.shake = Math.max(0, G.shake - dt * 1.8);
+    G.shakeX = (Math.random() - 0.5) * 10 * G.shake;
+    G.shakeY = (Math.random() - 0.5) * 8 * G.shake;
+  } else { G.shakeX = 0; G.shakeY = 0; }
+  // display percent
+  const sg = storyGlass(G.serve);
+  const sleeveHide = sg && sg.sleeve && G.phase !== 'result' && G.phase !== 'end';
+  let targetPct = 0;
+  if (sg) {
+    if (G.serve.glasses.some(function (g) { return g.spilled; }) && (G.phase === 'result' || G.phase === 'rise')) targetPct = 0;
+    else targetPct = shownPct(glassFraction(sg));
+  }
+  if (sleeveHide) targetPct = G.displayPct;
+  if (G.phase === 'result' && !sleeveHide) {
+    const last = G.results[G.results.length - 1];
+    if (last) targetPct = last.spill ? 0 : last.pcts[G.serve.glasses.indexOf(sg)] || last.pct;
+  }
+  if (!sleeveHide) {
+    const prev = G._shownGate || 0;
+    G.displayPct += (targetPct - G.displayPct) * Math.min(1, dt * 10);
+    [90, 95, 99].forEach(function (mark) {
+      if (prev < mark && G.displayPct >= mark) G.numPop = 1;
+    });
+    G._shownGate = G.displayPct;
+  }
+  G.numPop = Math.max(0, (G.numPop || 0) - dt * 2.4);
+  if (G.callout) G.callout.age += dt;
+}
+function ensureDemo() {
+  if (G.demo) return;
+  const rng = mulberry32(42);
+  G.demo = makeGlass('highball', 0.34, rng, false);
+  G.demo._t = 1.6;
+}
+function updateDemo(dt) {
+  ensureDemo();
+  const g = G.demo;
+  g._t = (g._t || 0) + dt;
+  const cycle = g._t % 8.2;
+  let pour = false, body = 0, foam = 0, pending = 0;
+  if (cycle < 2.4) {
+    pour = true;
+    const u = cycle / 2.4;
+    body = u * 0.50 * g.capacity;
+    foam = u * 0.06 * g.capacity;
+  } else if (cycle < 4.5) {
+    const u = (cycle - 2.4) / 2.1;
+    const rise = 1 - Math.exp(-u * 2.4);
+    body = 0.50 * g.capacity;
+    foam = (0.06 + 0.28 * rise) * g.capacity;
+    pending = (1 - rise) * 0.12 * g.capacity;
+  } else if (cycle < 6.2) {
+    body = 0.50 * g.capacity;
+    foam = 0.34 * g.capacity;
+  } else {
+    const u = (cycle - 6.2) / 2.0;
+    const k = Math.max(0, 1 - u);
+    body = 0.50 * k * g.capacity;
+    foam = 0.34 * k * g.capacity;
+  }
+  g.body = body; g.foam = foam; g.pending = pending; g._pour = pour;
+  g.present = 1;
+  stepWaves({ glasses: [g] }, dt, pour);
+  if (pour && Math.random() < 0.65) {
+    const hit = streamHit(g);
+    spawnImpact(hit.x, hit.y, g.drink.lit);
+  }
+}
+function update(dt) {
+  G.t += dt;
+  readSafe();
+  if (G.toast) { G.toast.age += dt; if (G.toast.age > 1.8) G.toast = null; }
+  for (let i = puddles.length - 1; i >= 0; i--) {
+    puddles[i].life -= dt;
+    if (puddles[i].life <= 0) puddles.splice(i, 1);
+  }
+  if (G.screen === 'title') updateDemo(dt);
+  else if (G.screen === 'play') updatePlay(dt);
+  else if (G.screen === 'end') {
+    G.phaseT += dt;
+    if (G.callout) G.callout.age += dt;
+    if (G.serve) G.serve.glasses.forEach(function (g) { g.squash += (1 - g.squash) * Math.min(1, dt * 6); });
+  }
+  updateBubbles(dt);
+  updateAudio();
+  const leanTarget = (G.phase === 'pour') ? clamp((G.fingerX - W / 2) / W, -1, 1) : 0;
+  G.streamLean += (leanTarget - G.streamLean) * Math.min(1, dt * 6);
+}
+
+/* ---------- render ---------- */
+function rebuildBG() {
+  bgCanvas = document.createElement('canvas');
+  bgCanvas.width = Math.max(2, Math.round(W * DPR));
+  bgCanvas.height = Math.max(2, Math.round(H * DPR));
+  const b = bgCanvas.getContext('2d');
+  b.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = b.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#14111a');
+  g.addColorStop(0.35, '#1c1418');
+  g.addColorStop(0.72, '#120e10');
+  g.addColorStop(1, '#070608');
+  b.fillStyle = g;
+  b.fillRect(0, 0, W, H);
+  // spotlight
+  const sx = W * 0.5, sy = H * 0.42;
+  const spot = b.createRadialGradient(sx, sy, 20, sx, sy, W * 0.72);
+  spot.addColorStop(0, 'rgba(255, 196, 140, 0.20)');
+  spot.addColorStop(0.35, 'rgba(255, 150, 90, 0.07)');
+  spot.addColorStop(1, 'rgba(0,0,0,0)');
+  b.fillStyle = spot;
+  b.fillRect(0, 0, W, H);
+  const cool = b.createRadialGradient(W * 0.12, H * 0.2, 10, W * 0.2, H * 0.25, W * 0.5);
+  cool.addColorStop(0, 'rgba(120, 160, 255, 0.08)');
+  cool.addColorStop(1, 'rgba(0,0,0,0)');
+  b.fillStyle = cool;
+  b.fillRect(0, 0, W, H);
+  // bokeh
+  const dots = [
+    [0.18, 0.22, 46, 'rgba(255,186,120,0.16)'],
+    [0.78, 0.18, 64, 'rgba(255,150,90,0.10)'],
+    [0.12, 0.48, 30, 'rgba(140,170,255,0.10)'],
+    [0.86, 0.40, 40, 'rgba(255,220,170,0.08)'],
+    [0.30, 0.12, 22, 'rgba(255,255,255,0.06)'],
+    [0.62, 0.28, 18, 'rgba(255,200,140,0.12)'],
+    [0.08, 0.70, 50, 'rgba(80,90,140,0.10)'],
+    [0.90, 0.66, 36, 'rgba(255,170,110,0.07)']
+  ];
+  for (let i = 0; i < dots.length; i++) {
+    const d = dots[i];
+    const rg = b.createRadialGradient(d[0] * W, d[1] * H, 0, d[0] * W, d[1] * H, d[2]);
+    rg.addColorStop(0, d[3]);
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    b.fillStyle = rg;
+    b.beginPath();
+    b.arc(d[0] * W, d[1] * H, d[2], 0, 6.3);
+    b.fill();
+  }
+  if (!noiseCanvas) {
+    noiseCanvas = document.createElement('canvas');
+    noiseCanvas.width = 128; noiseCanvas.height = 128;
+    const nctx = noiseCanvas.getContext('2d');
+    const img = nctx.createImageData(128, 128);
+    let s = 333;
+    for (let i = 0; i < img.data.length; i += 4) {
+      s = (s * 16807) % 2147483647;
+      const v = 120 + (s % 80);
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    nctx.putImageData(img, 0, 0);
+  }
+  if (!marbleCanvas) {
+    marbleCanvas = document.createElement('canvas');
+    marbleCanvas.width = 256; marbleCanvas.height = 256;
+    const m = marbleCanvas.getContext('2d');
+    m.fillStyle = '#161311';
+    m.fillRect(0, 0, 256, 256);
+    m.strokeStyle = 'rgba(80, 60, 48, 0.35)';
+    m.lineWidth = 1;
+    let s = 77;
+    for (let v = 0; v < 14; v++) {
+      m.beginPath();
+      let x = 0, y = (v * 19 + 8) % 256;
+      m.moveTo(x, y);
+      for (x = 0; x <= 256; x += 8) {
+        s = (s * 16807) % 2147483647;
+        y += ((s % 11) - 5) * 0.35;
+        m.lineTo(x, y);
+      }
+      m.stroke();
+    }
+    m.strokeStyle = 'rgba(230, 201, 138, 0.05)';
+    for (let v = 0; v < 5; v++) {
+      m.beginPath();
+      m.moveTo(0, 40 + v * 48);
+      m.bezierCurveTo(80, 20 + v * 40, 160, 70 + v * 30, 256, 30 + v * 50);
+      m.stroke();
+    }
+  }
+}
+function readSafe() {
+  SAT = document.getElementById('sat').getBoundingClientRect().height || 0;
+  SAB = document.getElementById('sab').getBoundingClientRect().height || 0;
+}
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = Math.max(2, Math.round(W * DPR));
+  canvas.height = Math.max(2, Math.round(H * DPR));
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  readSafe();
+  rebuildBG();
+  if (G.serve && G.screen !== 'title') layoutServe(G.serve);
+  if (G.demo) layoutDemo();
+}
+function applyCamera() {
+  const g = G.serve ? storyGlass(G.serve) : G.demo;
+  const fx = g ? g.x : W / 2;
+  const fy = g ? rimY(g) : H * 0.42;
+  const breathe = 1 + Math.sin(G.t * 0.6) * 0.003;
+  const z = G.zoom * breathe;
+  ctx.translate(G.shakeX, G.shakeY);
+  ctx.translate(fx, fy);
+  ctx.scale(z, z);
+  ctx.translate(-fx, -fy);
+}
+function drawBar() {
+  const y = G.floor || H * 0.78;
+  // distant shelf + bottles, kept to the edges so the glass stays the subject
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  const shelfY = y - Math.min(168, H * 0.18);
+  ctx.fillStyle = '#100e0d';
+  ctx.fillRect(0, shelfY, W, 7);
+  ctx.fillStyle = 'rgba(230,201,138,0.18)';
+  ctx.fillRect(0, shelfY, W, 1);
+  const bottles = [
+    { x: 28, h: 78, w: 16, c: '#2a1a16' },
+    { x: 50, h: 96, w: 14, c: '#1a2430' },
+    { x: 70, h: 70, w: 18, c: '#241810' },
+    { x: W - 46, h: 90, w: 15, c: '#1b2430' },
+    { x: W - 70, h: 74, w: 18, c: '#2a1618' },
+    { x: W - 96, h: 108, w: 13, c: '#20160f' }
+  ];
+  for (let i = 0; i < bottles.length; i++) {
+    const bt = bottles[i];
+    const grd = ctx.createLinearGradient(bt.x, 0, bt.x + bt.w, 0);
+    grd.addColorStop(0, '#0c0b0c');
+    grd.addColorStop(0.45, bt.c);
+    grd.addColorStop(1, '#0c0b0c');
+    ctx.fillStyle = grd;
+    rrect(ctx, bt.x, shelfY - bt.h, bt.w, bt.h, 4);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(bt.x + 2, shelfY - bt.h + 8, 2, bt.h * 0.45);
+  }
+  ctx.restore();
+
+  const grd = ctx.createLinearGradient(0, y - 10, 0, H);
+  grd.addColorStop(0, '#3a322b');
+  grd.addColorStop(0.04, '#221c19');
+  grd.addColorStop(0.2, '#161311');
+  grd.addColorStop(1, '#0a090b');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, y, W, H - y + 40);
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  ctx.drawImage(marbleCanvas, 0, y, W, Math.max(10, H - y));
+  ctx.restore();
+  // warm pool of light on the marble
+  const pool = ctx.createRadialGradient(W / 2, y + 10, 10, W / 2, y + 18, W * 0.42);
+  pool.addColorStop(0, 'rgba(255, 200, 150, 0.16)');
+  pool.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = pool;
+  ctx.fillRect(0, y, W, 80);
+  ctx.strokeStyle = 'rgba(240, 215, 170, 0.55)';
+  ctx.lineWidth = 1.25;
+  ctx.beginPath();
+  ctx.moveTo(0, y + 0.5);
+  ctx.lineTo(W, y + 0.5);
+  ctx.stroke();
+  const lip = ctx.createLinearGradient(0, y, 0, y + 18);
+  lip.addColorStop(0, 'rgba(0,0,0,0.35)');
+  lip.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = lip;
+  ctx.fillRect(0, y, W, 18);
+}
+function drawPuddles() {
+  const y = (G.floor || H * 0.78) + 14;
+  for (let i = 0; i < puddles.length; i++) {
+    const p = puddles[i];
+    ctx.save();
+    ctx.globalAlpha = clamp(p.life / 2.4, 0, 1) * 0.5;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.ellipse(p.x, y, p.r * 3.2, p.r * 0.9, 0, 0, 6.3);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+function traceBowl(c, g, widthFn) {
+  const steps = 40;
+  c.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = g.x - widthFn(t);
+    const y = tToY(g, t);
+    if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+  }
+  for (let i = steps; i >= 0; i--) {
+    const t = i / steps;
+    c.lineTo(g.x + widthFn(t), tToY(g, t));
+  }
+  c.closePath();
+}
+function surfacePoints(g, tBase, amp) {
+  const pts = [];
+  const steps = 18;
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    const width = innerHW(g, tBase);
+    const x = g.x + (u * 2 - 1) * width;
+    const edge = Math.pow(Math.abs(u * 2 - 1), 2.2);
+    const men = edge * Math.min(12, width * 0.22);
+    const rip = Math.sin(u * Math.PI * 2.5 + g.rip) * amp * Math.sin(u * Math.PI);
+    const tilt = g.tilt * (u * 2 - 1) * Math.min(10, width * 0.12);
+    const y = tToY(g, tBase) - g.wave * 0.45 - men - rip + tilt;
+    pts.push({ x: x, y: y });
+  }
+  return pts;
+}
+function pathFromPts(c, pts) {
+  c.beginPath();
+  c.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y);
+}
+function drawGlass(g, alpha) {
+  if (!g || alpha < 0.02) return;
+  const cup = CUPS[G.cup] || CUPS.crystal;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  const slide = (1 - easeOut(clamp(g.present, 0, 1))) * 46;
+  ctx.translate(0, slide);
+  const foot = g.footY;
+  ctx.translate(0, foot);
+  ctx.scale(1, g.squash || 1);
+  ctx.translate(0, -foot);
+
+  // contact shadow + colored glow
+  const glow = ctx.createRadialGradient(g.x, foot, 4, g.x, foot + 6, outerHW(g, 0) * 1.5);
+  glow.addColorStop(0, hexA(g.drink.caustic, 0.28));
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.ellipse(g.x, foot + 8, outerHW(g, 0) * 1.35, 14, 0, 0, 6.3);
+  ctx.fill();
+  const sh = ctx.createRadialGradient(g.x, foot, 4, g.x, foot + 4, outerHW(g, 0) * 1.15);
+  sh.addColorStop(0, 'rgba(0,0,0,0.55)');
+  sh.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = sh;
+  ctx.beginPath();
+  ctx.ellipse(g.x, foot + 5, outerHW(g, 0) * 0.95, 10, 0, 0, 6.3);
+  ctx.fill();
+
+  // stem + foot
+  if (g.stem > 2) {
+    const bot = bowlBottom(g);
+    const stemG = ctx.createLinearGradient(g.x - 6, 0, g.x + 6, 0);
+    stemG.addColorStop(0, 'rgba(255,255,255,0.02)');
+    stemG.addColorStop(0.4, 'rgba(255,255,255,0.28)');
+    stemG.addColorStop(1, 'rgba(255,255,255,0.02)');
+    ctx.fillStyle = stemG;
+    ctx.beginPath();
+    ctx.moveTo(g.x - 5 * g.scale, bot);
+    ctx.lineTo(g.x + 5 * g.scale, bot);
+    ctx.lineTo(g.x + 4 * g.scale, foot - 6);
+    ctx.lineTo(g.x - 4 * g.scale, foot - 6);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(g.x, foot - 3, g.shape.foot * g.scale * 0.48, 6 * g.scale, 0, 0, 6.3);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fill();
+  }
+
+  // glass body
+  traceBowl(ctx, g, function (t) { return outerHW(g, t); });
+  const bodyG = ctx.createLinearGradient(g.x - outerHW(g, 0.5), 0, g.x + outerHW(g, 0.5), 0);
+  bodyG.addColorStop(0, 'rgba(255,255,255,' + (0.16 + cup.body) + ')');
+  bodyG.addColorStop(0.18, 'rgba(255,255,255,' + (0.05 + cup.frost) + ')');
+  bodyG.addColorStop(0.55, 'rgba(255,255,255,0.015)');
+  bodyG.addColorStop(1, 'rgba(180,200,255,0.05)');
+  ctx.fillStyle = bodyG;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 1.15;
+  ctx.stroke();
+
+  // interior + liquid
+  ctx.save();
+  traceBowl(ctx, g, function (t) { return innerHW(g, t); });
+  ctx.clip();
+  // empty interior shade
+  const inn = ctx.createLinearGradient(0, rimY(g), 0, bowlBottom(g));
+  inn.addColorStop(0, 'rgba(0,0,0,0.28)');
+  inn.addColorStop(0.2, 'rgba(255,255,255,0.03)');
+  inn.addColorStop(1, 'rgba(0,0,0,0.18)');
+  ctx.fillStyle = inn;
+  ctx.fillRect(g.x - 200, rimY(g) - 20, 400, g.h + 40);
+
+  const liquidFrac = clamp(g.body / g.capacity, 0, 1);
+  const totalFrac = clamp((g.body + g.foam) / g.capacity, 0, 1.08);
+  const tLiq = volToT(g.shape, Math.min(1, liquidFrac));
+  const tAll = volToT(g.shape, Math.min(1, totalFrac));
+  const amp = 1.4 + Math.min(4.5, Math.abs(g.wave) * 0.35);
+  if (g.body > g.capacity * 0.004) {
+    const surf = surfacePoints(g, tLiq, amp);
+    // keep the drawn surface from crossing the rim unless spilled
+    const rim = rimY(g);
+    if (!g.spilled) {
+      for (let i = 0; i < surf.length; i++) if (surf[i].y < rim + 3) surf[i].y = rim + 3;
+    }
+    ctx.beginPath();
+    ctx.moveTo(surf[0].x, surf[0].y);
+    for (let i = 1; i < surf.length; i++) ctx.lineTo(surf[i].x, surf[i].y);
+    ctx.lineTo(surf[surf.length - 1].x, bowlBottom(g) + 8);
+    ctx.lineTo(surf[0].x, bowlBottom(g) + 8);
+    ctx.closePath();
+    const lg = ctx.createLinearGradient(0, surf[0].y, 0, bowlBottom(g));
+    lg.addColorStop(0, g.drink.lit);
+    lg.addColorStop(0.18, g.drink.mid);
+    lg.addColorStop(0.55, g.drink.mid);
+    lg.addColorStop(1, g.drink.deep);
+    ctx.fillStyle = lg;
+    ctx.fill();
+    // side transmission
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const side = ctx.createLinearGradient(g.x - innerHW(g, 0.5), 0, g.x + innerHW(g, 0.5), 0);
+    side.addColorStop(0, hexA(g.drink.lit, 0.55));
+    side.addColorStop(0.22, hexA(g.drink.lit, 0.05));
+    side.addColorStop(0.75, 'rgba(0,0,0,0)');
+    side.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = side;
+    ctx.fillRect(g.x - 200, surf[0].y - 8, 400, bowlBottom(g) - surf[0].y + 20);
+    // caustics
+    for (let k = 0; k < 3; k++) {
+      const cx = g.x + Math.sin(G.t * 1.4 + k * 2) * innerHW(g, 0.15) * 0.35;
+      const cy = lerp(bowlBottom(g), surf[0].y, 0.18 + k * 0.12);
+      const rg = ctx.createRadialGradient(cx, cy, 1, cx, cy, 10 + k * 6);
+      rg.addColorStop(0, hexA(g.drink.caustic, 0.45));
+      rg.addColorStop(1, hexA(g.drink.caustic, 0));
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 8 + k * 5, 4 + k, 0, 0, 6.3);
+      ctx.fill();
+    }
+    ctx.restore();
+    const mid = surf[(surf.length / 2) | 0];
+    const srx = innerHW(g, tLiq) * 0.98;
+    const sry = Math.max(3.2, srx * g.shape.lip * 0.7);
+    const sy = mid.y;
+    // far lip of the surface, darker and slightly higher
+    ctx.beginPath();
+    ctx.ellipse(g.x, sy - 0.8, srx * 0.94, sry * 0.78, 0, Math.PI * 1.04, Math.PI * 1.96);
+    ctx.strokeStyle = hexA(g.drink.deep, 0.7);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // near meniscus — only the front lip, so the top reads as a surface not a coin
+    ctx.beginPath();
+    ctx.ellipse(g.x, sy, srx, sry, 0, 0.08, Math.PI - 0.08);
+    ctx.closePath();
+    const lip = ctx.createLinearGradient(g.x, sy - 2, g.x, sy + sry);
+    lip.addColorStop(0, hexA(g.drink.mid, 0.2));
+    lip.addColorStop(0.4, hexA(g.drink.lit, 0.62));
+    lip.addColorStop(1, 'rgba(255,255,255,0.28)');
+    ctx.fillStyle = lip;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(g.x - srx * 0.22, sy + sry * 0.42, srx * 0.16, Math.max(1.1, sry * 0.26), -0.35, 0, 6.3);
+    ctx.fillStyle = 'rgba(255,255,255,0.42)';
+    ctx.fill();
+    // surface line: dark meniscus + bright rim light
+    pathFromPts(ctx, surf);
+    ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(0, -1.5);
+    pathFromPts(ctx, surf);
+    ctx.strokeStyle = hexA(g.drink.lit, 0.85);
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+    ctx.restore();
+  }
+  // foam
+  if (g.foam > g.capacity * 0.008) {
+    const topT = Math.min(0.995, tAll);
+    const botT = Math.min(topT - 0.01, tLiq);
+    const topPts = surfacePoints(g, topT, amp * 1.1);
+    const botPts = surfacePoints(g, Math.max(0, botT), amp * 0.6);
+    if (!g.spilled) {
+      const rim = rimY(g);
+      for (let i = 0; i < topPts.length; i++) if (topPts[i].y < rim + 2) topPts[i].y = rim + 2;
+    }
+    ctx.beginPath();
+    ctx.moveTo(botPts[0].x, botPts[0].y);
+    for (let i = 1; i < botPts.length; i++) ctx.lineTo(botPts[i].x, botPts[i].y);
+    for (let i = topPts.length - 1; i >= 0; i--) ctx.lineTo(topPts[i].x, topPts[i].y);
+    ctx.closePath();
+    const fg = ctx.createLinearGradient(0, topPts[0].y - 8, 0, botPts[0].y + 6);
+    fg.addColorStop(0, hexA(g.drink.foam, 0.92));
+    fg.addColorStop(0.45, hexA(g.drink.foam, 0.55));
+    fg.addColorStop(1, hexA(g.drink.foam, 0.05));
+    ctx.fillStyle = fg;
+    ctx.fill();
+    // irregular foam crest — clustered bubbles, not a dotted ruler
+    for (let i = 1; i < topPts.length - 1; i++) {
+      const h = (i * 17 + 5) % 9;
+      if (h === 0) continue;
+      const p = topPts[i];
+      const rr = 0.9 + (h % 5) * 0.72;
+      const lift = (h % 4) * 1.15;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.16 + (h % 4) * 0.07) + ')';
+      ctx.arc(p.x + ((h % 3) - 1) * 0.8, p.y - lift, rr, 0, 6.3);
+      ctx.fill();
+      if (h % 3 !== 2) {
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(255,255,255,0.72)';
+        ctx.arc(p.x - rr * 0.25, p.y - lift - rr * 0.3, Math.max(0.3, rr * 0.18), 0, 6.3);
+        ctx.fill();
+      }
+    }
+    const bubblesOnHead = Math.min(6, 3 + ((topPts.length / 6) | 0));
+    for (let k = 0; k < bubblesOnHead; k++) {
+      const idx = 2 + ((k * 5 + 2) % Math.max(1, topPts.length - 4));
+      const p = topPts[idx];
+      const rr = 2.2 + (k % 3) * 1.15 + (k % 2) * 0.4;
+      const by = p.y - rr * 0.35;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.arc(p.x, by, rr, 0, 6.3);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 0.7;
+      ctx.arc(p.x, by, rr, 0, 6.3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.arc(p.x - rr * 0.28, by - rr * 0.28, Math.max(0.4, rr * 0.18), 0, 6.3);
+      ctx.fill();
+    }
+  }
+  // bubbles
+  for (let i = 0; i < bubbles.length; i++) {
+    const b = bubbles[i];
+    if (!b.alive || b.g !== g) continue;
+    const p = bubbleXY(g, b);
+    ctx.beginPath();
+    ctx.fillStyle = hexA(g.drink.bubble, 0.22);
+    ctx.arc(p.x, p.y, b.r, 0, 6.3);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 0.6;
+    ctx.arc(p.x, p.y, b.r, 0, 6.3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.arc(p.x - b.r * 0.3, p.y - b.r * 0.3, Math.max(0.4, b.r * 0.28), 0, 6.3);
+    ctx.fill();
+  }
+  // foam clinging to the inner lip as the head nears the rim
+  const frac = glassFraction(g);
+  if (frac > 0.9 && g.foam > g.capacity * 0.015) {
+    const k = clamp((frac - 0.9) / 0.1, 0, 1);
+    const rx = innerHW(g, 1) * 0.88;
+    const ry = Math.max(3, rx * g.shape.lip * 0.8);
+    ctx.save();
+    ctx.globalAlpha *= 0.2 + k * 0.45;
+    ctx.strokeStyle = hexA(g.drink.foam, 0.95);
+    ctx.lineWidth = 1.6 + k * 2.4;
+    ctx.beginPath();
+    ctx.ellipse(g.x, rimY(g) + ry * 0.25, rx * 0.78, ry * 0.62, 0, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore(); // clip
+
+  // left key light (thickness)
+  ctx.save();
+  traceBowl(ctx, g, function (t) { return outerHW(g, t); });
+  ctx.clip();
+  ctx.strokeStyle = cup.edge;
+  ctx.lineWidth = 7 * g.scale;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const steps = 16;
+  for (let i = 2; i <= steps - 1; i++) {
+    const t = i / steps;
+    const x = g.x - outerHW(g, t) + 3.2 * g.scale;
+    const y = tToY(g, t);
+    if (i === 2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  // cool rim light on the right
+  ctx.strokeStyle = 'rgba(190, 210, 255, 0.38)';
+  ctx.lineWidth = 3.2 * g.scale;
+  ctx.beginPath();
+  for (let i = 2; i <= steps - 1; i++) {
+    const t = i / steps;
+    const x = g.x + outerHW(g, t) - 2.4 * g.scale;
+    const y = tToY(g, t);
+    if (i === 2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // specular streak
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(g.x - innerHW(g, 0.75) * 0.2, tToY(g, 0.86));
+  ctx.quadraticCurveTo(g.x - innerHW(g, 0.4) * 0.15, tToY(g, 0.55), g.x - innerHW(g, 0.3) * 0.05, tToY(g, 0.28));
+  ctx.stroke();
+  if (cup.ribs) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = 1;
+    for (let t = 0.15; t < 0.95; t += 0.08) {
+      ctx.beginPath();
+      ctx.moveTo(g.x - innerHW(g, t), tToY(g, t));
+      ctx.lineTo(g.x + innerHW(g, t), tToY(g, t));
+      ctx.stroke();
+    }
+  }
+  if (cup.frost > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,' + cup.frost * 0.25 + ')';
+    ctx.fillRect(g.x - 200, rimY(g), 400, g.h);
+  }
+  ctx.restore();
+
+  // rim ellipse — the lip you are aiming at
+  const rx = outerHW(g, 1);
+  const ry = Math.max(5, rx * g.shape.lip);
+  const ryIn = Math.max(3.5, innerHW(g, 1) * g.shape.lip);
+  const rim = rimY(g);
+  const rg = ctx.createLinearGradient(g.x - rx, rim, g.x + rx, rim);
+  rg.addColorStop(0, 'rgba(255,255,255,0.95)');
+  rg.addColorStop(0.35, cup.rim);
+  rg.addColorStop(0.7, 'rgba(255,255,255,0.35)');
+  rg.addColorStop(1, 'rgba(190,210,255,0.25)');
+  ctx.beginPath();
+  ctx.ellipse(g.x, rim, rx, ry, 0, 0, 6.3);
+  ctx.strokeStyle = rg;
+  ctx.lineWidth = Math.max(2.5, 4.2 * g.scale);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(g.x, rim + 0.5, innerHW(g, 1), ryIn, 0, 0, 6.3);
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // catchlight
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 1.6;
+  ctx.ellipse(g.x, rim, rx - 1, ry, 0, Math.PI * 1.15, Math.PI * 1.55);
+  ctx.stroke();
+
+  // tension glow when close
+  if (frac > 0.9 && !g.spilled) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = hexA(frac > 0.97 ? '#e9ff8a' : '#e6c98a', (frac - 0.9) * 2.2);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(g.x, rim, rx + 3, ry + 2, 0, 0, 6.3);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // condensation
+  for (let i = 0; i < g.drops.length; i++) {
+    const d = g.drops[i];
+    const y = tToY(g, d.t);
+    const x = g.x + d.u * outerHW(g, d.t) * 0.92;
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.ellipse(x, y, d.r * 0.7, d.r, 0, 0, 6.3);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.arc(x - d.r * 0.2, y - d.r * 0.3, d.r * 0.25, 0, 6.3);
+    ctx.fill();
+  }
+
+  // ghost line
+  if (G.ghost && G.serve && g === storyGlass(G.serve) && G.ghost[G.serveIndex] != null && !g.sleeve) {
+    const gt = volToT(g.shape, clamp(G.ghost[G.serveIndex] / 100, 0, 1));
+    const gy = tToY(g, gt);
+    ctx.save();
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = 'rgba(230,201,138,0.9)';
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.moveTo(g.x - innerHW(g, gt), gy);
+    ctx.lineTo(g.x + innerHW(g, gt), gy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '600 9px ' + FONT;
+    ctx.fillStyle = 'rgba(230,201,138,0.9)';
+    ctx.textAlign = 'left';
+    ctx.fillText('THEIR ' + G.ghost[G.serveIndex].toFixed(0), g.x + innerHW(g, gt) + 6, gy + 3);
+    ctx.restore();
+  }
+
+  // sleeve
+  if (g.sleeve && G.phase !== 'result' && G.screen !== 'end') {
+    ctx.save();
+    traceBowl(ctx, g, function (t) { return outerHW(g, t) + 1; });
+    ctx.clip();
+    const y1 = tToY(g, 0.78);
+    const y2 = tToY(g, 0.18);
+    const mg = ctx.createLinearGradient(g.x - 40, 0, g.x + 40, 0);
+    mg.addColorStop(0, '#2a241c');
+    mg.addColorStop(0.4, '#6a5b48');
+    mg.addColorStop(0.5, '#d9c7a4');
+    mg.addColorStop(0.6, '#5c4e3d');
+    mg.addColorStop(1, '#241e18');
+    ctx.fillStyle = mg;
+    ctx.fillRect(g.x - 200, y1, 400, y2 - y1);
+    ctx.fillStyle = 'rgba(244,239,230,0.75)';
+    ctx.font = '600 10px ' + FONT;
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = '2px';
+    ctx.fillText('SLEEVE', g.x, (y1 + y2) / 2 + 3);
+    ctx.letterSpacing = '0px';
+    ctx.restore();
+  }
+
+  // mini percent on tower members
+  if (G.serve && G.serve.glasses.length > 1 && G.hud && G.screen === 'play') {
+    const pf = g.spilled ? 0 : shownPct(glassFraction(g));
+    ctx.font = '600 12px ' + FONT;
+    ctx.fillStyle = 'rgba(244,239,230,0.8)';
+    ctx.textAlign = 'center';
+    ctx.fillText(pf.toFixed(0), g.x, bowlBottom(g) + 16);
+  }
+  ctx.restore();
+}
+function streamHit(g) {
+  const t = volToT(g.shape, clamp(g.body / g.capacity, 0, 1));
+  const y = Math.min(rimY(g) + innerHW(g, 1) * g.shape.lip, tToY(g, Math.max(0.02, t)) - g.wave * 0.3);
+  const lean = G.streamLean * Math.min(16, innerHW(g, 1) * 0.4);
+  return { x: g.x + lean, y: y };
+}
+function drawStream(g, from) {
+  if (!g) return;
+  const hit = streamHit(g);
+  const x0 = from.x, y0 = from.y;
+  const x1 = hit.x, y1 = hit.y;
+  if (y1 <= y0 + 8) return;
+  const drink = g.drink;
+  ctx.save();
+  const grd = ctx.createLinearGradient(x0, y0, x1, y1);
+  grd.addColorStop(0, hexA(drink.lit, 0.15));
+  grd.addColorStop(0.15, hexA(drink.lit, 0.85));
+  grd.addColorStop(1, hexA(drink.mid, 0.95));
+  function sxAt(t) {
+    return lerp(x0, x1, t) + Math.sin(G.t * 22 - t * 14) * (0.5 + t * 1.8);
+  }
+  ctx.beginPath();
+  const segs = 12;
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    const w = lerp(3.4, 1.35, t);
+    const x = sxAt(t);
+    const y = lerp(y0, y1, t);
+    if (i === 0) ctx.moveTo(x - w, y);
+    else ctx.lineTo(x - w, y);
+  }
+  for (let i = segs; i >= 0; i--) {
+    const t = i / segs;
+    const w = lerp(3.4, 1.35, t);
+    ctx.lineTo(sxAt(t) + w, lerp(y0, y1, t));
+  }
+  ctx.closePath();
+  ctx.fillStyle = grd;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(sxAt(0), y0);
+  for (let i = 1; i <= segs; i++) ctx.lineTo(sxAt(i / segs), lerp(y0, y1, i / segs));
+  ctx.strokeStyle = 'rgba(255,255,255,0.82)';
+  ctx.lineWidth = 1.05;
+  ctx.stroke();
+  for (let i = 0; i < 5; i++) {
+    const t = (G.t * 0.85 + i * 0.19) % 1;
+    const x = sxAt(t) + Math.sin(i * 4 + G.t * 10) * 3;
+    const y = lerp(y0, y1, t);
+    ctx.beginPath();
+    ctx.fillStyle = hexA(drink.lit, 0.8);
+    ctx.arc(x, y, 1.3 + (i % 3) * 0.4, 0, 6.3);
+    ctx.fill();
+  }
+  ctx.strokeStyle = hexA(drink.foam, 0.8);
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.ellipse(x1, y1, 8 + Math.sin(G.t * 30) * 1.6, 3.4, 0, 0, 6.3);
+  ctx.stroke();
+  ctx.restore();
+}
+function drawFaucet(x, y) {
+  ctx.save();
+  ctx.fillStyle = '#2a221c';
+  rrect(ctx, x - 14, y - 26, 28, 18, 4);
+  ctx.fill();
+  const g = ctx.createLinearGradient(x - 8, 0, x + 8, 0);
+  g.addColorStop(0, '#5c431e');
+  g.addColorStop(0.42, '#f3ddb0');
+  g.addColorStop(1, '#7a5a28');
+  ctx.fillStyle = g;
+  rrect(ctx, x - 6, y - 16, 12, 24, 3);
+  ctx.fill();
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x, y + 6);
+  ctx.quadraticCurveTo(x + 16, y + 8, x + 8, y + 26);
+  ctx.stroke();
+  ctx.fillStyle = '#140e0c';
+  ctx.beginPath();
+  ctx.arc(x + 8, y + 28, 2.8, 0, 6.3);
+  ctx.fill();
+  ctx.restore();
+  return { x: x + 8, y: y + 32 };
+}
+function drawWorldDrops() {
+  for (let i = 0; i < drops.length; i++) {
+    const d = drops[i];
+    if (!d.alive) continue;
+    ctx.globalAlpha = clamp(1 - d.age / d.life, 0, 1);
+    ctx.fillStyle = d.color;
+    ctx.beginPath();
+    ctx.ellipse(d.x, d.y, d.r * 0.8, d.r * 1.15, 0, 0, 6.3);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  for (let i = 0; i < sparks.length; i++) {
+    const s = sparks[i];
+    if (!s.alive) continue;
+    const k = 1 - s.age / s.life;
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.8 * k) + ')';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(s.x - 3 * k, s.y); ctx.lineTo(s.x + 3 * k, s.y);
+    ctx.moveTo(s.x, s.y - 3 * k); ctx.lineTo(s.x, s.y + 3 * k);
+    ctx.stroke();
+  }
+  for (let i = 0; i < bits.length; i++) {
+    const b = bits[i];
+    if (!b.alive) continue;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.rot);
+    ctx.globalAlpha = clamp(1 - b.age / b.life, 0, 1);
+    ctx.fillStyle = b.color;
+    ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+function drawVignette() {
+  const tight = G.timeScale < 0.75 ? 0.62 : 0.45;
+  const v = ctx.createRadialGradient(W / 2, H * 0.42, W * 0.16, W / 2, H * 0.48, W * 0.86);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,0,0,' + tight + ')');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+}
+function drawShaft(g) {
+  if (!g) return;
+  const y0 = (G.faucetY || rimY(g) - 80);
+  const y1 = rimY(g) + 10;
+  if (y1 <= y0) return;
+  ctx.save();
+  const grd = ctx.createLinearGradient(g.x, y0, g.x, y1);
+  grd.addColorStop(0, 'rgba(255, 214, 170, 0.0)');
+  grd.addColorStop(0.2, 'rgba(255, 206, 160, 0.07)');
+  grd.addColorStop(1, hexA(g.drink.caustic, 0.05));
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.moveTo(g.x - 18, y0);
+  ctx.lineTo(g.x + 18, y0);
+  ctx.lineTo(g.x + 46, y1);
+  ctx.lineTo(g.x - 46, y1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+function drawGrain() {
+  if (!noiseCanvas) return;
+  ctx.save();
+  ctx.globalAlpha = 0.055;
+  ctx.globalCompositeOperation = 'overlay';
+  const pat = ctx.createPattern(noiseCanvas, 'repeat');
+  ctx.fillStyle = pat;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+/* ---------- HUD / UI ---------- */
+function resetButtons() { G.buttons = []; }
+function addBtn(b) { G.buttons.push(b); return b; }
+function hitButton(x, y) {
+  for (let i = G.buttons.length - 1; i >= 0; i--) {
+    const b = G.buttons[i];
+    if (x >= b.x && y >= b.y && x <= b.x + b.w && y <= b.y + b.h) return b;
+  }
+  return null;
+}
+function drawButton(b) {
+  const pressed = G.pressed === b.id;
+  const y = b.y + (pressed ? 2 : 0);
+  ctx.save();
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  rrect(ctx, b.x, y + 5, b.w, b.h, b.r || 16);
+  ctx.fill();
+  const grd = ctx.createLinearGradient(b.x, y, b.x, y + b.h);
+  if (b.kind === 'primary') {
+    grd.addColorStop(0, pressed ? '#e6c98a' : '#f6e2b6');
+    grd.addColorStop(1, pressed ? '#a8783a' : '#c4924e');
+  } else {
+    grd.addColorStop(0, pressed ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)');
+    grd.addColorStop(1, 'rgba(0,0,0,0.25)');
+  }
+  ctx.fillStyle = grd;
+  rrect(ctx, b.x, y, b.w, b.h, b.r || 16);
+  ctx.fill();
+  if (b.kind !== 'primary') {
+    ctx.strokeStyle = 'rgba(230,201,138,0.55)';
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+  }
+  // top highlight
+  ctx.strokeStyle = b.kind === 'primary' ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.moveTo(b.x + 18, y + 1.5);
+  ctx.lineTo(b.x + b.w - 18, y + 1.5);
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = b.kind === 'primary' ? '#2a1c10' : '#f4efe6';
+  ctx.font = '700 ' + (b.size || 16) + 'px ' + FONT;
+  ctx.letterSpacing = '1.5px';
+  ctx.fillText(b.label, b.x + b.w / 2, y + (b.sub ? b.h * 0.42 : b.h * 0.62));
+  if (b.sub) {
+    ctx.font = '500 11px ' + FONT;
+    ctx.globalAlpha = b.kind === 'primary' ? 0.75 : 0.6;
+    ctx.letterSpacing = '0.8px';
+    ctx.fillText(b.sub, b.x + b.w / 2, y + b.h * 0.74);
+  }
+  ctx.letterSpacing = '0px';
+  ctx.restore();
+}
+function drawTracked(text, x, y, size, color, spacing) {
+  ctx.font = '600 ' + size + 'px ' + FONT;
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = (spacing || 2) + 'px';
+  ctx.fillText(text, x, y);
+  ctx.letterSpacing = '0px';
+}
+function drawTicker(str, x, y, size, color) {
+  ctx.save();
+  ctx.font = '600 ' + size + 'px ' + FONT;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = color;
+  ctx.shadowColor = 'rgba(0,0,0,0.45)';
+  ctx.shadowBlur = 16;
+  const widths = [];
+  let total = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    const w = ch === '.' ? size * 0.30 : ch === '%' ? size * 0.62 : size * 0.58;
+    widths.push(w); total += w;
+  }
+  let cx = x - total / 2;
+  for (let i = 0; i < str.length; i++) {
+    ctx.fillText(str[i], cx + widths[i] / 2, y);
+    cx += widths[i];
+  }
+  ctx.restore();
+}
+function drawSeal(x, y, r) {
+  ctx.save();
+  ctx.translate(x, y);
+  const ring = ctx.createLinearGradient(-r, -r, r, r);
+  ring.addColorStop(0, '#f6e7c4');
+  ring.addColorStop(0.5, '#a8783a');
+  ring.addColorStop(1, '#f0d7a4');
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, 6.3);
+  ctx.fillStyle = '#140e0c';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = ring;
+  ctx.stroke();
+  // mini glass
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.28, r * 0.32);
+  ctx.lineTo(-r * 0.38, -r * 0.18);
+  ctx.lineTo(r * 0.38, -r * 0.18);
+  ctx.lineTo(r * 0.28, r * 0.32);
+  ctx.closePath();
+  const lg = ctx.createLinearGradient(0, -r, 0, r);
+  lg.addColorStop(0, '#ffb15a');
+  lg.addColorStop(0.4, '#7a2e12');
+  lg.addColorStop(1, '#1a0704');
+  ctx.fillStyle = lg;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // foam
+  ctx.fillStyle = 'rgba(255,246,238,0.9)';
+  ctx.fillRect(-r * 0.34, -r * 0.28, r * 0.68, r * 0.12);
+  // bubbles
+  for (let i = 0; i < 3; i++) {
+    const by = -r * 0.05 - ((G.t * 18 + i * 12) % (r * 0.7));
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.arc(-r * 0.12 + i * r * 0.12, by, 1.4 + i * 0.3, 0, 6.3);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawWordmark(x, y, size) {
+  ctx.save();
+  ctx.font = '800 italic ' + size + 'px ' + FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = (-size * 0.045) + 'px';
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillText('FIZZ', x + 2, y + 6);
+  const grd = ctx.createLinearGradient(x - size, y - size * 0.6, x + size * 0.2, y + size * 0.5);
+  grd.addColorStop(0, '#fffaf3');
+  grd.addColorStop(0.45, '#f0d7a8');
+  grd.addColorStop(1, '#c4924e');
+  ctx.fillStyle = grd;
+  ctx.fillText('FIZZ', x, y);
+  ctx.letterSpacing = '0px';
+  ctx.restore();
+}
+function drawPills(y) {
+  if (G.mode !== 'challenge') return;
+  const cleans = G.results.filter(function (r) { return r.clean; }).length;
+  const tiers = [3, 4, 5];
+  const labels = G.payout;
+  const subs = ['3 CLEAN', '4 CLEAN', 'ALL 5'];
+  const gap = 8;
+  const w = Math.min(104, (W - 48 - gap * 2) / 3);
+  const total = w * 3 + gap * 2;
+  let x = (W - total) / 2;
+  for (let i = 0; i < 3; i++) {
+    const got = cleans >= tiers[i];
+    const next = !got && (i === 0 || cleans >= tiers[i - 1]);
+    ctx.save();
+    rrect(ctx, x, y, w, 40, 12);
+    if (got) {
+      const grd = ctx.createLinearGradient(x, y, x, y + 40);
+      grd.addColorStop(0, '#f6e2b6');
+      grd.addColorStop(1, '#c4924e');
+      ctx.fillStyle = grd;
+      ctx.fill();
+      ctx.fillStyle = '#2a1c10';
+    } else {
+      ctx.fillStyle = next ? 'rgba(230,201,138,0.10)' : 'rgba(255,255,255,0.03)';
+      ctx.fill();
+      ctx.strokeStyle = next ? 'rgba(230,201,138,0.9)' : 'rgba(230,201,138,0.28)';
+      ctx.lineWidth = next ? 1.5 : 1;
+      ctx.stroke();
+      ctx.fillStyle = next ? '#f4efe6' : 'rgba(244,239,230,0.55)';
+    }
+    ctx.textAlign = 'center';
+    ctx.font = '700 14px ' + FONT;
+    ctx.fillText(labels[i], x + w / 2, y + 17);
+    ctx.font = '600 8px ' + FONT;
+    ctx.globalAlpha = 0.8;
+    ctx.letterSpacing = '0.8px';
+    ctx.fillText(subs[i], x + w / 2, y + 31);
+    ctx.restore();
+    x += w + gap;
+  }
+}
+function drawRunMeta(y) {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font = '600 12px ' + FONT;
+  ctx.fillStyle = '#f4efe6';
+  const best = load('fizz:best:run', 0) || 0;
+  ctx.fillText('SCORE ' + Math.round(G.runScore) + '    BEST ' + Math.round(Math.max(best, G.runScore)) + '    STREAK ' + G.runStreak, W / 2, y);
+  // strikes
+  for (let i = 0; i < 3; i++) {
+    const cx = W / 2 - 28 + i * 28;
+    ctx.beginPath();
+    ctx.arc(cx, y + 22, 6, 0, 6.3);
+    ctx.strokeStyle = 'rgba(230,201,138,0.7)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    if (i < G.strikes) {
+      ctx.fillStyle = '#ff5a3c';
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+function pctColor(p, spill) {
+  if (spill) return '#ff5a3c';
+  if (p >= 99) return '#e9ff8a';
+  if (p >= 95) return '#f0d7a2';
+  return '#f7f1e6';
+}
+function drawPlayHUD() {
+  if (G.mode === 'zen' && !G.hud) {
+    const b = addBtn({ id: 'hud', x: W - 54, y: SAT + 12, w: 40, h: 40, r: 20 });
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    drawEye(b.x + 20, b.y + 20, !G.hud);
+    ctx.restore();
+    return;
+  }
+  const g = G.serve ? storyGlass(G.serve) : null;
+  const top = SAT + 14;
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = '800 italic 16px ' + FONT;
+  ctx.fillStyle = '#f0d7a8';
+  ctx.fillText('FIZZ', 18, top + 8);
+  ctx.textAlign = 'right';
+  ctx.font = '600 11px ' + FONT;
+  ctx.fillStyle = 'rgba(244,239,230,0.78)';
+  ctx.letterSpacing = '1.2px';
+  let right = G.isDaily ? ('DAY ' + G.day) : (G.ghost ? 'DUEL ' + seedCode(G.seed) : seedCode(G.seed));
+  if (G.mode === 'run') right = 'RUN  ' + seedCode(G.seed);
+  if (G.mode === 'zen') right = 'ZEN';
+  ctx.fillText(right, W - 16, top + 8);
+  ctx.letterSpacing = '0px';
+  const serveNo = (G.mode === 'challenge') ? (Math.min(5, G.serveIndex + 1) + ' / 5') : ('GLASS ' + (G.serveIndex + 1));
+  drawTracked(G.mode === 'zen' ? 'AUTO POUR' : (G.mode === 'run' ? 'ENDLESS' : 'CHALLENGE') + '   ' + serveNo, W / 2, top + 28, 10, 'rgba(244,239,230,0.7)', 1.6);
+  if (G.mode === 'challenge') drawPills(top + 42);
+  else if (G.mode === 'run') drawRunMeta(top + 48);
+  else if (G.mode === 'zen') {
+    addBtn({ id: 'exit', x: 16, y: top + 40, w: 72, h: 32, r: 10, label: 'EXIT', kind: 'ghost', size: 11 });
+    // drawn below after buttons collected — we'll draw all buttons at end of HUD if any were added as full buttons
+  }
+
+  // big number sits in the upper third, clear of the stream and of caption zones
+  const numY = top + (G.mode === 'challenge' ? 118 : 104);
+  const spill = G.serve && G.serve.glasses.some(function (gl) { return gl.spilled; }) && (G.phase === 'rise' || G.phase === 'result' || G.phase === 'exit');
+  const sleeveHide = g && g.sleeve && G.phase !== 'result' && G.screen !== 'end';
+  const waiting = G.phase === 'ready' || G.phase === 'enter';
+  const shown = sleeveHide ? '—' : waiting ? 'HOLD' : (spill && G.phase !== 'pour' ? '0.0%' : G.displayPct.toFixed(1) + '%');
+  const col = sleeveHide ? '#f7f1e6' : waiting ? '#f0d7a2' : pctColor(G.displayPct, spill && G.phase !== 'pour');
+  ctx.save();
+  if (waiting) ctx.globalAlpha = 0.78 + Math.sin(G.t * 3) * 0.18;
+  const pop = 1 + (G.numPop || 0) * 0.08;
+  ctx.translate(W / 2, numY);
+  ctx.scale(pop, pop);
+  ctx.translate(-W / 2, -numY);
+  drawTicker(shown, W / 2, numY, waiting ? Math.min(64, W * 0.16) : Math.min(76, W * 0.19), col);
+  ctx.restore();
+
+  let status = 'ANYWHERE';
+  if (!G.seenCoach && G.serveIndex === 0 && G.mode === 'challenge' && waiting) status = 'RELEASE EARLY  ·  FIZZ KEEPS RISING';
+  else if (waiting && G.serve && G.serve.spec && G.serve.spec.tower) status = 'OVERFLOW FILLS THE GLASS BELOW';
+  else if (waiting && g && g.sleeve) status = 'LEVEL HIDDEN  ·  TRUST THE FIZZ';
+  else if (G.phase === 'pour') status = 'POURING';
+  else if (G.phase === 'rise') status = spill ? 'OVER THE RIM' : 'STILL FIZZING';
+  else if (G.phase === 'enter') status = 'GLASS UP';
+  else if (G.phase === 'result') status = '';
+  else if (G.phase === 'exit') status = '';
+  if (status && !(G.phase === 'result' && G.callout)) drawTracked(status, W / 2, numY + 42, 11, 'rgba(244,239,230,0.78)', 1.6);
+
+  if (G.callout && G.phase === 'result') {
+    const k = easeOut(clamp(G.callout.age / 0.22, 0, 1));
+    const s = lerp(1.35, 1, k);
+    ctx.save();
+    ctx.translate(W / 2, numY - 52);
+    ctx.scale(s, s);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 28px ' + FONT;
+    ctx.letterSpacing = '3px';
+    ctx.fillStyle = G.callout.kind === 'spill' ? '#ff5a3c' : G.callout.kind === 'perfect' ? '#e9ff8a' : '#f0d7a2';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 12;
+    ctx.fillText(G.callout.text, 0, 0);
+    ctx.restore();
+    if (G.callout.sub && G.callout.kind !== 'perfect') {
+      drawTracked(G.callout.sub, W / 2, numY + 46, 12, 'rgba(240,215,162,0.9)', 0.6);
+    }
+  }
+
+  if (g && G.hud && G.mode !== 'zen') {
+    const edge = g.x - outerHW(g, 0.55);
+    const labelX = 18;
+    if (edge > labelX + 78) {
+      const ly = clamp((rimY(g) + bowlBottom(g)) * 0.5, SAT + 210, (G.floor || H) - 120);
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.font = '600 11px ' + FONT;
+      ctx.fillStyle = hexA(g.drink.lit, 0.95);
+      ctx.letterSpacing = '0.8px';
+      ctx.fillText(g.drink.name, labelX, ly);
+      ctx.letterSpacing = '0px';
+      ctx.restore();
+      drawPips(labelX + 24, ly + 16, g.pips);
+    }
+  }
+  if (G.mode === 'challenge' && G.isDaily) {
+    const best = load('fizz:best:daily:' + G.day, null);
+    if (best) {
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.font = '600 10px ' + FONT;
+      ctx.fillStyle = 'rgba(233,255,138,0.85)';
+      ctx.fillText('BEST ' + best.cleans + '/5', 18, top + 28);
+      ctx.restore();
+    }
+  }
+  if (G.mode === 'zen') {
+    const exit = G.buttons.filter(function (b) { return b.id === 'exit'; })[0];
+    if (exit) drawButton(Object.assign({ kind: 'ghost', label: 'EXIT', size: 11, r: 10 }, exit));
+    const eye = G.buttons.filter(function (b) { return b.id === 'hud'; })[0];
+    if (!eye) addBtn({ id: 'hud', x: W - 54, y: SAT + 12, w: 40, h: 40, r: 20 });
+    drawEye(W - 34, SAT + 32, false);
+  }
+  ctx.restore();
+}
+function drawPips(x, y, n) {
+  const gap = 12;
+  const start = x - (4 * gap) / 2;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.arc(start + i * gap, y, 3.1, 0, 6.3);
+    ctx.fillStyle = i < n ? '#e6c98a' : 'rgba(255,255,255,0.16)';
+    ctx.fill();
+  }
+}
+function drawEye(x, y) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(244,239,230,0.85)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 9, 6, 0, 0, 6.3);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x, y, 2.4, 0, 6.3);
+  ctx.fillStyle = 'rgba(244,239,230,0.85)';
+  ctx.fill();
+  ctx.restore();
+}
+function drawTitle() {
+  ensureDemo();
+  const m = titleMetrics();
+  const cx = m.cx;
+  drawSeal(cx, m.sealY, 20);
+  drawWordmark(cx, m.wordY, Math.min(64, W * 0.17));
+  // brass rule under the wordmark
+  ctx.save();
+  const ruleY = m.wordY + 28;
+  const rg = ctx.createLinearGradient(cx - 70, 0, cx + 70, 0);
+  rg.addColorStop(0, 'rgba(230,201,138,0)');
+  rg.addColorStop(0.5, 'rgba(230,201,138,0.85)');
+  rg.addColorStop(1, 'rgba(230,201,138,0)');
+  ctx.strokeStyle = rg;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - 70, ruleY);
+  ctx.lineTo(cx + 70, ruleY);
+  ctx.stroke();
+  ctx.restore();
+  drawTracked('LET IT RISE', cx, m.tagY, 11, 'rgba(244,239,230,0.78)', 3.2);
+  const streak = load('fizz:streak', { n: 0, last: 0 });
+  const showStreak = streak.n > 1 && (streak.last === G.day || streak.last === G.day - 1);
+  drawTracked((showStreak ? streak.n + ' DAY STREAK   ·   ' : '') + 'DAY ' + G.day, cx, m.tagY + 18, 10, 'rgba(230,201,138,0.88)', 1.4);
+
+  const specs = [
+    { id: 'go-challenge', label: 'CHALLENGE', sub: '5 GLASSES  ·  ' + G.payout[0] + ' / ' + G.payout[1] + ' / ' + G.payout[2], kind: 'primary' },
+    { id: 'go-run', label: 'ENDLESS', sub: 'HARDER GLASSES  ·  3 SPILLS OUT', kind: 'ghost' },
+    { id: 'go-zen', label: 'ZEN', sub: 'AUTO POUR  ·  BACKGROUND VIDEO', kind: 'ghost' }
+  ];
+  specs.forEach(function (s, i) {
+    const b = addBtn({ id: s.id, x: m.bx, y: m.y0 + i * (m.bh + m.gap), w: m.bw, h: m.bh, r: 16, label: s.label, sub: s.sub, kind: s.kind, size: 14 });
+    drawButton(b);
+  });
+  // cups sit in the counter, all free — never a paywall
+  const cy = m.y0 + 3 * (m.bh + m.gap) - 2;
+  if (cy < H - Math.max(SAB, 8) - 8) {
+    const order = ['crystal', 'brass', 'frost', 'rib'];
+    order.forEach(function (id, i) {
+      const x = cx - 78 + i * 40;
+      addBtn({ id: 'cup-' + id, x: x - 14, y: cy, w: 28, h: 28, r: 14 });
+      ctx.beginPath();
+      ctx.arc(x, cy + 14, 10, 0, 6.3);
+      ctx.fillStyle = id === 'brass' ? '#e6c98a' : id === 'frost' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.08)';
+      ctx.fill();
+      ctx.lineWidth = G.cup === id ? 2 : 1;
+      ctx.strokeStyle = G.cup === id ? '#e9ff8a' : 'rgba(230,201,138,0.45)';
+      ctx.stroke();
+      if (id === 'rib') {
+        ctx.beginPath();
+        ctx.moveTo(x - 6, cy + 12); ctx.lineTo(x + 6, cy + 12);
+        ctx.moveTo(x - 6, cy + 16); ctx.lineTo(x + 6, cy + 16);
+        ctx.stroke();
+      }
+    });
+    const pb = addBtn({ id: 'go-practice', x: cx + 86, y: cy, w: 70, h: 28, r: 8 });
+    drawTracked('PRACTICE', pb.x + pb.w / 2, pb.y + 14, 9, 'rgba(244,239,230,0.55)', 1);
+  }
+}
+function shareString() {
+  const rows = G.results.map(function (r) {
+    if (r.spill) return '💦';
+    if (r.perfect) return '🟩';
+    if (r.clean) return '🟨';
+    if (r.pct >= 80) return '🟧';
+    return '🟥';
+  }).join('');
+  const avg = G.results.length ? G.results.reduce(function (s, r) { return s + r.pct; }, 0) / G.results.length : 0;
+  let head = 'FIZZ';
+  if (G.mode === 'challenge' && G.isDaily) head += ' #' + G.day;
+  else if (G.mode === 'run') head += ' RUN';
+  else head += ' ' + seedCode(G.seed);
+  const link = duelLink();
+  if (G.mode === 'run') return head + '\n' + rows + '\n' + Math.round(G.runScore) + ' pts · streak ' + G.bestRunStreak + '\n' + link;
+  const cleans = G.results.filter(function (r) { return r.clean; }).length;
+  return head + '\n' + rows + '\n' + avg.toFixed(1) + '% avg · ' + cleans + '/5 clean\n' + link;
+}
+function duelLink() {
+  const fills = G.results.map(function (r) { return r.pct.toFixed(1); }).join(',');
+  const base = location.href.split('?')[0];
+  return base + '?mode=' + (G.mode === 'run' ? 'run' : 'challenge') + '&seed=' + G.seed + '&g=' + fills;
+}
+function drawEnd() {
+  const out = G.endSnap || outcome();
+  ctx.save();
+  ctx.fillStyle = 'rgba(6,5,8,0.55)';
+  ctx.fillRect(0, 0, W, H);
+  const cardW = Math.min(340, W - 36);
+  const cardH = G.mode === 'run' ? 430 : 470;
+  const x = (W - cardW) / 2;
+  const y = Math.max(SAT + 24, Math.min(H * 0.14, H - cardH - Math.max(SAB, 16) - 12));
+  ctx.fillStyle = 'rgba(16,12,14,0.92)';
+  rrect(ctx, x, y, cardW, cardH, 22);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(230,201,138,0.45)';
+  ctx.lineWidth = 1.25;
+  ctx.stroke();
+
+  const cx = W / 2;
+  drawTracked(G.isDaily ? 'DAY ' + G.day : seedCode(G.seed), cx, y + 32, 11, 'rgba(230,201,138,0.8)', 2);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '800 36px ' + FONT;
+  ctx.letterSpacing = '1px';
+  if (G.mode === 'run') {
+    ctx.fillStyle = '#f7f1e6';
+    ctx.fillText('SHIFT OVER', cx, y + 78);
+    ctx.font = '600 64px ' + FONT;
+    ctx.fillStyle = '#f0d7a2';
+    ctx.fillText(String(out.score), cx, y + 150);
+    drawTracked('BEST ' + Math.max(out.best || 0, out.score) + '   ·   STREAK ' + (out.bestStreak || 0), cx, y + 200, 12, 'rgba(244,239,230,0.75)', 1.2);
+  } else if (out.win) {
+    ctx.fillStyle = '#e9ff8a';
+    ctx.fillText('YOU WIN', cx, y + 78);
+    ctx.font = '800 72px ' + FONT;
+    ctx.fillStyle = '#f6e2b6';
+    ctx.fillText(out.payout || '', cx, y + 156);
+    drawTracked(out.cleans + ' / 5 CLEAN', cx, y + 206, 13, 'rgba(244,239,230,0.8)', 1.6);
+  } else {
+    ctx.fillStyle = '#ffb1a4';
+    ctx.fillText('NOT THIS TIME', cx, y + 78);
+    ctx.font = '600 28px ' + FONT;
+    ctx.fillStyle = '#f7f1e6';
+    ctx.fillText(out.cleans + ' / 5 CLEAN', cx, y + 140);
+    drawTracked('NEED 3 FOR ' + G.payout[0], cx, y + 180, 12, 'rgba(230,201,138,0.85)', 1.2);
+  }
+  if (out.note) {
+    wrapText(out.note, cx, y + (G.mode === 'run' ? 228 : 236), cardW - 40, 14, 'rgba(240,215,162,0.92)');
+  }
+  // squares
+  const sq = G.results.slice(0, 8);
+  const sw = 36, sg = 8;
+  const total = sq.length * sw + (sq.length - 1) * sg;
+  let sx = cx - total / 2;
+  const sy = y + (G.mode === 'run' ? 268 : 278);
+  for (let i = 0; i < sq.length; i++) {
+    const r = sq[i];
+    let col = '#ff5a3c';
+    if (!r.spill && r.perfect) col = '#b6e35a';
+    else if (!r.spill && r.clean) col = '#e6c98a';
+    else if (!r.spill && r.pct >= 80) col = '#e08a4a';
+    else if (!r.spill) col = '#a84848';
+    rrect(ctx, sx, sy, sw, sw, 8);
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.fillStyle = '#1a120c';
+    ctx.font = '700 11px ' + FONT;
+    ctx.textAlign = 'center';
+    ctx.fillText(r.spill ? '0' : r.pct.toFixed(0), sx + sw / 2, sy + 23);
+    sx += sw + sg;
+  }
+  const emoji = G.results.map(function (r) {
+    if (r.spill) return '💦';
+    if (r.perfect) return '🟩';
+    if (r.clean) return '🟨';
+    if (r.pct >= 80) return '🟧';
+    return '🟥';
+  }).join('');
+  drawTracked(emoji, cx, sy + 56, 16, '#f4efe6', 2);
+
+  const bw = (cardW - 48) / 2;
+  const again = addBtn({ id: 'again', x: cx - bw - 6, y: y + cardH - 78, w: bw, h: 52, r: 14, label: 'AGAIN', kind: 'primary', size: 15 });
+  const menu = addBtn({ id: 'menu', x: cx + 6, y: y + cardH - 78, w: bw * 0.46, h: 52, r: 14, label: 'MENU', kind: 'ghost', size: 12 });
+  const share = addBtn({ id: 'share', x: menu.x + menu.w + 8, y: y + cardH - 78, w: bw - menu.w - 8 + (bw - menu.w), h: 52, r: 14, label: 'SHARE', kind: 'ghost', size: 12 });
+  // fix share width to fill
+  share.x = menu.x + menu.w + 8;
+  share.w = (cx + bw + 6) - share.x;
+  drawButton(again); drawButton(menu); drawButton(share);
+  ctx.restore();
+}
+function wrapText(text, x, y, maxW, size, color) {
+  ctx.save();
+  ctx.font = '600 ' + size + 'px ' + FONT;
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function drawToast() {
+  if (!G.toast) return;
+  const a = G.toast.age < 0.15 ? G.toast.age / 0.15 : G.toast.age > 1.45 ? Math.max(0, (1.8 - G.toast.age) / 0.35) : 1;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.font = '700 12px ' + FONT;
+  const w = ctx.measureText(G.toast.text).width + 28;
+  rrect(ctx, (W - w) / 2, SAT + 8, w, 28, 14);
+  ctx.fillStyle = '#f0d7a2';
+  ctx.fill();
+  ctx.fillStyle = '#2a1c10';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(G.toast.text, W / 2, SAT + 22);
+  ctx.restore();
+}
+function render() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#0c0a10';
+  ctx.fillRect(0, 0, W, H);
+  if (bgCanvas) ctx.drawImage(bgCanvas, 0, 0, W, H);
+  // drifting bokeh on top of cache
+  ctx.save();
+  const drift = [
+    { x: W * (0.2 + Math.sin(G.t * 0.15) * 0.04), y: H * 0.3, r: 50, c: 'rgba(255,190,130,0.05)' },
+    { x: W * (0.75 + Math.cos(G.t * 0.12) * 0.03), y: H * 0.55, r: 70, c: 'rgba(140,170,255,0.04)' }
+  ];
+  for (let i = 0; i < drift.length; i++) {
+    const d = drift[i];
+    const rg = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r);
+    rg.addColorStop(0, d.c); rg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.3); ctx.fill();
+  }
+  ctx.restore();
+
+  resetButtons();
+  ctx.save();
+  applyCamera();
+  drawBar();
+  drawPuddles();
+  drawShaft(G.screen === 'title' ? G.demo : (G.serve ? G.serve.glasses[0] : null));
+  const pouring = (G.screen === 'play' && G.phase === 'pour') || (G.screen === 'title' && G.demo && G.demo._pour);
+  const glass = G.screen === 'title' ? G.demo : (G.serve ? G.serve.glasses[0] : null);
+  if (G.screen !== 'title' && G.serve) {
+    // draw children first (they sit behind / below)
+    for (let i = G.serve.glasses.length - 1; i >= 0; i--) {
+      const gl = G.serve.glasses[i];
+      drawGlass(gl, easeOut(clamp(gl.present, 0, 1)));
+    }
+  } else if (G.demo) {
+    drawGlass(G.demo, G.screen === 'end' ? 0.4 : 1);
+  }
+  if (pouring && glass) {
+    const tip = drawFaucet(glass.x - 8, (G.faucetY || rimY(glass) - 100));
+    G.faucetTip = tip;
+    drawStream(glass, tip);
+  } else if (G.screen === 'play' && G.serve && G.phase !== 'exit') {
+    // faucet at rest, no stream
+    const g0 = G.serve.glasses[0];
+    if (g0.present > 0.4) drawFaucet(g0.x - 8, G.faucetY || rimY(g0) - 100);
+  } else if (G.screen === 'title' && G.demo) {
+    drawFaucet(G.demo.x - 8, G.faucetY || rimY(G.demo) - 100);
+  }
+  drawWorldDrops();
+  ctx.restore();
+
+  drawVignette();
+  drawGrain();
+
+  if (G.screen === 'title') drawTitle();
+  else if (G.screen === 'play') drawPlayHUD();
+  else if (G.screen === 'end') drawEnd();
+  drawToast();
+
+  if (params.get('debug') === '1') {
+    ctx.fillStyle = '#e9ff8a';
+    ctx.font = '12px ' + FONT;
+    ctx.textAlign = 'left';
+    ctx.fillText((G.fps || 0).toFixed(0) + ' fps  ' + G.phase + '  ' + G.screen, 8, H - 12);
+  }
+}
+
+/* ---------- input ---------- */
+function pointerPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (W / Math.max(1, r.width)),
+    y: (e.clientY - r.top) * (H / Math.max(1, r.height))
+  };
+}
+function activate(id) {
+  if (id === 'go-challenge') startMode('challenge', G.dailySeed, { clearGhost: true });
+  else if (id === 'go-practice') startMode('challenge', (hashParts('practice', Date.now()) >>> 0) || 1, { clearGhost: true });
+  else if (id === 'go-run') startMode('run', (hashParts('run', Date.now(), G.day) >>> 0) || 2, { clearGhost: true });
+  else if (id === 'go-zen') startMode('zen', hashParts('zen', G.day, 9) >>> 0, { clearGhost: true });
+  else if (id.indexOf('cup-') === 0) {
+    G.cup = id.slice(4);
+    save('fizz:cup', G.cup);
+    tone(880, 0.04, 'triangle', 0.04);
+  } else if (id === 'again') restart();
+  else if (id === 'menu' || id === 'exit') goTitle();
+  else if (id === 'hud') G.hud = !G.hud;
+  else if (id === 'share') doShare();
+}
+function doShare() {
+  const text = shareString();
+  const done = function (msg) { G.toast = { text: msg, age: 0 }; };
+  if (navigator.share) {
+    navigator.share({ text: text }).then(function () { done('SHARED'); }).catch(function () { copyText(text).then(function (ok) { done(ok ? 'COPIED' : 'COPY FAILED'); }); });
+  } else {
+    copyText(text).then(function (ok) { done(ok ? 'COPIED' : 'COPY FAILED'); });
+  }
+}
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () { return fallbackCopy(text); });
+  }
+  return Promise.resolve(fallbackCopy(text));
+}
+function fallbackCopy(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (e) { return false; }
+}
+canvas.addEventListener('pointerdown', function (e) {
+  e.preventDefault();
+  unlockAudio();
+  const p = pointerPos(e);
+  G.fingerX = p.x; G.fingerY = p.y;
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+  const b = hitButton(p.x, p.y);
+  if (b) { G.pressed = b.id; return; }
+  G.pressed = null;
+  if (G.screen === 'play' && G.mode !== 'zen' && (G.phase === 'ready' || G.phase === 'pour')) G.holding = true;
+  if (G.screen === 'play' && G.mode === 'zen') G.zenTap = true;
+});
+canvas.addEventListener('pointermove', function (e) {
+  const p = pointerPos(e);
+  G.fingerX = p.x; G.fingerY = p.y;
+});
+function endPointer(e) {
+  const p = pointerPos(e);
+  const b = hitButton(p.x, p.y);
+  if (G.pressed && b && b.id === G.pressed) activate(b.id);
+  else if (!G.pressed && G.screen === 'play' && G.phase === 'result' && G.phaseT > 0.32 && G.mode !== 'zen') advance();
+  else if (!G.pressed && G.screen === 'play' && G.mode === 'zen' && G.zenTap && !G.hud) G.hud = true;
+  G.holding = false;
+  G.pressed = null;
+  G.zenTap = false;
+}
+canvas.addEventListener('pointerup', function (e) { e.preventDefault(); unlockAudio(); endPointer(e); });
+canvas.addEventListener('pointercancel', function (e) { G.holding = false; G.pressed = null; });
+window.addEventListener('keydown', function (e) {
+  if (e.code === 'Space' || e.code === 'Enter') e.preventDefault();
+  if (e.repeat) return;
+  unlockAudio();
+  if (e.code === 'Space') {
+    if (G.screen === 'play' && G.mode !== 'zen') G.holding = true;
+    else if (G.screen === 'end') restart();
+    else if (G.screen === 'title') startMode('challenge', G.dailySeed);
+  }
+  if (e.code === 'KeyM') goTitle();
+});
+window.addEventListener('keyup', function (e) {
+  if (e.code === 'Space') G.holding = false;
+});
+window.addEventListener('resize', resize);
+document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
+
+/* ---------- boot ---------- */
+function boot() {
+  buildVolumes();
+  G.day = dailyNumber(new Date());
+  G.dailySeed = hashParts('fizz-daily-v1', G.day) >>> 0;
+  G.seenCoach = !!load('fizz:coached', false);
+  const storedCup = load('fizz:cup', 'crystal');
+  if (CUPS[storedCup]) G.cup = storedCup;
+  const pay = params.get('pay');
+  if (pay) {
+    const parts = pay.split('|').map(function (s) { return s.trim(); }).filter(Boolean);
+    if (parts.length === 3) G.payout = parts;
+  }
+  const gq = params.get('g');
+  if (gq) {
+    G.ghost = gq.split(',').map(function (n) { return parseFloat(n); }).filter(function (n) { return !isNaN(n); });
+  }
+  let seed = null;
+  if (params.get('seed')) {
+    const raw = params.get('seed');
+    seed = /^\d+$/.test(raw) ? (Number(raw) >>> 0) : hashString(raw);
+  }
+  resize();
+  ensureDemo();
+  layoutDemo();
+  const mode = params.get('mode');
+  if (mode === 'zen' || mode === 'run' || mode === 'challenge' || mode === 'daily') {
+    const m = mode === 'daily' ? 'challenge' : mode;
+    startMode(m, seed == null ? (m === 'challenge' ? G.dailySeed : hashParts(m, G.day)) : seed);
+    if (m === 'challenge' && seed != null && seed !== G.dailySeed) G.isDaily = false;
+  }
+  let last = performance.now();
+  let frames = 0, acc = 0;
+  function loop(now) {
+    let dt = (now - last) / 1000;
+    last = now;
+    if (dt > 0.1) dt = 0.1;
+    if (dt < 0) dt = 0;
+    frames++; acc += dt;
+    if (acc >= 0.4) { G.fps = frames / acc; frames = 0; acc = 0; }
+    if (!document.hidden) update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+window.__FIZZ = {
+  hold: function () { G.holding = true; if (G.phase === 'ready') beginPour(); },
+  release: function () { G.holding = false; },
+  arm: function (sec) { G.holding = true; G.arm = sec; if (G.phase === 'ready') beginPour(); },
+  start: function (mode, seed) { startMode(mode, seed >>> 0); },
+  info: function () {
+    const g = G.serve ? storyGlass(G.serve) : null;
+    return {
+      screen: G.screen, phase: G.phase, mode: G.mode, seed: G.seed, day: G.day,
+      index: G.serveIndex, w: W, h: H,
+      pct: g ? glassFraction(g) : 0,
+      shown: g ? shownPct(glassFraction(g)) : 0,
+      pending: g ? g.pending : 0,
+      spilled: !!(G.serve && G.serve.glasses.some(function (gl) { return gl.spilled; })),
+      results: G.results.map(function (r) { return r.pct; }),
+      notes: G.results.map(function (r) { return r.note; }),
+      strikes: G.strikes, score: G.runScore, fps: G.fps,
+      drink: g ? g.drink.name : '',
+      pips: g ? g.pips : 0,
+      tower: G.serve && G.serve.glasses.length > 1
+    };
+  },
+  goto: function (index) {
+    G.serveIndex = index;
+    G.results = G.results.slice(0, index);
+    G.serve = buildServe(G.mode, G.seed, index);
+    layoutServe(G.serve);
+    G.displayPct = 0;
+    setPhase('enter');
+    return window.__FIZZ.info();
+  },
+  sim: function (mode, seed, index, seconds) {
+    const serve = buildServe(mode, seed >>> 0, index);
+    const dt = 1 / 60;
+    let t = 0;
+    while (t < seconds) { stepServe(serve, dt, true); t += dt; }
+    let guard = 0;
+    while (serve.glasses.some(function (g) { return g.pending > g.capacity * 0.0035; }) && guard < 400) {
+      stepServe(serve, dt, false); guard++;
+    }
+    return serveSummary(serve);
+  },
+  state: function () { return G; }
+};
+
+boot();
+</script>
+</body>
+</html>
