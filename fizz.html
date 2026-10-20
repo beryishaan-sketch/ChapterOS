@@ -38,29 +38,29 @@
 */
 
 const TUNE = {
-  holdEasy: 5.1,
-  holdHard: 2.55,
-  slowStart: 2.05,
-  slowEnd: 0.34,
+  holdEasy: 4.6,
+  holdHard: 2.35,
+  slowStart: 2.35,
+  slowEnd: 0.42,
   riseMin: 1.05,
-  riseMax: 1.95,
+  riseMax: 1.85,
   cleanAt: 95,
-  perfectAt: 99,
-  slowmoAt: 0.86,
-  slowmo: 0.46,
-  zoomIn: 1.075
+  perfectAt: 97,
+  slowmoAt: 0.9,
+  slowmo: 0.42,
+  zoomIn: 1.1
 };
 
 const FONT = '"SF Pro Display", Inter, "Noto Sans Display", "Helvetica Neue", sans-serif';
 const SERIF = '"Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif';
 
 const DRINKS = [
-  { name: 'LYCHEE CREAM', deep: '#8d4458', mid: '#e7a3b6', lit: '#ffd6e2', foam: '#fff7f8', caustic: '#ffd0dc', bubble: '#fff0f4' },
-  { name: 'PEACH SODA', deep: '#9a3d22', mid: '#f08448', lit: '#ffc49a', foam: '#fff4ee', caustic: '#ffb07a', bubble: '#ffe8d8' },
-  { name: 'COLA NOIR', deep: '#1a0704', mid: '#7a2e12', lit: '#ff9a3c', foam: '#f3e6d4', caustic: '#ffb15a', bubble: '#ffd7a8' },
-  { name: 'GINGER GOLD', deep: '#8a3a0c', mid: '#e07a22', lit: '#ffd27a', foam: '#fff6e8', caustic: '#ffc46a', bubble: '#ffe6b0' },
-  { name: 'YUZU HIGHBALL', deep: '#5c7010', mid: '#c6d84a', lit: '#f4ffb0', foam: '#fbfff2', caustic: '#e4ff6a', bubble: '#f3ffc4' },
-  { name: 'BLUE TONIC', deep: '#08245c', mid: '#1f6fe0', lit: '#b9e6ff', foam: '#f4fbff', caustic: '#7ad4ff', bubble: '#e4f6ff' }
+  { name: 'LYCHEE CREAM', deep: '#4a1428', mid: '#e07a98', lit: '#ffd0de', foam: '#fff6f8', caustic: '#ffb7cc', bubble: '#ffe4ec' },
+  { name: 'PEACH SODA', deep: '#6a1c08', mid: '#ff6a2a', lit: '#ffc9a0', foam: '#fff3ea', caustic: '#ffb07a', bubble: '#ffe0c8' },
+  { name: 'COLA NOIR', deep: '#070302', mid: '#4a1608', lit: '#ffb15a', foam: '#f6ead8', caustic: '#ff9a3c', bubble: '#ffd7a4' },
+  { name: 'GINGER GOLD', deep: '#4a1804', mid: '#e8891a', lit: '#ffe09a', foam: '#fff8ec', caustic: '#ffc85a', bubble: '#ffe8b8' },
+  { name: 'YUZU HIGHBALL', deep: '#243004', mid: '#b6d423', lit: '#f4ff9a', foam: '#fbfff0', caustic: '#d8ff55', bubble: '#f2ffc0' },
+  { name: 'BLUE TONIC', deep: '#041433', mid: '#1460e0', lit: '#b7ecff', foam: '#f3fbff', caustic: '#5ec8ff', bubble: '#d8f4ff' }
 ];
 
 const SHAPES = {
@@ -129,7 +129,10 @@ const G = {
   endSnap: null,
   faucetTip: { x: 195, y: 200 },
   streamLean: 0,
-  demo: null
+  demo: null,
+  flash: 0,
+  shimmer: 0,
+  pctV: 0
 };
 
 /* ---------- utils ---------- */
@@ -312,11 +315,11 @@ function buildServe(mode, seed, index) {
     bot.drink = top.drink;
     bot.pips = Math.max(1, top.pips - 1);
     bot.fizz = top.fizz * 0.25;
-    top.fizz *= 0.55;
+    top.fizz *= 0.22;
     top.childIdx = [1];
-    top.capacity *= 0.7;
-    top.pourRate *= 0.7;
-    bot.capacity = top.capacity * 0.78;
+    top.capacity *= 0.62;
+    top.pourRate *= 1.2;
+    bot.capacity = top.capacity * 0.7;
     glasses.push(top, bot);
   } else {
     const top = makeGlass('tulip', spec.d, rng, false);
@@ -330,9 +333,9 @@ function buildServe(mode, seed, index) {
     b.pips = a.pips = Math.max(1, top.pips - 1);
     b.pourRate = a.pourRate;
     top.childIdx = [1, 2];
-    top.capacity *= 0.66;
-    top.pourRate *= 0.66;
-    a.capacity = top.capacity * 0.48;
+    top.capacity *= 0.52;
+    top.pourRate *= 1.05;
+    a.capacity = top.capacity * 0.36;
     b.capacity = a.capacity;
     glasses.push(top, a, b);
   }
@@ -356,10 +359,11 @@ function rateNow(g, serve) {
     vis = childVis;
   }
   const cascading = serve && g.childIdx && g.childIdx.length && (g.body + g.foam) / g.capacity >= 0.992;
-  const k = smooth(clamp((vis - 0.4) / 0.5, 0, 1));
-  // A cascade should move, then crawl once the lower glass is near the rim.
-  let m = cascading ? lerp(1.85, 0.22, k) : lerp(TUNE.slowStart, TUNE.slowEnd, k);
-  if (vis > 0.88) m *= lerp(1, 0.55, clamp((vis - 0.88) / 0.12, 0, 1));
+  // Fast through the middle, then a long readable crawl from the mid-90s to the rim.
+  const k = smooth(clamp((vis - 0.58) / 0.28, 0, 1));
+  let m = cascading ? lerp(2.4, 0.3, smooth(clamp((vis - 0.35) / 0.5, 0, 1))) : lerp(TUNE.slowStart, TUNE.slowEnd, k);
+  if (!cascading && vis > 0.84) m *= lerp(1, 0.28, clamp((vis - 0.84) / 0.14, 0, 1));
+  if (cascading && vis > 0.78) m *= lerp(1, 0.26, clamp((vis - 0.78) / 0.16, 0, 1));
   return g.pourRate * m;
 }
 function stepGlassLocal(g, dt, pouring, serve) {
@@ -478,7 +482,10 @@ function stepWaves(serve, dt, pouring) {
 }
 
 /* ---------- particles ---------- */
-const bubbles = Array.from({ length: 140 }, function () { return { alive: false }; });
+const bubbles = Array.from({ length: 280 }, function () { return { alive: false }; });
+const motes = Array.from({ length: 32 }, function (_, i) {
+  return { x: (i * 37) % 390, y: 80 + (i * 53) % 500, r: 0.6 + (i % 5) * 0.35, s: 8 + (i % 7) * 3, a: 0.15 + (i % 4) * 0.08 };
+});
 const sparks = Array.from({ length: 90 }, function () { return { alive: false }; });
 const drops = Array.from({ length: 120 }, function () { return { alive: false }; });
 const bits = Array.from({ length: 90 }, function () { return { alive: false }; });
@@ -494,10 +501,12 @@ function spawnBubble(g) {
     b.g = g;
     b.t = Math.random() * Math.max(0.04, volToT(g.shape, frac) * 0.92);
     b.u = (Math.random() * 2 - 1) * 0.78;
-    b.r = 0.7 + Math.random() * (1.6 + g.pips * 0.35);
-    b.speed = 28 + Math.random() * 70;
+    b.z = Math.random();
+    b.r = (0.45 + b.z * 2.4) * (0.75 + g.pips * 0.12);
+    const near = Math.abs(b.u) < 0.28 ? 1.65 : 1;
+    b.speed = (22 + b.z * 96) * near;
     b.ph = Math.random() * 6.28;
-    b.wob = 1.5 + Math.random() * 3;
+    b.wob = 1.2 + Math.random() * 3.4;
   });
 }
 function updateBubbles(dt) {
@@ -510,10 +519,10 @@ function updateBubbles(dt) {
     if (!active) continue;
     const pouring = G.screen === 'title' ? !!g._pour : (G.phase === 'pour' && i === 0);
     const fizzy = pouring || g.pending > g.capacity * 0.008;
-    const rate = (fizzy ? 10 : 3) + g.pips * (fizzy ? 5 : 1.2);
+    const rate = (fizzy ? 18 : 7) + g.pips * (fizzy ? 5 : 1.5);
     g.bubbleAcc += rate * dt;
     let guard = 0;
-    while (g.bubbleAcc > 1 && guard < 6) { g.bubbleAcc -= 1; spawnBubble(g); guard++; }
+    while (g.bubbleAcc > 1 && guard < 8) { g.bubbleAcc -= 1; spawnBubble(g); guard++; }
   }
   for (let i = 0; i < bubbles.length; i++) {
     const b = bubbles[i];
@@ -742,10 +751,10 @@ function serveSummary(serve) {
     const over = serve.glasses.reduce(function (m, g) { return Math.max(m, g.spillAmt / g.capacity); }, 0);
     if (over > 0 && over < 0.04) note = 'So close: spilled by a hair';
   } else if (!perfect) {
-    if (min >= 97 && min < TUNE.perfectAt) {
-      const dist = Math.round((100 - min) * 10) / 10;
+    if (min >= 93 && min < TUNE.perfectAt) {
+      const dist = Math.round((TUNE.perfectAt - min) * 10) / 10;
       note = 'So close: ' + dist.toFixed(1) + '% from perfect';
-    } else if (min >= 90 && min < TUNE.cleanAt) {
+    } else if (min >= 88 && min < TUNE.cleanAt) {
       const dist = Math.round((TUNE.cleanAt - min) * 10) / 10;
       note = 'So close: ' + dist.toFixed(1) + '% under the line';
     }
@@ -789,7 +798,9 @@ function finishServe() {
       spawnConfetti(g.x, rimY(g), g.drink.lit);
       G.showConfetti = true;
       perfectChime();
-      G.shake = Math.max(G.shake, 0.45);
+      G.shake = Math.max(G.shake, 0.55);
+      G.flash = 1;
+      G.shimmer = 0;
     } else if (sum.clean) {
       call('CLEAN', sum.pct.toFixed(1) + '%', 'clean');
       tone(660, 0.08, 'sine', 0.06);
@@ -1010,10 +1021,22 @@ function noiseHit(dur, gain, freq) {
   src.connect(f); f.connect(g); g.connect(master);
   src.start(t0);
 }
-function clink() { tone(1860, 0.09, 'sine', 0.07); tone(3120, 0.07, 'sine', 0.035, 0.012); }
-function splashSound() { noiseHit(0.34, 0.5, 420); tone(92, 0.32, 'sine', 0.18); tone(180, 0.18, 'triangle', 0.06); }
+function clink() {
+  noiseHit(0.04, 0.1, 2800);
+  tone(1680, 0.14, 'sine', 0.07);
+  tone(2480, 0.1, 'triangle', 0.04, 0.012);
+  tone(3320, 0.07, 'sine', 0.025, 0.02);
+}
+function splashSound() {
+  noiseHit(0.48, 0.55, 340);
+  noiseHit(0.16, 0.32, 1600);
+  tone(68, 0.42, 'sine', 0.22);
+  tone(150, 0.2, 'triangle', 0.07);
+}
 function perfectChime() {
-  [523, 659, 784, 1046].forEach(function (f, i) { tone(f, 0.22, 'sine', 0.06, i * 0.055); });
+  [523, 659, 784, 1046, 1318].forEach(function (f, i) { tone(f, 0.28, 'sine', 0.055, i * 0.05); });
+  tone(1568, 0.4, 'triangle', 0.03, 0.22);
+  noiseHit(0.18, 0.06, 3400);
 }
 function updateAudio() {
   if (!actx) return;
@@ -1022,8 +1045,8 @@ function updateAudio() {
   const frac = g ? clamp(glassFraction(g), 0, 1) : 0;
   const now = actx.currentTime;
   const on = G.audioOn;
-  pourGain.gain.setTargetAtTime(on && pouring ? 0.20 : 0, now, 0.035);
-  pourOscGain.gain.setTargetAtTime(on && pouring ? 0.055 : 0, now, 0.05);
+  pourGain.gain.setTargetAtTime(on && pouring ? 0.28 : 0, now, 0.04);
+  pourOscGain.gain.setTargetAtTime(on && pouring ? 0.08 : 0, now, 0.05);
   if (pourOsc) pourOsc.frequency.setTargetAtTime(130 + frac * 110, now, 0.08);
   if (pourFilter) pourFilter.frequency.setTargetAtTime(360 + frac * 640, now, 0.08);
   const closeness = clamp((frac - 0.68) / 0.32, 0, 1);
@@ -1041,11 +1064,12 @@ function updateAudio() {
 
 /* ---------- update ---------- */
 function desiredScale() {
-  if (!G.serve || G.phase !== 'rise' || G.mode === 'zen') return 1;
+  if (!G.serve || G.mode === 'zen') return 1;
   const g = storyGlass(G.serve);
   if (!g || g.spilled) return 1;
   const frac = glassFraction(g);
-  if (frac > TUNE.slowmoAt && g.pending > g.capacity * 0.008) return TUNE.slowmo;
+  if (G.phase === 'pour' && frac > 0.9) return 0.58;
+  if (G.phase === 'rise' && frac > TUNE.slowmoAt && g.pending > g.capacity * 0.008) return TUNE.slowmo;
   return 1;
 }
 function updatePlay(dt) {
@@ -1054,13 +1078,13 @@ function updatePlay(dt) {
     if ((G.phase === 'ready') && G.holding) beginPour();
     if (G.phase === 'pour' && !G.holding) beginRise();
   } else {
-    const wait = 0.28 + (G.serve.salt || 0) * 18;
+    const wait = 1.65 + (G.serve.salt || 0) * 12;
     if (G.phase === 'ready' && G.phaseT > wait) beginPour();
     if (G.phase === 'pour' && zenShouldStop(G.serve)) beginRise();
   }
   const targetScale = desiredScale();
   G.timeScale += (targetScale - G.timeScale) * Math.min(1, dt * 6);
-  const simBudget = dt * (G.phase === 'rise' ? G.timeScale : 1);
+  const simBudget = dt * (G.mode === 'zen' ? 1 : G.timeScale);
   let acc = simBudget;
   const step = 1 / 60;
   let guard = 0;
@@ -1119,19 +1143,22 @@ function updatePlay(dt) {
     }
   });
   G.phaseT += dt;
-  if (G.phase === 'enter' && G.phaseT > 0.48) setPhase('ready');
+  if (G.phase === 'enter' && G.phaseT > (G.mode === 'zen' ? 0.85 : 0.55)) setPhase('ready');
   if (G.phase === 'rise') {
     const settled = G.serve.glasses.every(function (g) { return g.pending < g.capacity * 0.0035; });
     const spilled = G.serve.glasses.some(function (g) { return g.spilled; });
     if ((settled && G.phaseT > 0.28) || G.phaseT > 3.4 || (spilled && G.phaseT > 0.62)) finishServe();
   }
   if (G.phase === 'result') {
-    const wait = G.mode === 'zen' ? 0.95 : (G.callout && G.callout.kind === 'perfect' ? 1.55 : 1.28);
+    const wait = G.mode === 'zen' ? 1.85 : (G.callout && G.callout.kind === 'perfect' ? 1.7 : 1.35);
     if (G.phaseT > wait) advance();
   }
-  if (G.phase === 'exit' && G.phaseT > 0.30) nextServe();
-  // camera
-  const zTarget = (G.timeScale < 0.75 && G.phase === 'rise') ? TUNE.zoomIn : 1;
+  if (G.phase === 'exit' && G.phaseT > (G.mode === 'zen' ? 0.62 : 0.42)) nextServe();
+  // camera — push in while the rim is the whole decision
+  const sgCam = storyGlass(G.serve);
+  const fracCam = sgCam ? glassFraction(sgCam) : 0;
+  const aiming = G.mode !== 'zen' && (G.phase === 'pour' || G.phase === 'rise') && fracCam > 0.9 && !(sgCam && sgCam.spilled);
+  const zTarget = aiming ? TUNE.zoomIn : 1;
   G.zoom += (zTarget - G.zoom) * Math.min(1, dt * 4);
   if (G.shake > 0) {
     G.shake = Math.max(0, G.shake - dt * 1.8);
@@ -1153,12 +1180,21 @@ function updatePlay(dt) {
   }
   if (!sleeveHide) {
     const prev = G._shownGate || 0;
-    G.displayPct += (targetPct - G.displayPct) * Math.min(1, dt * 10);
-    [90, 95, 99].forEach(function (mark) {
+    if (targetPct === 0 && G.serve && G.serve.glasses.some(function (g) { return g.spilled; })) {
+      G.displayPct = 0;
+      G.pctV = 0;
+    } else {
+      const acc = (targetPct - G.displayPct) * 26 - (G.pctV || 0) * 8.2;
+      G.pctV = (G.pctV || 0) + acc * dt;
+      G.displayPct = clamp(G.displayPct + G.pctV * dt, 0, 100.6);
+    }
+    [90, 95, 97].forEach(function (mark) {
       if (prev < mark && G.displayPct >= mark) G.numPop = 1;
     });
     G._shownGate = G.displayPct;
   }
+  G.flash = Math.max(0, (G.flash || 0) - dt * 0.65);
+  G.shimmer = (G.shimmer || 0) + dt;
   G.numPop = Math.max(0, (G.numPop || 0) - dt * 2.4);
   if (G.callout) G.callout.age += dt;
 }
@@ -1209,6 +1245,12 @@ function update(dt) {
   for (let i = puddles.length - 1; i >= 0; i--) {
     puddles[i].life -= dt;
     if (puddles[i].life <= 0) puddles.splice(i, 1);
+  }
+  for (let i = 0; i < motes.length; i++) {
+    const m = motes[i];
+    m.y -= m.s * dt;
+    m.x += Math.sin(G.t * 0.6 + i) * 6 * dt;
+    if (m.y < SAT + 40) { m.y = H * 0.62; m.x = Math.random() * W; }
   }
   if (G.screen === 'title') updateDemo(dt);
   else if (G.screen === 'play') updatePlay(dt);
@@ -1271,6 +1313,33 @@ function rebuildBG() {
     b.arc(d[0] * W, d[1] * H, d[2], 0, 6.3);
     b.fill();
   }
+  // back-bar bottles, painted once so they stay soft and cheap
+  const shelf = H * 0.58;
+  b.fillStyle = 'rgba(40,32,28,0.85)';
+  b.fillRect(0, shelf, W, 8);
+  b.fillStyle = 'rgba(230,190,140,0.35)';
+  b.fillRect(0, shelf, W, 1.5);
+  const backs = [
+    [0.06, 168, 26, '#6a3a28'], [0.14, 210, 20, '#2a4870'], [0.22, 150, 28, '#7a3024'],
+    [0.74, 188, 22, '#243e68'], [0.83, 230, 18, '#8a3424'], [0.91, 160, 26, '#5a4030']
+  ];
+  for (let i = 0; i < backs.length; i++) {
+    const bt = backs[i];
+    const x = bt[0] * W, bh = bt[1], bw = bt[2];
+    const grd = b.createLinearGradient(x, 0, x + bw, 0);
+    grd.addColorStop(0, '#0c0b0c');
+    grd.addColorStop(0.4, bt[3]);
+    grd.addColorStop(0.55, 'rgba(255,230,190,0.7)');
+    grd.addColorStop(1, '#0c0b0c');
+    b.fillStyle = grd;
+    b.beginPath();
+    b.moveTo(x + 4, shelf);
+    b.lineTo(x, shelf - bh + 28);
+    b.quadraticCurveTo(x + bw * 0.5, shelf - bh - 8, x + bw, shelf - bh + 28);
+    b.lineTo(x + bw - 4, shelf);
+    b.closePath();
+    b.fill();
+  }
   if (!noiseCanvas) {
     noiseCanvas = document.createElement('canvas');
     noiseCanvas.width = 128; noiseCanvas.height = 128;
@@ -1289,9 +1358,9 @@ function rebuildBG() {
     marbleCanvas = document.createElement('canvas');
     marbleCanvas.width = 256; marbleCanvas.height = 256;
     const m = marbleCanvas.getContext('2d');
-    m.fillStyle = '#161311';
+    m.fillStyle = '#2a241e';
     m.fillRect(0, 0, 256, 256);
-    m.strokeStyle = 'rgba(80, 60, 48, 0.35)';
+    m.strokeStyle = 'rgba(210, 180, 150, 0.28)';
     m.lineWidth = 1;
     let s = 77;
     for (let v = 0; v < 14; v++) {
@@ -1363,9 +1432,10 @@ function drawBar() {
   for (let i = 0; i < bottles.length; i++) {
     const bt = bottles[i];
     const grd = ctx.createLinearGradient(bt.x, 0, bt.x + bt.w, 0);
-    grd.addColorStop(0, '#0c0b0c');
-    grd.addColorStop(0.45, bt.c);
-    grd.addColorStop(1, '#0c0b0c');
+    grd.addColorStop(0, '#141210');
+    grd.addColorStop(0.42, bt.c);
+    grd.addColorStop(0.55, 'rgba(255,220,180,0.55)');
+    grd.addColorStop(1, '#141210');
     ctx.fillStyle = grd;
     rrect(ctx, bt.x, shelfY - bt.h, bt.w, bt.h, 4);
     ctx.fill();
@@ -1375,19 +1445,19 @@ function drawBar() {
   ctx.restore();
 
   const grd = ctx.createLinearGradient(0, y - 10, 0, H);
-  grd.addColorStop(0, '#3a322b');
-  grd.addColorStop(0.04, '#221c19');
-  grd.addColorStop(0.2, '#161311');
-  grd.addColorStop(1, '#0a090b');
+  grd.addColorStop(0, '#8a7360');
+  grd.addColorStop(0.025, '#4a3b32');
+  grd.addColorStop(0.16, '#2a221c');
+  grd.addColorStop(1, '#120e10');
   ctx.fillStyle = grd;
   ctx.fillRect(0, y, W, H - y + 40);
   ctx.save();
-  ctx.globalAlpha = 0.45;
+  ctx.globalAlpha = 0.72;
   ctx.drawImage(marbleCanvas, 0, y, W, Math.max(10, H - y));
   ctx.restore();
   // warm pool of light on the marble
-  const pool = ctx.createRadialGradient(W / 2, y + 10, 10, W / 2, y + 18, W * 0.42);
-  pool.addColorStop(0, 'rgba(255, 200, 150, 0.16)');
+  const pool = ctx.createRadialGradient(W / 2, y + 8, 8, W / 2, y + 16, W * 0.46);
+  pool.addColorStop(0, 'rgba(255, 206, 160, 0.34)');
   pool.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = pool;
   ctx.fillRect(0, y, W, 80);
@@ -1438,8 +1508,8 @@ function surfacePoints(g, tBase, amp) {
     const u = i / steps;
     const width = innerHW(g, tBase);
     const x = g.x + (u * 2 - 1) * width;
-    const edge = Math.pow(Math.abs(u * 2 - 1), 2.2);
-    const men = edge * Math.min(12, width * 0.22);
+    const edge = Math.pow(Math.abs(u * 2 - 1), 1.85);
+    const men = edge * Math.min(10, width * 0.24);
     const rip = Math.sin(u * Math.PI * 2.5 + g.rip) * amp * Math.sin(u * Math.PI);
     const tilt = g.tilt * (u * 2 - 1) * Math.min(10, width * 0.12);
     const y = tToY(g, tBase) - g.wave * 0.45 - men - rip + tilt;
@@ -1457,8 +1527,8 @@ function drawGlass(g, alpha) {
   const cup = CUPS[G.cup] || CUPS.crystal;
   ctx.save();
   ctx.globalAlpha *= alpha;
-  const slide = (1 - easeOut(clamp(g.present, 0, 1))) * 46;
-  ctx.translate(0, slide);
+  const slide = (1 - easeOut(clamp(g.present, 0, 1)));
+  ctx.translate(slide * 110, slide * 22);
   const foot = g.footY;
   ctx.translate(0, foot);
   ctx.scale(1, g.squash || 1);
@@ -1479,6 +1549,17 @@ function drawGlass(g, alpha) {
   ctx.beginPath();
   ctx.ellipse(g.x, foot + 5, outerHW(g, 0) * 0.95, 10, 0, 0, 6.3);
   ctx.fill();
+  // soft reflection on the marble
+  ctx.save();
+  ctx.globalAlpha *= 0.22;
+  const ref = ctx.createLinearGradient(g.x, foot + 6, g.x, foot + 28);
+  ref.addColorStop(0, g.drink.mid);
+  ref.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ref;
+  ctx.beginPath();
+  ctx.ellipse(g.x, foot + 16, outerHW(g, 0) * 0.72, 12, 0, 0, 6.3);
+  ctx.fill();
+  ctx.restore();
 
   // stem + foot
   if (g.stem > 2) {
@@ -1512,14 +1593,43 @@ function drawGlass(g, alpha) {
   bodyG.addColorStop(1, 'rgba(180,200,255,0.05)');
   ctx.fillStyle = bodyG;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-  ctx.lineWidth = 1.15;
+  ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+  ctx.lineWidth = 1.35;
+  ctx.stroke();
+  // thick base — a lens sitting on the bar
+  const baseY = bowlBottom(g);
+  const baseW = outerHW(g, 0) * 0.92;
+  ctx.beginPath();
+  ctx.ellipse(g.x, baseY, baseW, Math.max(5, 7 * g.scale), 0, 0, 6.3);
+  const baseG = ctx.createLinearGradient(g.x - baseW, baseY, g.x + baseW, baseY);
+  baseG.addColorStop(0, 'rgba(255,255,255,0.05)');
+  baseG.addColorStop(0.45, 'rgba(255,255,255,0.45)');
+  baseG.addColorStop(1, 'rgba(180,200,255,0.08)');
+  ctx.fillStyle = baseG;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 1.2;
   ctx.stroke();
 
   // interior + liquid
   ctx.save();
   traceBowl(ctx, g, function (t) { return innerHW(g, t); });
   ctx.clip();
+  // refraction — the bar, bent through the bowl
+  if (bgCanvas) {
+    ctx.save();
+    ctx.globalAlpha *= 0.55;
+    const midY = (rimY(g) + bowlBottom(g)) * 0.5;
+    const bw = outerHW(g, 0.5) * 2 + 30;
+    const bh = g.h + 24;
+    const sx = g.x - bw / 2;
+    const sy = rimY(g) - 8;
+    ctx.translate(g.x, midY);
+    ctx.scale(1.12, 1.05);
+    ctx.translate(-g.x + Math.sin(G.t * 0.6) * 3, -midY);
+    ctx.drawImage(bgCanvas, sx * DPR, sy * DPR, bw * DPR, bh * DPR, sx, sy, bw, bh);
+    ctx.restore();
+  }
   // empty interior shade
   const inn = ctx.createLinearGradient(0, rimY(g), 0, bowlBottom(g));
   inn.addColorStop(0, 'rgba(0,0,0,0.28)');
@@ -1547,12 +1657,31 @@ function drawGlass(g, alpha) {
     ctx.lineTo(surf[0].x, bowlBottom(g) + 8);
     ctx.closePath();
     const lg = ctx.createLinearGradient(0, surf[0].y, 0, bowlBottom(g));
-    lg.addColorStop(0, g.drink.lit);
-    lg.addColorStop(0.18, g.drink.mid);
-    lg.addColorStop(0.55, g.drink.mid);
-    lg.addColorStop(1, g.drink.deep);
+    lg.addColorStop(0, hexA(g.drink.lit, 0.92));
+    lg.addColorStop(0.16, g.drink.mid);
+    lg.addColorStop(0.48, g.drink.mid);
+    lg.addColorStop(0.82, g.drink.deep);
+    lg.addColorStop(1, '#050304');
+    ctx.save();
+    ctx.globalAlpha *= 0.92;
     ctx.fillStyle = lg;
     ctx.fill();
+    ctx.restore();
+    // volume: dark core and a backlight slit
+    ctx.save();
+    const core = ctx.createRadialGradient(g.x + innerHW(g, 0.4) * 0.15, lerp(surf[0].y, bowlBottom(g), 0.55), 4, g.x, lerp(surf[0].y, bowlBottom(g), 0.5), innerHW(g, 0.4));
+    core.addColorStop(0, 'rgba(0,0,0,0.28)');
+    core.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = core;
+    ctx.fillRect(g.x - 200, surf[0].y, 400, bowlBottom(g) - surf[0].y + 8);
+    ctx.globalCompositeOperation = 'lighter';
+    const slit = ctx.createLinearGradient(g.x - innerHW(g, 0.5), 0, g.x, 0);
+    slit.addColorStop(0, hexA(g.drink.lit, 0.0));
+    slit.addColorStop(0.45, hexA(g.drink.lit, 0.45));
+    slit.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = slit;
+    ctx.fillRect(g.x - innerHW(g, 0.5) - 4, surf[0].y, innerHW(g, 0.5), bowlBottom(g) - surf[0].y);
+    ctx.restore();
     // side transmission
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -1564,9 +1693,9 @@ function drawGlass(g, alpha) {
     ctx.fillStyle = side;
     ctx.fillRect(g.x - 200, surf[0].y - 8, 400, bowlBottom(g) - surf[0].y + 20);
     // caustics
-    for (let k = 0; k < 3; k++) {
-      const cx = g.x + Math.sin(G.t * 1.4 + k * 2) * innerHW(g, 0.15) * 0.35;
-      const cy = lerp(bowlBottom(g), surf[0].y, 0.18 + k * 0.12);
+    for (let k = 0; k < 4; k++) {
+      const cx = g.x + Math.sin(G.t * 1.6 + k * 1.7) * innerHW(g, 0.2) * 0.55;
+      const cy = lerp(bowlBottom(g), surf[0].y, 0.12 + (k % 5) * 0.14);
       const rg = ctx.createRadialGradient(cx, cy, 1, cx, cy, 10 + k * 6);
       rg.addColorStop(0, hexA(g.drink.caustic, 0.45));
       rg.addColorStop(1, hexA(g.drink.caustic, 0));
@@ -1623,6 +1752,10 @@ function drawGlass(g, alpha) {
       const rim = rimY(g);
       for (let i = 0; i < topPts.length; i++) if (topPts[i].y < rim + 2) topPts[i].y = rim + 2;
     }
+    for (let i = 0; i < topPts.length; i++) {
+      const n = Math.sin(i * 1.7 + G.t * 3.2 + g.rip) * (1.6 + (i % 3));
+      topPts[i].y -= 3.5 + Math.abs(n) * 0.9;
+    }
     ctx.beginPath();
     ctx.moveTo(botPts[0].x, botPts[0].y);
     for (let i = 1; i < botPts.length; i++) ctx.lineTo(botPts[i].x, botPts[i].y);
@@ -1678,19 +1811,26 @@ function drawGlass(g, alpha) {
     const b = bubbles[i];
     if (!b.alive || b.g !== g) continue;
     const p = bubbleXY(g, b);
+    const br = b.r * (0.65 + (b.z || 0.5) * 0.7);
+    const bx = p.x + ((b.z || 0) - 0.5) * 1.5;
+    ctx.save();
+    ctx.globalAlpha *= 0.4 + (b.z || 0.5) * 0.55;
     ctx.beginPath();
-    ctx.fillStyle = hexA(g.drink.bubble, 0.22);
-    ctx.arc(p.x, p.y, b.r, 0, 6.3);
+    ctx.fillStyle = hexA(g.drink.bubble, 0.28);
+    ctx.arc(bx, p.y, br, 0, 6.3);
     ctx.fill();
+    if (br > 1.7) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 0.6;
+      ctx.arc(bx, p.y, br, 0, 6.3);
+      ctx.stroke();
+    }
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 0.6;
-    ctx.arc(p.x, p.y, b.r, 0, 6.3);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.arc(p.x - b.r * 0.3, p.y - b.r * 0.3, Math.max(0.4, b.r * 0.28), 0, 6.3);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.arc(bx - br * 0.3, p.y - br * 0.3, Math.max(0.3, br * 0.22), 0, 6.3);
     ctx.fill();
+    ctx.restore();
   }
   // foam clinging to the inner lip as the head nears the rim
   const frac = glassFraction(g);
@@ -1808,8 +1948,16 @@ function drawGlass(g, alpha) {
     const x = g.x + d.u * outerHW(g, d.t) * 0.92;
     ctx.beginPath();
     ctx.fillStyle = 'rgba(255,255,255,0.28)';
-    ctx.ellipse(x, y, d.r * 0.7, d.r, 0, 0, 6.3);
+    ctx.ellipse(x, y, d.r * 0.7, d.r * (d.slide > 0.02 ? 1.8 : 1), 0, 0, 6.3);
     ctx.fill();
+    if (d.slide > 0.018) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y - d.r * 2.2);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
     ctx.beginPath();
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.arc(x - d.r * 0.2, y - d.r * 0.3, d.r * 0.25, 0, 6.3);
@@ -1860,6 +2008,46 @@ function drawGlass(g, alpha) {
     ctx.restore();
   }
 
+  // overflow running down the outside
+  if (g.spilled || g.overflowVis > 0.002) {
+    const lip = rimY(g);
+    const wet = g.spilled ? 1 : clamp(g.overflowVis * 8, 0, 1);
+    ctx.save();
+    ctx.globalAlpha *= 0.35 + wet * 0.5;
+    for (let s = -1; s <= 1; s += 2) {
+      const x0 = g.x + s * outerHW(g, 0.92);
+      ctx.beginPath();
+      ctx.moveTo(x0, lip + 4);
+      ctx.bezierCurveTo(
+        x0 + s * 6, lip + g.h * 0.25,
+        g.x + s * outerHW(g, 0.4), lip + g.h * 0.55,
+        g.x + s * outerHW(g, 0.15), bowlBottom(g)
+      );
+      ctx.strokeStyle = g.drink.mid;
+      ctx.lineWidth = 3.2 + wet * 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.strokeStyle = hexA(g.drink.lit, 0.8);
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if (G.flash > 0.05 && G.callout && G.callout.kind === 'perfect') {
+    const sweep = ((G.shimmer * 0.85) % 1.4) - 0.2;
+    ctx.save();
+    traceBowl(ctx, g, function (t) { return outerHW(g, t); });
+    ctx.clip();
+    const sy = lerp(bowlBottom(g), rimY(g) - 20, sweep);
+    const sg = ctx.createLinearGradient(g.x - 40, sy, g.x + 80, sy + 30);
+    sg.addColorStop(0, 'rgba(255,255,255,0)');
+    sg.addColorStop(0.5, 'rgba(255, 236, 180, 0.55)');
+    sg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(g.x - 80, sy, 160, 28);
+    ctx.restore();
+  }
+
   // mini percent on tower members
   if (G.serve && G.serve.glasses.length > 1 && G.hud && G.screen === 'play') {
     const pf = g.spilled ? 0 : shownPct(glassFraction(g));
@@ -1884,51 +2072,89 @@ function drawStream(g, from) {
   if (y1 <= y0 + 8) return;
   const drink = g.drink;
   ctx.save();
-  const grd = ctx.createLinearGradient(x0, y0, x1, y1);
-  grd.addColorStop(0, hexA(drink.lit, 0.15));
-  grd.addColorStop(0.15, hexA(drink.lit, 0.85));
-  grd.addColorStop(1, hexA(drink.mid, 0.95));
-  function sxAt(t) {
-    return lerp(x0, x1, t) + Math.sin(G.t * 22 - t * 14) * (0.5 + t * 1.8);
+  const segs = 16;
+  function sxAt(t, side) {
+    const twist = Math.sin(G.t * 9 - t * 11) * (1.1 + t * 2.4);
+    const wob = Math.sin(G.t * 17 - t * 8 + side) * (0.35 + t * 0.9);
+    return lerp(x0, x1, t) + twist + wob;
   }
+  function halfW(t) { return lerp(13.5, 4.6, t); }
   ctx.beginPath();
-  const segs = 12;
   for (let i = 0; i <= segs; i++) {
     const t = i / segs;
-    const w = lerp(3.4, 1.35, t);
-    const x = sxAt(t);
+    const x = sxAt(t, 0) - halfW(t);
     const y = lerp(y0, y1, t);
-    if (i === 0) ctx.moveTo(x - w, y);
-    else ctx.lineTo(x - w, y);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   for (let i = segs; i >= 0; i--) {
     const t = i / segs;
-    const w = lerp(3.4, 1.35, t);
-    ctx.lineTo(sxAt(t) + w, lerp(y0, y1, t));
+    ctx.lineTo(sxAt(t, 1.7) + halfW(t), lerp(y0, y1, t));
   }
   ctx.closePath();
+  const grd = ctx.createLinearGradient(x0, y0, x1, y1);
+  grd.addColorStop(0, hexA(drink.lit, 0.35));
+  grd.addColorStop(0.18, hexA(drink.lit, 0.72));
+  grd.addColorStop(0.7, hexA(drink.mid, 0.88));
+  grd.addColorStop(1, hexA(drink.deep, 0.92));
   ctx.fillStyle = grd;
   ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(sxAt(0), y0);
-  for (let i = 1; i <= segs; i++) ctx.lineTo(sxAt(i / segs), lerp(y0, y1, i / segs));
-  ctx.strokeStyle = 'rgba(255,255,255,0.82)';
-  ctx.lineWidth = 1.05;
+  ctx.strokeStyle = hexA(drink.deep, 0.85);
+  ctx.lineWidth = 2.2;
   ctx.stroke();
-  for (let i = 0; i < 5; i++) {
-    const t = (G.t * 0.85 + i * 0.19) % 1;
-    const x = sxAt(t) + Math.sin(i * 4 + G.t * 10) * 3;
+  // glossy core
+  ctx.beginPath();
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    const w = halfW(t) * 0.42;
+    const x = sxAt(t, 0.4) - w * 0.15;
+    const y = lerp(y0, y1, t);
+    if (i === 0) ctx.moveTo(x - w, y); else ctx.lineTo(x - w * 0.2, y);
+  }
+  for (let i = segs; i >= 0; i--) {
+    const t = i / segs;
+    const w = halfW(t) * 0.28;
+    ctx.lineTo(sxAt(t, 0.4) + w, lerp(y0, y1, t));
+  }
+  ctx.closePath();
+  ctx.fillStyle = hexA('#ffffff', 0.55);
+  ctx.fill();
+  // highlight streak
+  ctx.beginPath();
+  ctx.moveTo(sxAt(0, 0) - halfW(0) * 0.35, y0);
+  for (let i = 1; i <= segs; i++) {
+    const t = i / segs;
+    ctx.lineTo(sxAt(t, 0) - halfW(t) * 0.32, lerp(y0, y1, t));
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+  ctx.lineWidth = 1.7;
+  ctx.stroke();
+  // droplets peeling off the column
+  for (let i = 0; i < 7; i++) {
+    const t = (G.t * 0.72 + i * 0.13) % 1;
+    const side = i % 2 ? 1 : -1;
+    const x = sxAt(t, side) + side * (halfW(t) + 2 + Math.sin(i + G.t * 8) * 2);
     const y = lerp(y0, y1, t);
     ctx.beginPath();
-    ctx.fillStyle = hexA(drink.lit, 0.8);
-    ctx.arc(x, y, 1.3 + (i % 3) * 0.4, 0, 6.3);
+    ctx.fillStyle = hexA(i % 2 ? drink.lit : drink.mid, 0.85);
+    ctx.ellipse(x, y, 1.5 + (i % 3) * 0.55, 2.2 + (i % 3) * 0.4, side * 0.4, 0, 6.3);
     ctx.fill();
   }
-  ctx.strokeStyle = hexA(drink.foam, 0.8);
-  ctx.lineWidth = 1.3;
+  // froth crown where the column hits
+  const crown = 11 + Math.sin(G.t * 28) * 2.2;
   ctx.beginPath();
-  ctx.ellipse(x1, y1, 8 + Math.sin(G.t * 30) * 1.6, 3.4, 0, 0, 6.3);
+  ctx.ellipse(x1, y1, crown, 4.2, 0, 0, 6.3);
+  ctx.fillStyle = hexA(drink.foam, 0.55);
+  ctx.fill();
+  ctx.strokeStyle = hexA(drink.lit, 0.9);
+  ctx.lineWidth = 1.6;
   ctx.stroke();
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI + G.t * 6;
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.arc(x1 + Math.cos(a) * crown * 0.7, y1 - 1 + Math.sin(a) * 1.5, 1.1 + (i % 3) * 0.45, 0, 6.3);
+    ctx.fill();
+  }
   ctx.restore();
 }
 function drawFaucet(x, y) {
@@ -1993,9 +2219,10 @@ function drawWorldDrops() {
   ctx.globalAlpha = 1;
 }
 function drawVignette() {
-  const tight = G.timeScale < 0.75 ? 0.62 : 0.45;
+  const tight = G.timeScale < 0.75 ? 0.7 : 0.52;
   const v = ctx.createRadialGradient(W / 2, H * 0.42, W * 0.16, W / 2, H * 0.48, W * 0.86);
   v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(0.62, 'rgba(0,0,0,0.05)');
   v.addColorStop(1, 'rgba(0,0,0,' + tight + ')');
   ctx.fillStyle = v;
   ctx.fillRect(0, 0, W, H);
@@ -2008,8 +2235,8 @@ function drawShaft(g) {
   ctx.save();
   const grd = ctx.createLinearGradient(g.x, y0, g.x, y1);
   grd.addColorStop(0, 'rgba(255, 214, 170, 0.0)');
-  grd.addColorStop(0.2, 'rgba(255, 206, 160, 0.07)');
-  grd.addColorStop(1, hexA(g.drink.caustic, 0.05));
+  grd.addColorStop(0.2, 'rgba(255, 206, 160, 0.12)');
+  grd.addColorStop(1, hexA(g.drink.caustic, 0.09));
   ctx.fillStyle = grd;
   ctx.beginPath();
   ctx.moveTo(g.x - 18, y0);
@@ -2023,7 +2250,7 @@ function drawShaft(g) {
 function drawGrain() {
   if (!noiseCanvas) return;
   ctx.save();
-  ctx.globalAlpha = 0.055;
+  ctx.globalAlpha = 0.08;
   ctx.globalCompositeOperation = 'overlay';
   const pat = ctx.createPattern(noiseCanvas, 'repeat');
   ctx.fillStyle = pat;
@@ -2043,8 +2270,13 @@ function hitButton(x, y) {
 }
 function drawButton(b) {
   const pressed = G.pressed === b.id;
-  const y = b.y + (pressed ? 2 : 0);
+  const y = b.y + (pressed ? 3 : 0);
   ctx.save();
+  if (pressed) {
+    ctx.translate(b.x + b.w / 2, y + b.h / 2);
+    ctx.scale(0.985, 0.96);
+    ctx.translate(-(b.x + b.w / 2), -(y + b.h / 2));
+  }
   // shadow
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   rrect(ctx, b.x, y + 5, b.w, b.h, b.r || 16);
@@ -2173,6 +2405,17 @@ function drawWordmark(x, y, size) {
   grd.addColorStop(1, '#c4924e');
   ctx.fillStyle = grd;
   ctx.fillText('FIZZ', x, y);
+  // moving shine
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const shine = ((G.t * 0.35) % 1.6) - 0.3;
+  const sg = ctx.createLinearGradient(x - size + shine * size * 2, y - size, x - size + shine * size * 2 + size * 0.35, y + size);
+  sg.addColorStop(0, 'rgba(255,255,255,0)');
+  sg.addColorStop(0.5, 'rgba(255,255,255,0.55)');
+  sg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sg;
+  ctx.fillText('FIZZ', x, y);
+  ctx.restore();
   ctx.letterSpacing = '0px';
   ctx.restore();
 }
@@ -2391,8 +2634,13 @@ function drawTitle() {
   ensureDemo();
   const m = titleMetrics();
   const cx = m.cx;
-  drawSeal(cx, m.sealY, 20);
-  drawWordmark(cx, m.wordY, Math.min(64, W * 0.17));
+  const halo = ctx.createRadialGradient(cx, m.wordY, 8, cx, m.wordY, 120);
+  halo.addColorStop(0, 'rgba(255, 210, 150, 0.18)');
+  halo.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = halo;
+  ctx.fillRect(cx - 140, m.wordY - 70, 280, 140);
+  drawSeal(cx, m.sealY, 22);
+  drawWordmark(cx, m.wordY, Math.min(72, W * 0.2));
   // brass rule under the wordmark
   ctx.save();
   const ruleY = m.wordY + 28;
@@ -2631,9 +2879,27 @@ function render() {
     drawFaucet(G.demo.x - 8, G.faucetY || rimY(G.demo) - 100);
   }
   drawWorldDrops();
+  // dust in the spotlight
+  ctx.save();
+  for (let i = 0; i < motes.length; i++) {
+    const m = motes[i];
+    ctx.globalAlpha = m.a;
+    ctx.fillStyle = '#ffe6c4';
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r, 0, 6.3);
+    ctx.fill();
+  }
+  ctx.restore();
   ctx.restore();
 
   drawVignette();
+  if (G.flash > 0.02) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(255, 214, 140,' + (G.flash * 0.42) + ')';
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
   drawGrain();
 
   if (G.screen === 'title') drawTitle();
